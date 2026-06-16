@@ -1,0 +1,81 @@
+:root {
+  --bg: #f8fbff;
+  --surface: #ffffff;
+  --surface-soft: #f5f8fd;
+  --line: #e3eaf3;
+  --line-strong: #d5deeb;
+  --text: #0f172a;
+  --muted: #64748b;
+  --muted-2: #94a3b8;
+  --blue: #2474f2;
+  --blue-2: #0f66e9;
+  --blue-soft: #eaf2ff;
+  --green: #079455;
+  --green-soft: #e7f8f0;
+  --red: #f04438;
+  --red-soft: #fff0ef;
+  --purple: #8b5cf6;
+  --purple-soft: #f2edff;
+  --orange: #f79009;
+  --orange-soft: #fff3df;
+  --cyan: #0ea5e9;
+  --cyan-soft: #e8f7ff;
+  --shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  --radius: 8px;
+  --sidebar: 282px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 72% 0%, rgba(36, 116, 242, 0.05), transparent 24rem),
+    linear-gradient(180deg, #fbfdff 0%, var(--bg) 100%);
+  font-family:
+    Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+svg {
+  display: block;
+}
+
+.tiny svg,
+.panel-title svg,
+.text-blue > svg,
+.text-orange > svg,
+.text-red > svg,
+.text-green > svg,
+.muted > svg,
+td svg,
+.field-label svg {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  vertical-align: -3px;
+}

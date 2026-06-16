@@ -1,0 +1,418 @@
+@media (max-width: 1380px) {
+  .metric-grid.five {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .performance-grid,
+  .stock-layout,
+  .memo-layout,
+  .calendar-layout,
+  .write-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .toolbar {
+    grid-template-columns: repeat(3, minmax(160px, 1fr));
+  }
+
+  .memo-toolbar {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+
+  .journal-filter-toolbar {
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 1180px) {
+  :root {
+    --sidebar: 244px;
+  }
+
+  .brand {
+    font-size: 20px;
+  }
+
+  .metric-grid,
+  .metric-grid.three,
+  .metric-grid.five,
+  .dashboard-grid,
+  .bottom-grid,
+  .journal-layout,
+  .asset-grid,
+  .asset-mid-grid,
+  .performance-lower,
+  .form-section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar,
+  .memo-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .journal-filter-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .form-grid,
+  .form-grid.three,
+  .form-grid.two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+    padding: 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .brand {
+    padding: 0 2px 12px;
+    font-size: 19px;
+  }
+
+  .nav-list {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .nav-link {
+    min-width: max-content;
+    min-height: 42px;
+    padding: 0 12px;
+  }
+
+  .nav-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .logout {
+    display: none;
+  }
+
+  .main {
+    padding: 18px 14px 28px;
+  }
+
+  .topbar {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-size: 25px;
+  }
+
+  .page-description {
+    font-size: 14px;
+  }
+
+  .metric-card {
+    min-height: 118px;
+    padding: 18px 20px;
+  }
+
+  .metric-value {
+    font-size: clamp(21px, 5vw, 24px);
+  }
+
+  .metric-icon {
+    width: 46px;
+    height: 46px;
+    flex-basis: 46px;
+  }
+
+  .dashboard-metric {
+    min-height: 128px;
+    gap: 18px;
+    padding: 18px 20px;
+  }
+
+  .dashboard-metric .metric-icon {
+    width: 24px;
+    height: 24px;
+    flex-basis: 24px;
+  }
+
+  .dashboard-metric .metric-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .toolbar,
+  .memo-toolbar,
+  .stock-search-toolbar,
+  .journal-filter-toolbar,
+  .settings-grid,
+  .form-grid,
+  .form-grid.three,
+  .form-grid.two,
+  .donut-row,
+  .profile,
+  .stock-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .memo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-grid {
+    grid-template-columns: repeat(7, minmax(54px, 1fr));
+  }
+
+  .topbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .calendar-head {
+    height: 36px;
+  }
+
+  .calendar-cell {
+    min-height: 76px;
+    padding: 7px;
+  }
+
+  .day-profit {
+    font-size: 11px;
+  }
+
+  .day-dots {
+    margin-top: 5px;
+  }
+
+  .date-num {
+    width: 23px;
+    height: 23px;
+    font-size: 14px;
+  }
+
+  .price-block {
+    text-align: left;
+  }
+
+  .watchlist-panel {
+    min-height: 0;
+  }
+
+  .write-actions,
+  .danger-zone {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-backdrop {
+    padding: 0;
+  }
+
+  .modal-panel {
+    width: 100vw;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+    border: 0;
+  }
+
+  .modal-header {
+    padding: 16px;
+  }
+
+  .modal-title {
+    font-size: 22px;
+  }
+
+  .modal-body {
+    padding: 14px;
+  }
+
+  .journal-write-modal .modal-body {
+    padding: 0;
+  }
+
+  .journal-entry-content {
+    padding: 24px 18px 16px;
+  }
+
+  .journal-entry-title {
+    margin-bottom: 22px;
+    font-size: 23px;
+  }
+
+  .journal-entry-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 15px;
+  }
+
+  .journal-entry-row > label,
+  .journal-entry-row > span {
+    font-size: 14px;
+  }
+
+  .holding-box div {
+    gap: 12px;
+    grid-template-columns: 1fr;
+  }
+
+  .holding-box span,
+  .holding-box span + span {
+    padding: 0;
+    border-left: 0;
+  }
+
+  .journal-entry-actions {
+    grid-template-columns: 1fr 1fr;
+    padding: 14px 18px;
+  }
+}
+
+@media (max-width: 560px) {
+  body {
+    font-size: 13px;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .page-actions {
+    order: 3;
+    width: 100%;
+  }
+
+  .page-actions:empty {
+    display: none;
+  }
+
+  .metric-grid,
+  .metric-grid.three,
+  .metric-grid.five {
+    gap: 12px;
+  }
+
+  .dashboard-metric .metric-value {
+    font-size: clamp(24px, 6.2vw, 28px);
+    font-weight: 650;
+  }
+
+  .page-summary-metric,
+  .journal-summary-metric {
+    gap: 12px;
+  }
+
+  .page-summary-metric .metric-sub,
+  .journal-summary-metric .metric-sub {
+    font-size: 13px;
+  }
+
+  .panel-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-actions,
+  .segmented,
+  .write-actions {
+    width: 100%;
+  }
+
+  .segmented {
+    overflow-x: auto;
+  }
+
+  .btn {
+    white-space: normal;
+    text-align: center;
+  }
+
+  .page-actions .btn,
+  .write-actions .btn,
+  .toolbar > .btn {
+    width: 100%;
+  }
+
+  .donut {
+    width: 190px;
+    height: 190px;
+  }
+
+  .dashboard-portfolio {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .dashboard-portfolio .donut {
+    width: 190px;
+    height: 190px;
+  }
+
+  .donut .donut-center {
+    inset: 42px;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .calendar-head {
+    font-size: 12px;
+  }
+
+  .calendar-cell {
+    min-height: 64px;
+    padding: 5px;
+  }
+
+  .day-profit {
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .date-num {
+    width: 23px;
+    height: 23px;
+    font-size: 13px;
+  }
+
+  .calendar-top {
+    flex-wrap: wrap;
+  }
+
+  .month-title {
+    min-width: 116px;
+    font-size: 19px;
+  }
+
+  .chart {
+    height: 220px;
+  }
+}
