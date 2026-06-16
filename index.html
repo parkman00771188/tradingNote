@@ -22,6 +22,14 @@
           </span>
           <span>주식 매매 일지</span>
         </a>
+        <div class="mobile-top-actions" aria-label="모바일 빠른 메뉴">
+          <button class="mobile-icon-button" type="button" aria-label="알림">
+            <span data-icon="bell"></span>
+          </button>
+          <button class="mobile-icon-button soft" type="button" data-mobile-more aria-label="내 정보">
+            <span data-icon="user"></span>
+          </button>
+        </div>
         <nav class="nav-list" id="navList"></nav>
         <button class="logout" type="button">
           <span data-icon="logout"></span>
@@ -46,6 +54,7 @@
     </div>
 
     <div id="modalRoot"></div>
+    <div id="mobileSheetRoot"></div>
 
     <script defer src="src/js/core/icons.js"></script>
     <script defer src="src/js/core/data.js"></script>

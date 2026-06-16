@@ -66,7 +66,9 @@ function tag(text, tone = "") {
 
 function renderNav(currentRoute) {
   const nav = document.querySelector("#navList");
-  nav.innerHTML = navItems
+  const mobileMoreActive = ["memo", "calendar", "settings", "performance"].includes(currentRoute);
+  nav.innerHTML =
+    navItems
     .map((item) => {
       const active = currentRoute === item.id || (currentRoute === "journalWrite" && item.id === "journal");
       return `
@@ -76,17 +78,26 @@ function renderNav(currentRoute) {
         </button>
       `;
     })
-    .join("");
+    .join("") +
+    `
+      <button class="nav-link mobile-more-tab ${mobileMoreActive ? "active" : ""}" type="button" data-mobile-more>
+        <span class="nav-icon">${icon("more")}</span>
+        <span>더보기</span>
+      </button>
+    `;
 }
 
 function renderPageActions(route) {
   const actions = document.querySelector("#pageActions");
   const actionMap = {
+    dashboard: `<span class="mobile-date-pill">${icon("calendar")}2024.06.20 (목)</span>`,
     journal: `<button class="btn primary" type="button" data-modal="journalWrite">${icon("edit")}매매 기록 작성</button>`,
     journalWrite: `<button class="btn ghost" type="button" data-route="journal">${icon("chevronLeft")}목록으로</button>`,
     memo: `<button class="btn primary" type="button">${icon("plus")}새 메모 작성</button>`,
     stock: `<button class="btn ghost" type="button">${icon("download")}리포트 다운로드</button>`,
     performance: `<button class="btn" type="button">${icon("calendar")}전체 기간</button>`,
+    assets: `<span class="mobile-date-pill">${icon("calendar")}2024.06.20 (목)</span>`,
+    calendar: "",
     settings: ""
   };
   actions.innerHTML = actionMap[route] || "";

@@ -7,6 +7,10 @@ function escapeChartText(value) {
     .replace(/\n/g, "&#10;");
 }
 
+function isCompactChart() {
+  return typeof window !== "undefined" && window.innerWidth <= 560;
+}
+
 function lineChart({
   primary,
   secondary,
@@ -25,10 +29,11 @@ function lineChart({
   tertiaryColor = "#2aa7a1",
   tooltipLabels = []
 }) {
-  const width = 760;
-  const height = 270;
-  const left = 54;
-  const right = 64;
+  const compact = isCompactChart();
+  const width = compact ? 430 : 760;
+  const height = compact ? 255 : 270;
+  const left = compact ? 62 : 72;
+  const right = compact ? 58 : 64;
   const top = 22;
   const bottom = 36;
   const innerW = width - left - right;
@@ -43,7 +48,7 @@ function lineChart({
   const xLabels = labels
     .map((label, index) => {
       const x = left + (index / (labels.length - 1)) * innerW;
-      return `<text x="${x}" y="${height - 8}" fill="#64748b" font-size="12" text-anchor="middle">${label}</text>`;
+      return `<text x="${x}" y="${height - 8}" fill="#64748b" font-size="${compact ? 11 : 12}" text-anchor="middle">${label}</text>`;
     })
     .join("");
   const formatTooltipValue = (value) => `${Number(value).toLocaleString()}${unit}`;
@@ -77,7 +82,7 @@ function lineChart({
             const y = scaleY(tick);
             return `
               <line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="#dfe7f1" stroke-dasharray="4 5"/>
-              <text x="${left - 12}" y="${y + 4}" fill="#64748b" font-size="12" text-anchor="end">${Math.round(tick).toLocaleString()}${unit}</text>
+              <text x="${left - 10}" y="${y + 4}" fill="#64748b" font-size="${compact ? 11 : 12}" text-anchor="end">${Math.round(tick).toLocaleString()}${unit}</text>
             `;
           })
           .join("")}
@@ -112,17 +117,18 @@ function lineChart({
 }
 
 function barChart(values, labels, max = 1500, min = -1000) {
-  const width = 560;
-  const height = 260;
-  const left = 58;
-  const right = 24;
+  const compact = isCompactChart();
+  const width = compact ? 420 : 560;
+  const height = compact ? 250 : 260;
+  const left = compact ? 48 : 58;
+  const right = compact ? 18 : 24;
   const top = 24;
   const bottom = 36;
   const innerW = width - left - right;
   const innerH = height - top - bottom;
   const y = (value) => top + ((max - value) / (max - min)) * innerH;
   const zeroY = y(0);
-  const barW = 18;
+  const barW = compact ? 16 : 18;
   const ticks = [1500, 1000, 500, 0, -500, -1000];
   return `
     <div class="chart">
@@ -131,14 +137,14 @@ function barChart(values, labels, max = 1500, min = -1000) {
           .map(
             (tick) => `
               <line x1="${left}" y1="${y(tick)}" x2="${width - right}" y2="${y(tick)}" stroke="#dfe7f1" stroke-dasharray="4 5"/>
-              <text x="${left - 12}" y="${y(tick) + 4}" fill="#64748b" font-size="12" text-anchor="end">${tick.toLocaleString()}</text>
+              <text x="${left - 10}" y="${y(tick) + 4}" fill="#64748b" font-size="${compact ? 11 : 12}" text-anchor="end">${tick.toLocaleString()}</text>
             `
           )
           .join("")}
         <line x1="${left}" y1="${zeroY}" x2="${width - right}" y2="${zeroY}" stroke="#cbd5e1"/>
         ${values
           .map((value, index) => {
-            const x = left + 38 + index * (innerW / values.length);
+            const x = left + (compact ? 24 : 38) + index * (innerW / values.length);
             const barY = value >= 0 ? y(value) : zeroY;
             const h = Math.abs(y(value) - zeroY);
             const fill = value >= 0 ? "#2474f2" : "#f04438";
@@ -147,7 +153,7 @@ function barChart(values, labels, max = 1500, min = -1000) {
               <rect x="${x}" y="${barY}" width="${barW}" height="${h}" rx="3" fill="${fill}" data-chart-tooltip="${escapeChartText(tooltip)}">
                 <title>${escapeChartText(tooltip)}</title>
               </rect>
-              <text x="${x + barW / 2}" y="${height - 9}" fill="#475569" font-size="12" text-anchor="middle">${labels[index]}</text>
+              <text x="${x + barW / 2}" y="${height - 9}" fill="#475569" font-size="${compact ? 11 : 12}" text-anchor="middle">${labels[index]}</text>
             `;
           })
           .join("")}
@@ -236,14 +242,15 @@ function donutChart(segments, center, small = false) {
 }
 
 function candleChart() {
-  const width = 900;
-  const height = 320;
-  const left = 46;
-  const right = 18;
-  const top = 20;
-  const bottom = 42;
-  const candleArea = 220;
-  const prices = [
+  const compact = isCompactChart();
+  const width = compact ? 420 : 900;
+  const height = compact ? 300 : 320;
+  const left = compact ? 42 : 46;
+  const right = compact ? 14 : 18;
+  const top = compact ? 18 : 20;
+  const bottom = compact ? 38 : 42;
+  const candleArea = compact ? 205 : 220;
+  const rawPrices = [
     [62500, 64200, 61700, 63800],
     [63800, 65300, 63200, 64800],
     [64800, 66600, 64500, 66200],
@@ -284,6 +291,7 @@ function candleChart() {
     [78900, 80200, 77000, 77300],
     [77300, 79000, 76200, 78100]
   ];
+  const prices = compact ? rawPrices.slice(-32) : rawPrices;
   const min = 60000;
   const max = 86000;
   const sx = (i) => left + (i / (prices.length - 1)) * (width - left - right);
@@ -303,7 +311,7 @@ function candleChart() {
           .map(
             (tick) => `
               <line x1="${left}" y1="${sy(tick)}" x2="${width - right}" y2="${sy(tick)}" stroke="#e3eaf3" stroke-dasharray="4 5"/>
-              <text x="${left - 8}" y="${sy(tick) + 4}" fill="#64748b" font-size="12" text-anchor="end">${tick.toLocaleString()}</text>
+              <text x="${left - 7}" y="${sy(tick) + 4}" fill="#64748b" font-size="${compact ? 10 : 12}" text-anchor="end">${tick.toLocaleString()}</text>
             `
           )
           .join("")}
@@ -314,26 +322,28 @@ function candleChart() {
             const color = up ? "#2474f2" : "#f04438";
             const yTop = Math.min(sy(open), sy(close));
             const bodyH = Math.max(4, Math.abs(sy(open) - sy(close)));
+            const bodyW = compact ? 5 : 8;
             return `
-              <line x1="${x}" y1="${sy(high)}" x2="${x}" y2="${sy(low)}" stroke="${color}" stroke-width="1.6"/>
-              <rect x="${x - 4}" y="${yTop}" width="8" height="${bodyH}" rx="1.5" fill="${color}"/>
+              <line x1="${x}" y1="${sy(high)}" x2="${x}" y2="${sy(low)}" stroke="${color}" stroke-width="${compact ? 1.25 : 1.6}"/>
+              <rect x="${x - bodyW / 2}" y="${yTop}" width="${bodyW}" height="${bodyH}" rx="1.5" fill="${color}"/>
             `;
           })
           .join("")}
-        <path d="${pathFor(ma(5))}" fill="none" stroke="#ef4444" stroke-width="1.4" opacity=".65"/>
-        <path d="${pathFor(ma(20))}" fill="none" stroke="#22c55e" stroke-width="1.4" opacity=".65"/>
+        <path d="${pathFor(ma(5))}" fill="none" stroke="#ef4444" stroke-width="${compact ? 1.2 : 1.4}" opacity=".65"/>
+        <path d="${pathFor(ma(20))}" fill="none" stroke="#22c55e" stroke-width="${compact ? 1.2 : 1.4}" opacity=".65"/>
         ${volumes
           .map((v, i) => {
             const x = sx(i);
-            const h = Math.min(42, v);
+            const h = Math.min(compact ? 34 : 42, v);
             const up = prices[i][3] >= prices[i][0];
-            return `<rect x="${x - 4}" y="${height - bottom - h + 28}" width="8" height="${h}" rx="1" fill="${up ? "#8bbcff" : "#ff9b9b"}" opacity=".85"/>`;
+            const bodyW = compact ? 5 : 8;
+            return `<rect x="${x - bodyW / 2}" y="${height - bottom - h + (compact ? 24 : 28)}" width="${bodyW}" height="${h}" rx="1" fill="${up ? "#8bbcff" : "#ff9b9b"}" opacity=".85"/>`;
           })
           .join("")}
-        <text x="${left}" y="${height - 5}" fill="#64748b" font-size="12">02/19</text>
-        <text x="${width * 0.35}" y="${height - 5}" fill="#64748b" font-size="12" text-anchor="middle">04/01</text>
-        <text x="${width * 0.62}" y="${height - 5}" fill="#64748b" font-size="12" text-anchor="middle">05/13</text>
-        <text x="${width - right}" y="${height - 5}" fill="#64748b" font-size="12" text-anchor="end">06/10</text>
+        <text x="${left}" y="${height - 5}" fill="#64748b" font-size="${compact ? 10 : 12}">${compact ? "04/01" : "02/19"}</text>
+        <text x="${width * 0.35}" y="${height - 5}" fill="#64748b" font-size="${compact ? 10 : 12}" text-anchor="middle">${compact ? "05/01" : "04/01"}</text>
+        <text x="${width * 0.62}" y="${height - 5}" fill="#64748b" font-size="${compact ? 10 : 12}" text-anchor="middle">${compact ? "05/20" : "05/13"}</text>
+        <text x="${width - right}" y="${height - 5}" fill="#64748b" font-size="${compact ? 10 : 12}" text-anchor="end">06/10</text>
       </svg>
     </div>
   `;

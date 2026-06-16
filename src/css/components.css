@@ -237,6 +237,16 @@
   min-width: 0;
 }
 
+.mobile-top-actions,
+.mobile-date-pill,
+.mobile-filter-card,
+.mobile-trade-list,
+.mobile-calendar-page,
+.mobile-more-tab,
+#mobileSheetRoot {
+  display: none;
+}
+
 .segmented {
   display: inline-flex;
   align-items: center;

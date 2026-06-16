@@ -11,6 +11,7 @@ const renderers = {
 };
 
 var activeModal = null;
+var mobileSheetOpen = false;
 var chartTooltip = null;
 
 function getChartTooltip() {
@@ -71,9 +72,70 @@ function renderModal() {
   `;
 }
 
+function renderMobileSheet() {
+  const sheetRoot = document.querySelector("#mobileSheetRoot");
+  if (!sheetRoot) return;
+
+  if (!mobileSheetOpen) {
+    sheetRoot.innerHTML = "";
+    if (!activeModal && document.body) document.body.classList.remove("modal-open");
+    return;
+  }
+
+  if (document.body) document.body.classList.add("modal-open");
+  const quickItems = [
+    ["dashboard", "home", "대시보드"],
+    ["journal", "journal", "매매일지"],
+    ["stock", "chart", "종목 분석"],
+    ["assets", "wallet", "자산 현황"],
+    ["memo", "memo", "메모"],
+    ["calendar", "calendar", "캘린더"],
+    ["settings", "settings", "설정"],
+    ["performance", "performance", "리포트"]
+  ];
+  const supportItems = [
+    ["tag", "태그 관리"],
+    ["cloud", "데이터 백업"],
+    ["report", "리포트"],
+    ["headset", "고객센터"]
+  ];
+
+  sheetRoot.innerHTML = `
+    <div class="mobile-sheet-backdrop" data-mobile-sheet-close>
+      <section class="mobile-more-sheet" role="dialog" aria-modal="true" aria-label="더보기 메뉴">
+        <button class="mobile-sheet-close" type="button" data-mobile-sheet-close aria-label="닫기">X</button>
+        <div class="mobile-profile-row">
+          <span class="mobile-profile-avatar">${icon("user")}</span>
+          <div>
+            <strong>투자자</strong>
+            <p>investor@example.com</p>
+          </div>
+          <button class="btn ghost" type="button">내 정보</button>
+        </div>
+        <div class="mobile-more-grid">
+          ${quickItems.map(([route, iconName, label]) => `
+            <button type="button" data-route="${route}">
+              <span>${icon(iconName)}</span>
+              <strong>${label}</strong>
+            </button>
+          `).join("")}
+          ${supportItems.map(([iconName, label]) => `
+            <button type="button">
+              <span>${icon(iconName)}</span>
+              <strong>${label}</strong>
+            </button>
+          `).join("")}
+        </div>
+        <button class="mobile-logout" type="button">${icon("logout")}로그아웃</button>
+      </section>
+    </div>
+  `;
+}
+
 function render() {
   const route = getRoute();
   const meta = pageMeta[route];
+  document.body.dataset.route = route;
   document.querySelector("#pageTitle").textContent = meta.title;
   document.querySelector("#pageDescription").textContent = meta.description;
   document.querySelector("#pageEyebrow").textContent = route === "journalWrite" ? "New Record" : "Trading Journal";
@@ -81,6 +143,7 @@ function render() {
   renderPageActions(route);
   document.querySelector("#app").innerHTML = renderers[route]();
   renderModal();
+  renderMobileSheet();
   hydrateIcons(document);
 }
 
@@ -90,6 +153,21 @@ document.addEventListener("click", (event) => {
     activeModal = modalButton.dataset.modal;
     renderModal();
     hydrateIcons(document);
+    return;
+  }
+
+  const mobileMoreButton = event.target.closest("[data-mobile-more]");
+  if (mobileMoreButton) {
+    mobileSheetOpen = true;
+    renderMobileSheet();
+    hydrateIcons(document);
+    return;
+  }
+
+  const mobileSheetClose = event.target.closest(".mobile-sheet-close") || event.target.matches(".mobile-sheet-backdrop");
+  if (mobileSheetClose) {
+    mobileSheetOpen = false;
+    renderMobileSheet();
     return;
   }
 
@@ -127,6 +205,7 @@ document.addEventListener("click", (event) => {
     const route = routeButton.dataset.route;
     if (renderers[route]) {
       activeModal = null;
+      mobileSheetOpen = false;
       window.location.hash = route;
       if (getRoute() === route) render();
     }
@@ -181,6 +260,10 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && activeModal) {
     activeModal = null;
     renderModal();
+  }
+  if (event.key === "Escape" && mobileSheetOpen) {
+    mobileSheetOpen = false;
+    renderMobileSheet();
   }
 });
 

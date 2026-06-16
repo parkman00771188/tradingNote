@@ -1,4 +1,12 @@
 function renderCalendar() {
+  const mobileCalendarDays = [
+    ["26", "+50K", "red", true], ["27", "-26K", "blue", true], ["28", "+15K", "red", true], ["29", "-30K", "blue", true], ["30", "+65K", "red", true], ["31", "-8K", "blue", true], ["1", "0", "", false],
+    ["2", "-110K", "blue", false], ["3", "+120K", "red", false], ["4", "+320K", "red", false], ["5", "+85K", "", false], ["6", "-210K", "blue", false], ["7", "+60K", "red", false], ["8", "0", "", false],
+    ["9", "-75K", "blue", false], ["10", "+160K", "red", false], ["11", "-180K", "blue", false], ["12", "+240K", "red", false], ["13", "-90K", "blue", false], ["14", "+70K", "red", false], ["15", "0", "", false],
+    ["16", "+520K", "red", false], ["17", "-230K", "blue", false], ["18", "+65K", "red", false], ["19", "-90K", "blue", false], ["20", "+125K", "red", false, true], ["21", "+90K", "red", false], ["22", "0", "", false],
+    ["23", "0", "red", false], ["24", "0", "", false], ["25", "0", "", false], ["26", "0", "", false], ["27", "0", "", false], ["28", "0", "", false], ["29", "0", "", false],
+    ["30", "", "red", false], ["1", "", "", true], ["2", "", "", true], ["3", "", "", true], ["4", "", "", true], ["5", "", "", true], ["6", "", "", true]
+  ];
   const days = [
     ["26", "", "", true], ["27", "", "", true], ["28", "", "", true], ["29", "", "", true], ["30", "", "", true], ["31", "", "", true], ["1", "", "", false],
     ["2", "-120,000원", "rr", false], ["3", "+320,000원", "bbb", false], ["4", "+85,000원", "b", false], ["5", "-210,000원", "rrr", false], ["6", "현충일", "", false], ["7", "+450,000원", "bbb", false], ["8", "", "", false],
@@ -8,7 +16,44 @@ function renderCalendar() {
     ["30", "", "", false], ["1", "", "", true], ["2", "", "", true], ["3", "", "", true], ["4", "", "", true], ["5", "", "", true], ["6", "", "", true]
   ];
   return `
-    <div class="calendar-layout">
+    <div class="mobile-calendar-page">
+      <div class="mobile-month-nav">
+        <button type="button">${icon("chevronLeft")}</button>
+        <h2>2024년 6월</h2>
+        <button type="button">${icon("chevronRight")}</button>
+      </div>
+      <section class="mobile-calendar-card">
+        ${["일", "월", "화", "수", "목", "금", "토"].map((day, index) => `<strong class="${index === 0 ? "text-red" : index === 6 ? "text-blue" : ""}">${day}</strong>`).join("")}
+        ${mobileCalendarDays.map(([date, amount, tone, muted, selected], index) => `
+          <div class="${muted ? "muted" : ""} ${index % 7 === 0 ? "sunday" : ""} ${selected ? "selected" : ""}">
+            <span>${date}</span>
+            <em class="${tone === "red" ? "text-red" : tone === "blue" ? "text-blue" : ""}">${amount}</em>
+          </div>
+        `).join("")}
+      </section>
+      <section class="panel mobile-month-summary">
+        <h2 class="panel-title">이번 달 요약</h2>
+        <div>
+          <span><em>총 수익</em><strong class="text-red">+2,450,000원</strong></span>
+          <span><em>총 손실</em><strong class="text-blue">-1,335,000원</strong></span>
+          <span><em>순수익</em><strong class="text-red">+1,115,000원</strong></span>
+          <span><em>거래일 수</em><strong>14일</strong></span>
+          <span><em>승률</em><strong>64.3%</strong></span>
+        </div>
+      </section>
+      <section class="panel mobile-event-list">
+        <div class="panel-header"><h2 class="panel-title">예정 이벤트</h2><button class="btn ghost" type="button">더보기</button></div>
+        ${[
+          ["06/25 (화)", "엔비디아 (NVDA) 실적 발표"],
+          ["06/27 (목)", "나이키 (NKE) 실적 발표"],
+          ["06/28 (금)", "개인소비지출 (PCE) 발표"]
+        ].map(([date, title]) => `
+          <div class="mobile-event-row"><span>${icon("calendar")}</span><div><em>${date}</em><strong>${title}</strong></div>${icon("chevronRight")}</div>
+        `).join("")}
+      </section>
+    </div>
+
+    <div class="calendar-layout desktop-calendar-layout">
       <div class="stack">
         <div class="calendar-top">
           <button class="icon-button" type="button">${icon("chevronLeft")}</button>

@@ -24,10 +24,15 @@ const icons = {
   eye: '<svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="3"/></svg>',
   upload: '<svg viewBox="0 0 24 24"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>',
   bell: '<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>',
+  user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.2-6 8-6s6.5 2 8 6"/></svg>',
   shield: '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>',
   trash: '<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 15h10l1-15"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
   info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 10v6"/><path d="M12 7h.01"/></svg>',
   coin: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>',
   balance: '<svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M6 7l-3 7h6Z"/><path d="M18 7l-3 7h6Z"/></svg>',
-  warning: '<svg viewBox="0 0 24 24"><path d="m12 3 10 18H2Z"/><path d="M12 9v5"/><path d="M12 17h.01"/></svg>'
+  warning: '<svg viewBox="0 0 24 24"><path d="m12 3 10 18H2Z"/><path d="M12 9v5"/><path d="M12 17h.01"/></svg>',
+  tag: '<svg viewBox="0 0 24 24"><path d="M20 12 12 20 4 12V4h8Z"/><path d="M8 8h.01"/></svg>',
+  cloud: '<svg viewBox="0 0 24 24"><path d="M17 18a5 5 0 0 0 0-10 7 7 0 0 0-13 3.5A3.5 3.5 0 0 0 4.5 18H17Z"/><path d="M12 12v8"/><path d="m8 16 4-4 4 4"/></svg>',
+  report: '<svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6Z"/><path d="M15 3v4h4"/><path d="M9 17h6"/><path d="M9 13h2"/><path d="M13 13h2"/></svg>',
+  headset: '<svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v4a2 2 0 0 0 2 2h2v-6H6a2 2 0 0 0-2 2"/><path d="M20 13v4a2 2 0 0 1-2 2h-2v-6h2a2 2 0 0 1 2 2"/><path d="M16 19c0 1.1-1.8 2-4 2"/></svg>'
 };
