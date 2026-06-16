@@ -277,6 +277,15 @@
     grid-template-columns: 1fr;
   }
 
+  .cash-balance-box {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .cash-balance-box button {
+    justify-self: start;
+  }
+
   .holding-box span,
   .holding-box span + span {
     padding: 0;

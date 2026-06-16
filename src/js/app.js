@@ -192,6 +192,20 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const journalTradeModeButton = event.target.closest("[data-journal-trade-mode]");
+  if (journalTradeModeButton) {
+    const form = journalTradeModeButton.closest("[data-journal-entry-form]");
+    if (form) {
+      form.dataset.tradeMode = journalTradeModeButton.dataset.journalTradeMode;
+      form.querySelectorAll("[data-journal-trade-mode]").forEach((button) => {
+        const active = button === journalTradeModeButton;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+    return;
+  }
+
   const journalDeleteButton = event.target.closest("[data-journal-delete-selected]");
   if (journalDeleteButton && getRoute() === "journal") {
     journalSelectedTradeIds.forEach((id) => journalDeletedTradeIds.add(id));

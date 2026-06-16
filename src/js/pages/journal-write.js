@@ -18,7 +18,7 @@ function inputWithSuffix({ value = "", placeholder = "", suffix = "", readonly =
 
 function renderJournalWrite() {
   return `
-    <form class="journal-entry-form">
+    <form class="journal-entry-form" data-journal-entry-form data-trade-mode="buy">
       <div class="journal-entry-content">
         <h2 id="journalWriteModalTitle" class="journal-entry-title">매매 일지 작성</h2>
 
@@ -33,14 +33,27 @@ function renderJournalWrite() {
         ${journalWriteField(
           "구분",
           `<div class="trade-toggle" aria-label="거래 구분">
-            <button type="button">매수</button>
-            <button class="active" type="button">매도</button>
+            <button class="active" type="button" data-journal-trade-mode="buy" aria-pressed="true">매수</button>
+            <button type="button" data-journal-trade-mode="sell" aria-pressed="false">매도</button>
           </div>`
         )}
 
-        ${journalWriteField("종목명", `<input class="input" value="삼성전자">`)}
+        <div data-visible-for="buy">
+          ${journalWriteField(
+            "현재 현금 보유량",
+            `<div class="cash-balance-box">
+              <div>
+                <strong>12,450,000원</strong>
+                <p>현재 계좌의 현금 보유량입니다.</p>
+              </div>
+              <button type="button">읽기 전용</button>
+            </div>`
+          )}
+        </div>
 
-        <div class="journal-entry-row">
+        ${journalWriteField("종목명", `<input class="input" placeholder="종목명을 입력하세요">`)}
+
+        <div class="journal-entry-row" data-visible-for="sell">
           <span></span>
           <div class="holding-box">
             <strong>보유 정보 (삼성전자)</strong>
@@ -52,10 +65,8 @@ function renderJournalWrite() {
         </div>
 
         ${journalWriteField("수량", inputWithSuffix({ placeholder: "수량을 입력하세요", suffix: "주" }))}
-        ${journalWriteField("매수가", inputWithSuffix({ placeholder: "매수가를 입력하세요", suffix: "원" }))}
-        ${journalWriteField("매도가", inputWithSuffix({ placeholder: "매도가를 입력하세요", suffix: "원" }))}
-        ${journalWriteField("손익", inputWithSuffix({ value: "0", suffix: "원", readonly: true }))}
-        ${journalWriteField("수익률", inputWithSuffix({ value: "0.00", suffix: "%", readonly: true }))}
+        <div data-visible-for="buy">${journalWriteField("매수가", inputWithSuffix({ placeholder: "매수가를 입력하세요", suffix: "원" }))}</div>
+        <div data-visible-for="sell">${journalWriteField("매도가", inputWithSuffix({ placeholder: "매도가를 입력하세요", suffix: "원" }))}</div>
         ${journalWriteField("메모", `<textarea class="textarea compact-textarea" placeholder="메모를 입력하세요"></textarea>`)}
       </div>
 
