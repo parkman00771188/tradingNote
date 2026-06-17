@@ -391,6 +391,41 @@ function render() {
   scheduleFitValueText();
 }
 
+function handleJournalWriteExtraClick(event) {
+  const pickerBackdrop = event.target.matches("[data-journal-write-stock-backdrop]");
+  const pickerCancel = event.target.closest("[data-journal-write-stock-cancel]");
+  if (pickerBackdrop || pickerCancel) {
+    closeJournalWriteStockPicker(event.target.closest("[data-journal-entry-form]"));
+    return true;
+  }
+
+  const stockOption = event.target.closest("[data-journal-write-stock-option]");
+  if (stockOption) {
+    selectJournalWriteStockDraft(stockOption);
+    return true;
+  }
+
+  const stockApply = event.target.closest("[data-journal-write-stock-apply]");
+  if (stockApply) {
+    applyJournalWriteStockSelection(stockApply);
+    return true;
+  }
+
+  const stockOpen = event.target.closest("[data-journal-write-stock-open]");
+  if (stockOpen) {
+    openJournalWriteStockPicker(stockOpen);
+    return true;
+  }
+
+  const quantityPreset = event.target.closest("[data-journal-quantity-preset]");
+  if (quantityPreset) {
+    applyJournalQuantityPreset(quantityPreset);
+    return true;
+  }
+
+  return false;
+}
+
 document.addEventListener("click", (event) => {
   const modalButton = event.target.closest("[data-modal]");
   if (modalButton) {
@@ -424,6 +459,8 @@ document.addEventListener("click", (event) => {
       openLinkedDatePicker(datePickerButton);
       return;
     }
+
+    if (handleJournalWriteExtraClick(event)) return;
 
     const modalClose = event.target.closest("[data-modal-close]");
     if (modalClose && modalPanel) {
@@ -576,7 +613,7 @@ document.addEventListener("click", (event) => {
           button.classList.toggle("active", active);
           button.setAttribute("aria-pressed", active ? "true" : "false");
         });
-        updateJournalTradeEstimate(form);
+        syncJournalTradeMode(form);
       }
       return;
     }
@@ -611,6 +648,8 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (handleJournalWriteExtraClick(event)) return;
+
   const pageJournalTradeModeButton = event.target.closest("[data-journal-trade-mode]");
   if (pageJournalTradeModeButton) {
     const form = pageJournalTradeModeButton.closest("[data-journal-entry-form]");
@@ -621,7 +660,7 @@ document.addEventListener("click", (event) => {
         button.classList.toggle("active", active);
         button.setAttribute("aria-pressed", active ? "true" : "false");
       });
-      updateJournalTradeEstimate(form);
+      syncJournalTradeMode(form);
     }
     return;
   }
@@ -730,6 +769,19 @@ document.addEventListener("input", (event) => {
   const journalEntryForm = event.target.closest("[data-journal-entry-form]");
   if (journalEntryForm) {
     updateJournalTradeEstimate(journalEntryForm);
+  }
+
+  const journalWriteStockSearch = event.target.closest("[data-journal-write-stock-search]");
+  if (journalWriteStockSearch) {
+    filterJournalWriteStockPicker(journalWriteStockSearch);
+    return;
+  }
+
+  const journalWriteStockName = event.target.closest("[data-journal-stock-name]");
+  if (journalWriteStockName) {
+    const form = journalWriteStockName.closest("[data-journal-entry-form]");
+    clearJournalSelectedStock(form, { keepInput: true });
+    return;
   }
 
   const journalStockSearchInput = event.target.closest("[data-journal-stock-search]");
