@@ -54,6 +54,8 @@ function lineChart({
   const primaryBadgeWidth = compact ? compactBox.primaryBadgeWidth || 62 : desktopBox.primaryBadgeWidth || 62;
   const secondaryBadgeWidth = compact ? compactBox.secondaryBadgeWidth || 58 : desktopBox.secondaryBadgeWidth || 58;
   const tertiaryBadgeWidth = compact ? compactBox.tertiaryBadgeWidth || secondaryBadgeWidth : desktopBox.tertiaryBadgeWidth || secondaryBadgeWidth;
+  const secondaryBadgeOffsetY = compact ? compactBox.secondaryBadgeOffsetY || 0 : desktopBox.secondaryBadgeOffsetY || 0;
+  const tertiaryBadgeOffsetY = compact ? compactBox.tertiaryBadgeOffsetY || 0 : desktopBox.tertiaryBadgeOffsetY || 0;
   const innerW = width - left - right;
   const innerH = height - top - bottom;
   const scaleY = (v) => top + ((max - v) / (max - min)) * innerH;
@@ -118,14 +120,14 @@ function lineChart({
         <text x="${width - right - 2 + primaryBadgeWidth / 2}" y="${scaleY(primary[primary.length - 1]) - 1}" fill="white" font-size="${endLabelFontSize}" font-weight="800" text-anchor="middle">${endPrimary}</text>
         ${
           endSecondary
-            ? `<rect x="${width - right + 4}" y="${scaleY(secondary[secondary.length - 1]) - 3}" width="${secondaryBadgeWidth}" height="24" rx="6" fill="#f1f5f9"/>
-        <text x="${width - right + 4 + secondaryBadgeWidth / 2}" y="${scaleY(secondary[secondary.length - 1]) + 13}" fill="#64748b" font-size="${endLabelFontSize}" font-weight="800" text-anchor="middle">${endSecondary}</text>`
+            ? `<rect x="${width - right + 4}" y="${scaleY(secondary[secondary.length - 1]) - 3 + secondaryBadgeOffsetY}" width="${secondaryBadgeWidth}" height="24" rx="6" fill="#f1f5f9"/>
+        <text x="${width - right + 4 + secondaryBadgeWidth / 2}" y="${scaleY(secondary[secondary.length - 1]) + 13 + secondaryBadgeOffsetY}" fill="#64748b" font-size="${endLabelFontSize}" font-weight="800" text-anchor="middle">${endSecondary}</text>`
             : ""
         }
         ${
           tertiary && endTertiary
-            ? `<rect x="${width - right + 4}" y="${scaleY(tertiary[tertiary.length - 1]) - 3}" width="${tertiaryBadgeWidth}" height="24" rx="6" fill="${tertiaryColor}"/>
-        <text x="${width - right + 4 + tertiaryBadgeWidth / 2}" y="${scaleY(tertiary[tertiary.length - 1]) + 13}" fill="white" font-size="${endLabelFontSize}" font-weight="800" text-anchor="middle">${endTertiary}</text>`
+            ? `<rect x="${width - right + 4}" y="${scaleY(tertiary[tertiary.length - 1]) - 3 + tertiaryBadgeOffsetY}" width="${tertiaryBadgeWidth}" height="24" rx="6" fill="${tertiaryColor}"/>
+        <text x="${width - right + 4 + tertiaryBadgeWidth / 2}" y="${scaleY(tertiary[tertiary.length - 1]) + 13 + tertiaryBadgeOffsetY}" fill="white" font-size="${endLabelFontSize}" font-weight="800" text-anchor="middle">${endTertiary}</text>`
             : ""
         }
         ${xLabels}

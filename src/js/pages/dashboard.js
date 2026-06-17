@@ -17,7 +17,9 @@ function getDashboardAssetDesktopViewBox() {
       bottom: 36,
       primaryBadgeWidth: 84,
       secondaryBadgeWidth: 80,
-      tertiaryBadgeWidth: 68
+      tertiaryBadgeWidth: 68,
+      secondaryBadgeOffsetY: -26,
+      tertiaryBadgeOffsetY: 6
     };
   }
 
@@ -31,7 +33,9 @@ function getDashboardAssetDesktopViewBox() {
       bottom: 36,
       primaryBadgeWidth: 84,
       secondaryBadgeWidth: 80,
-      tertiaryBadgeWidth: 68
+      tertiaryBadgeWidth: 68,
+      secondaryBadgeOffsetY: -26,
+      tertiaryBadgeOffsetY: 6
     };
   }
 
@@ -44,7 +48,9 @@ function getDashboardAssetDesktopViewBox() {
     bottom: 36,
     primaryBadgeWidth: 84,
     secondaryBadgeWidth: 80,
-    tertiaryBadgeWidth: 68
+    tertiaryBadgeWidth: 68,
+    secondaryBadgeOffsetY: -26,
+    tertiaryBadgeOffsetY: 6
   };
 }
 
@@ -105,16 +111,16 @@ function renderDashboardHoldingRows() {
 
 function renderDashboard() {
   const cashBalance = getAssetCashBalance();
-  const investedValue = getAssetInvestedValue();
   const totalAssets = getAssetTotalValue();
   const holdingProfit = typeof getHoldingTotalProfit === "function" ? getHoldingTotalProfit() : 0;
   const holdingReturn = typeof getHoldingTotalReturn === "function" ? getHoldingTotalReturn() : 0;
+  const investmentPrincipal = typeof getHoldingTotalCostBasis === "function" ? getHoldingTotalCostBasis() : getAssetInvestedValue();
   const profitClass = holdingProfit >= 0 ? "text-red" : "text-blue";
   const totalUnit = Math.round(totalAssets / 10000);
-  const investedUnit = Math.round(investedValue / 10000);
+  const principalUnit = Math.round(investmentPrincipal / 10000);
   const cashUnit = Math.round(cashBalance / 10000);
   const primaryTrend = buildDashboardTrendValues(totalUnit, [0.93, 0.94, 0.955, 0.965, 0.96, 0.972, 0.98, 0.988, 0.982, 0.99, 0.996, 1.003, 0.992, 0.998, 1.006, 1]);
-  const secondaryTrend = buildDashboardTrendValues(investedUnit, [0.92, 0.93, 0.94, 0.955, 0.95, 0.962, 0.974, 0.982, 0.976, 0.986, 0.993, 1.002, 0.991, 0.997, 1.004, 1]);
+  const secondaryTrend = buildDashboardTrendValues(principalUnit, [0.96, 0.965, 0.972, 0.978, 0.982, 0.986, 0.99, 0.993, 0.995, 0.997, 0.998, 0.999, 0.998, 0.999, 1, 1]);
   const tertiaryTrend = buildDashboardTrendValues(cashUnit, [1.08, 1.06, 1.04, 1.02, 1.03, 1.01, 1.0, 0.99, 1.0, 0.98, 0.97, 0.96, 0.98, 0.99, 1.01, 1]);
   const chartMax = Math.max(6000, Math.ceil(Math.max(...primaryTrend, ...secondaryTrend, ...tertiaryTrend) / 1500) * 1500);
   const dashboardPortfolio = getDashboardPortfolioSegments(totalAssets, cashBalance);
@@ -176,7 +182,7 @@ function renderDashboard() {
             unit: "만원",
             tickUnit: "",
             endPrimary: formatDashboardChartLabel(totalUnit),
-            endSecondary: formatDashboardChartLabel(investedUnit),
+            endSecondary: formatDashboardChartLabel(principalUnit),
             endTertiary: formatDashboardChartLabel(cashUnit),
             ariaLabel: "총자산, 투자원금, 보유현금 추이 차트",
             primaryName: "총자산",
@@ -201,7 +207,9 @@ function renderDashboard() {
               pointRadius: 4,
               primaryBadgeWidth: 78,
               secondaryBadgeWidth: 76,
-              tertiaryBadgeWidth: 62
+              tertiaryBadgeWidth: 62,
+              secondaryBadgeOffsetY: -26,
+              tertiaryBadgeOffsetY: 6
             }
           })}
         </article>
