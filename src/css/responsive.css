@@ -1389,7 +1389,7 @@
     min-width: 0;
     overflow: hidden;
     color: #071125;
-    font-size: clamp(22px, 6.1vw, 25px);
+    font-size: clamp(20px, 5.4vw, 22px);
     line-height: 1.05;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1397,7 +1397,7 @@
 
   body[data-route="stock"] .price-block strong {
     color: #071125;
-    font-size: clamp(24px, 6.8vw, 27px);
+    font-size: clamp(22px, 5.9vw, 24px);
     line-height: 1;
     letter-spacing: 0;
   }
@@ -1837,7 +1837,7 @@
   }
 
   body[data-route="stock"] .stock-name h2 {
-    font-size: clamp(21px, 6.2vw, 24px);
+    font-size: clamp(19px, 5.2vw, 21px);
   }
 
   body[data-route="stock"] .price-block {
@@ -1846,7 +1846,7 @@
   }
 
   body[data-route="stock"] .price-block strong {
-    font-size: clamp(23px, 6.7vw, 26px);
+    font-size: clamp(21px, 5.8vw, 23px);
   }
 
   .mobile-trade-card {
