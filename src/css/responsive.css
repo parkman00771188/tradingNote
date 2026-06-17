@@ -415,6 +415,18 @@
     grid-template-columns: 1fr 1fr;
     padding: 14px 18px;
   }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea,
+  .input,
+  .select,
+  .textarea,
+  .journal-input-shell input,
+  .journal-date-field input,
+  .journal-date-control .input {
+    font-size: 16px;
+  }
 }
 
 @media (max-width: 560px) {
