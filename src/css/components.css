@@ -539,6 +539,41 @@
   pointer-events: auto;
 }
 
+.journal-date-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding-right: 0;
+  overflow: hidden;
+  background: white;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+}
+
+.journal-date-control .input {
+  min-width: 0;
+  height: 50px;
+  padding: 0 8px 0 14px;
+  background: transparent;
+  border: 0;
+  text-align: center;
+  appearance: none;
+}
+
+.journal-date-control .input::-webkit-date-and-time-value {
+  text-align: center;
+}
+
+.journal-date-control .field-icon {
+  position: static;
+  width: 44px;
+  height: 50px;
+  color: #64748b;
+  transform: none;
+}
+
 .input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0;
 }
@@ -1771,6 +1806,48 @@ body.modal-open {
   overflow: hidden;
   background: #f6f6f7;
   border-radius: 12px;
+}
+
+.journal-date-presets {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.journal-date-presets button {
+  min-width: 0;
+  min-height: 38px;
+  color: #475569;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.journal-date-presets button.active {
+  color: white;
+  background: var(--blue);
+  box-shadow: 0 6px 14px rgba(36, 116, 242, 0.18);
+}
+
+.journal-date-preview {
+  display: grid;
+  place-items: center;
+  min-height: 60px;
+  margin: 0;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 850;
+  text-align: center;
 }
 
 .journal-date-field {

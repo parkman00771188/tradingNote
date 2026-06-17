@@ -141,6 +141,7 @@ function renderAssetCashModal() {
 
 function renderJournalDateRangeModal() {
   const range = getJournalDateRangeDraft();
+  const isCustomRange = journalDateRangePresetDraft === "custom";
 
   return `
     <div class="modal-backdrop">
@@ -153,16 +154,27 @@ function renderJournalDateRangeModal() {
           <button class="icon-button" type="button" data-modal-close aria-label="닫기">X</button>
         </div>
         <div class="modal-body">
-          <div class="journal-date-range-picker">
-            <label class="journal-date-field">
-              <span>${icon("calendar")}시작일</span>
-              <input type="date" value="${range.start}" data-journal-date-input="start">
-            </label>
-            <label class="journal-date-field">
-              <span>${icon("calendar")}종료일</span>
-              <input type="date" value="${range.end}" data-journal-date-input="end">
-            </label>
+          <div class="journal-date-presets" role="tablist" aria-label="기간 빠른 선택">
+            ${journalDatePresets
+              .map(([value, label]) => `
+                <button class="${journalDateRangePresetDraft === value ? "active" : ""}" type="button" data-journal-date-preset="${value}" aria-pressed="${journalDateRangePresetDraft === value}">${label}</button>
+              `)
+              .join("")}
           </div>
+          ${
+            isCustomRange
+              ? `<div class="journal-date-range-picker">
+                  <label class="journal-date-field">
+                    <span>${icon("calendar")}시작일</span>
+                    <input type="date" value="${range.start}" data-journal-date-input="start">
+                  </label>
+                  <label class="journal-date-field">
+                    <span>${icon("calendar")}종료일</span>
+                    <input type="date" value="${range.end}" data-journal-date-input="end">
+                  </label>
+                </div>`
+              : `<p class="journal-date-preview">${getJournalDateRangeLabel(range)}</p>`
+          }
           <div class="journal-date-actions">
             <button class="btn" type="button" data-modal-close>취소</button>
             <button class="btn primary" type="button" data-journal-date-apply>적용</button>
@@ -353,6 +365,14 @@ document.addEventListener("click", (event) => {
     const journalTypeOption = event.target.closest("[data-journal-type-filter-option]");
     if (journalTypeOption && activeModal === "journalTradeTypeFilter") {
       setJournalTradeTypeFilterDraft(journalTypeOption.dataset.journalTypeFilterOption);
+      renderModal();
+      hydrateIcons(document);
+      return;
+    }
+
+    const journalDatePreset = event.target.closest("[data-journal-date-preset]");
+    if (journalDatePreset && activeModal === "journalDateRange") {
+      setJournalDateRangePresetDraft(journalDatePreset.dataset.journalDatePreset);
       renderModal();
       hydrateIcons(document);
       return;

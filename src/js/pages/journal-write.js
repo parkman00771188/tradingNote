@@ -26,7 +26,7 @@ function renderJournalWrite() {
 
         ${journalWriteField(
           "일자",
-          `<div class="input-with-icon">
+          `<div class="input-with-icon journal-date-control">
             <input class="input" type="date" value="2024-06-20" data-date-picker>
             <button class="field-icon field-icon-button" type="button" data-date-picker-trigger aria-label="날짜 선택">${icon("calendar")}</button>
           </div>`

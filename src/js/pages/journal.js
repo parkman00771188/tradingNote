@@ -2,11 +2,22 @@ var journalSelectedTradeIds = new Set();
 var journalDeletedTradeIds = new Set();
 var journalDateRange = getDefaultJournalDateRange();
 var journalDateRangeDraft = null;
+var journalDateRangePreset = "month";
+var journalDateRangePresetDraft = "month";
 var journalStockFilter = "all";
 var journalStockFilterDraft = "all";
 var journalStockSearch = "";
 var journalTradeTypeFilter = "all";
 var journalTradeTypeFilterDraft = "all";
+
+const journalDatePresets = [
+  ["day", "1일"],
+  ["week", "1주"],
+  ["month", "1달"],
+  ["sixMonths", "6달"],
+  ["year", "1년"],
+  ["custom", "기간별"]
+];
 
 const journalStockAliases = {
   네이버: ["네이버", "NAVER"],
@@ -21,13 +32,7 @@ function formatJournalDateInput(date) {
 }
 
 function getDefaultJournalDateRange() {
-  const end = new Date();
-  const start = new Date(end);
-  start.setMonth(start.getMonth() - 1);
-  return {
-    start: formatJournalDateInput(start),
-    end: formatJournalDateInput(end)
-  };
+  return getJournalDatePresetRange("month");
 }
 
 function formatJournalDisplayDate(value) {
@@ -42,17 +47,50 @@ function getJournalDateRangeDraft() {
   return journalDateRangeDraft || journalDateRange;
 }
 
+function getJournalDatePresetRange(preset) {
+  const end = new Date();
+  const start = new Date(end);
+
+  if (preset === "day") {
+    return {
+      start: formatJournalDateInput(start),
+      end: formatJournalDateInput(end)
+    };
+  }
+
+  if (preset === "week") start.setDate(start.getDate() - 7);
+  if (preset === "month") start.setMonth(start.getMonth() - 1);
+  if (preset === "sixMonths") start.setMonth(start.getMonth() - 6);
+  if (preset === "year") start.setFullYear(start.getFullYear() - 1);
+
+  return {
+    start: formatJournalDateInput(start),
+    end: formatJournalDateInput(end)
+  };
+}
+
 function beginJournalDateRangeEdit() {
   journalDateRangeDraft = { ...journalDateRange };
+  journalDateRangePresetDraft = journalDateRangePreset;
 }
 
 function setJournalDateRangeDraft(field, value) {
   if (!journalDateRangeDraft) beginJournalDateRangeEdit();
   journalDateRangeDraft[field] = value;
+  journalDateRangePresetDraft = "custom";
+}
+
+function setJournalDateRangePresetDraft(preset) {
+  if (!journalDateRangeDraft) beginJournalDateRangeEdit();
+  journalDateRangePresetDraft = preset;
+  if (preset !== "custom") {
+    journalDateRangeDraft = getJournalDatePresetRange(preset);
+  }
 }
 
 function cancelJournalDateRangeEdit() {
   journalDateRangeDraft = null;
+  journalDateRangePresetDraft = journalDateRangePreset;
 }
 
 function applyJournalDateRangeEdit() {
@@ -62,6 +100,7 @@ function applyJournalDateRangeEdit() {
     [nextRange.start, nextRange.end] = [nextRange.end, nextRange.start];
   }
   journalDateRange = nextRange;
+  journalDateRangePreset = journalDateRangePresetDraft;
   journalDateRangeDraft = null;
 }
 
