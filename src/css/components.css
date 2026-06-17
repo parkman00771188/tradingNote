@@ -717,6 +717,12 @@ tbody tr:hover td {
   min-width: 980px;
 }
 
+.journal-trade-table th,
+.journal-trade-table td {
+  height: 46px;
+  padding: 0 12px;
+}
+
 .journal-trade-table th:first-child,
 .journal-trade-table td:first-child {
   width: 42px;
@@ -955,11 +961,69 @@ tbody tr:hover td {
   min-height: 540px;
 }
 
+.watchlist-panel table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.watchlist-panel th,
+.watchlist-panel td {
+  padding: 0 8px;
+}
+
+.watchlist-panel th:first-child,
+.watchlist-panel td:first-child {
+  width: 46%;
+}
+
+.watchlist-panel th:nth-child(2),
+.watchlist-panel td:nth-child(2),
+.watchlist-panel th:nth-child(3),
+.watchlist-panel td:nth-child(3) {
+  width: 27%;
+  text-align: right;
+}
+
+.watchlist-panel td:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .donut-row {
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr);
   gap: 24px;
   align-items: center;
+}
+
+body[data-route="assets"] .asset-grid > article:first-child .donut-row {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 18px;
+}
+
+body[data-route="assets"] .asset-grid > article:first-child .portfolio-legend {
+  width: 100%;
+}
+
+body[data-route="assets"] .asset-grid > article:first-child .legend-row {
+  grid-template-columns: minmax(110px, 1fr) auto minmax(96px, auto);
+  gap: 10px;
+}
+
+body[data-route="assets"] .asset-grid > article:first-child .legend-row > span:first-child,
+body[data-route="assets"] .asset-grid > article:first-child .legend-row > span:last-child {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+body[data-route="assets"] .asset-grid > article:first-child .legend-row > span:last-child {
+  text-align: right;
+}
+
+.asset-compact-donut {
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 18px;
 }
 
 .donut {

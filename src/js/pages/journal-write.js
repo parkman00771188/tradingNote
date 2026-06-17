@@ -53,7 +53,7 @@ function renderJournalWrite() {
 
         ${journalWriteField("종목명", `<input class="input" placeholder="종목명을 입력하세요">`)}
 
-        <div class="journal-entry-row" data-visible-for="sell">
+        <div class="journal-entry-row">
           <span></span>
           <div class="holding-box">
             <strong>보유 정보 (삼성전자)</strong>

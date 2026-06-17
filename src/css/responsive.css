@@ -64,6 +64,27 @@
   .form-grid.two {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  body[data-route="assets"] .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-route="assets"] .asset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-route="assets"] .asset-grid > article:first-child {
+    grid-column: 1 / -1;
+  }
+
+  body[data-route="assets"] .asset-mid-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-route="assets"] .asset-mid-grid > article:nth-child(2) {
+    grid-column: 1 / -1;
+    order: -1;
+  }
 }
 
 @media (max-width: 860px) {
@@ -744,6 +765,23 @@
   .desktop-journal-list,
   .desktop-calendar-layout {
     display: none;
+  }
+
+  body[data-route="assets"] .metric-grid,
+  body[data-route="assets"] .asset-grid,
+  body[data-route="assets"] .asset-mid-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-route="assets"] .asset-grid > article:first-child,
+  body[data-route="assets"] .asset-mid-grid > article:nth-child(2) {
+    grid-column: auto;
+    order: initial;
+  }
+
+  body[data-route="assets"] .asset-compact-donut {
+    grid-template-columns: 1fr;
+    justify-items: center;
   }
 
   .mobile-calendar-page {
@@ -1503,6 +1541,37 @@
 
   .legend-row span:last-child {
     display: none;
+  }
+
+  body[data-route="assets"] .asset-grid > article:first-child .donut-row {
+    grid-template-columns: 150px minmax(0, 1fr);
+    justify-items: stretch;
+    gap: 14px;
+  }
+
+  body[data-route="assets"] .asset-grid > article:first-child .donut {
+    width: 150px;
+    height: 150px;
+  }
+
+  body[data-route="assets"] .asset-grid > article:first-child .donut .donut-center {
+    inset: 34px;
+    font-size: 12px;
+  }
+
+  body[data-route="assets"] .asset-grid > article:first-child .legend-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  body[data-route="assets"] .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-route="assets"] .page-summary-metric .metric-value {
+    font-size: clamp(20px, 4.9vw, 24px);
+    overflow-wrap: normal;
+    white-space: nowrap;
   }
 
   .mobile-trade-card {

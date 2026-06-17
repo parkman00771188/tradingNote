@@ -80,7 +80,7 @@ function renderAssets() {
         </article>
         <article class="panel">
           <div class="panel-header tight"><h2 class="panel-title">국내 vs 해외 비중</h2></div>
-          <div class="donut-row" style="grid-template-columns:150px 1fr">
+          <div class="donut-row asset-compact-donut">
             ${donutChart([{ value: 58.3, color: "#2474f2" }, { value: 24.7, color: "#22c55e" }, { value: 17, color: "#83b8ff" }], "", true)}
             <div class="portfolio-legend">
               <div class="legend-row"><span><i class="dot"></i>국내</span><strong>58.3%</strong></div>
