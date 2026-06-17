@@ -75,6 +75,14 @@ function renderDashboard() {
           iconPosition: "end"
         })}
         ${metricCard({
+          title: "보유 현금",
+          value: formatKRW(getAssetCashBalance()),
+          iconName: "coin",
+          tone: "green",
+          className: "dashboard-metric",
+          iconPosition: "end"
+        })}
+        ${metricCard({
           title: "평가 손익",
           value: "+2,250,000원",
           iconName: "trend",
@@ -89,14 +97,6 @@ function renderDashboard() {
           iconName: "target",
           tone: "red",
           valueClass: "text-red",
-          className: "dashboard-metric",
-          iconPosition: "end"
-        })}
-        ${metricCard({
-          title: "보유 현금",
-          value: formatKRW(getAssetCashBalance()),
-          iconName: "coin",
-          tone: "green",
           className: "dashboard-metric",
           iconPosition: "end"
         })}

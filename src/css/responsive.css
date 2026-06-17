@@ -1300,7 +1300,7 @@
   }
 
   body[data-route="stock"] .stock-title-block .list-sub {
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.4;
   }
 
@@ -1359,7 +1359,7 @@
     min-width: 0;
     overflow: hidden;
     color: #071125;
-    font-size: clamp(26px, 7.2vw, 31px);
+    font-size: clamp(24px, 6.7vw, 28px);
     line-height: 1.05;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1367,7 +1367,7 @@
 
   body[data-route="stock"] .price-block strong {
     color: #071125;
-    font-size: clamp(29px, 8.2vw, 34px);
+    font-size: clamp(26px, 7.4vw, 30px);
     line-height: 1;
     letter-spacing: 0;
   }
@@ -1807,7 +1807,7 @@
   }
 
   body[data-route="stock"] .stock-name h2 {
-    font-size: clamp(25px, 7.8vw, 30px);
+    font-size: clamp(23px, 6.9vw, 27px);
   }
 
   body[data-route="stock"] .price-block {
@@ -1816,7 +1816,7 @@
   }
 
   body[data-route="stock"] .price-block strong {
-    font-size: clamp(28px, 8.6vw, 32px);
+    font-size: clamp(25px, 7.5vw, 29px);
   }
 
   .mobile-trade-card {

@@ -199,7 +199,7 @@ function renderJournalDateRangeModal() {
                     <input type="date" value="${range.end}" data-journal-date-input="end">
                   </label>
                 </div>`
-              : `<p class="journal-date-preview">${getJournalDateRangeLabel(range)}</p>`
+              : ""
           }
           <div class="journal-date-actions">
             <button class="btn" type="button" data-modal-close>취소</button>
