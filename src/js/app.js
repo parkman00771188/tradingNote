@@ -237,6 +237,84 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const modalPanel = event.target.closest(".modal-panel");
+  if (activeModal) {
+    const modalClose = event.target.closest("[data-modal-close]");
+    if (modalClose && modalPanel) {
+      activeModal = null;
+      assetCashError = "";
+      assetCashMessage = "";
+      renderModal();
+      return;
+    }
+
+    const assetCashModeButton = event.target.closest("[data-asset-cash-mode]");
+    if (assetCashModeButton && activeModal === "assetCash") {
+      assetCashMode = assetCashModeButton.dataset.assetCashMode;
+      assetCashError = "";
+      assetCashMessage = "";
+      renderModal();
+      hydrateIcons(document);
+      return;
+    }
+
+    const assetCashSubmit = event.target.closest("[data-asset-cash-submit]");
+    if (assetCashSubmit && activeModal === "assetCash") {
+      const amountInput = document.querySelector("[data-asset-cash-amount]");
+      const amount = parseKRWInput(amountInput ? amountInput.value : "");
+
+      assetCashMessage = "";
+      if (amount <= 0) {
+        assetCashError = "금액을 1원 이상 입력하세요.";
+        renderModal();
+        return;
+      }
+
+      if (assetCashMode === "withdraw" && amount > assetCashBalance) {
+        assetCashError = "현재 현금 자산보다 큰 금액은 출금할 수 없습니다.";
+        renderModal();
+        return;
+      }
+
+      assetCashBalance = assetCashMode === "withdraw" ? assetCashBalance - amount : assetCashBalance + amount;
+      assetCashError = "";
+      assetCashMessage = `${assetCashMode === "withdraw" ? "출금" : "입금"} ${formatKRW(amount)}이 반영되었습니다.`;
+      render();
+      return;
+    }
+
+    const journalTradeModeButton = event.target.closest("[data-journal-trade-mode]");
+    if (journalTradeModeButton) {
+      const form = journalTradeModeButton.closest("[data-journal-entry-form]");
+      if (form) {
+        form.dataset.tradeMode = journalTradeModeButton.dataset.journalTradeMode;
+        form.querySelectorAll("[data-journal-trade-mode]").forEach((button) => {
+          const active = button === journalTradeModeButton;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", active ? "true" : "false");
+        });
+      }
+      return;
+    }
+
+    if (event.target.matches(".modal-backdrop")) {
+      activeModal = null;
+      assetCashError = "";
+      assetCashMessage = "";
+      renderModal();
+      return;
+    }
+
+    if (modalPanel) return;
+  }
+
+  const holdingsViewButton = event.target.closest("[data-dashboard-holdings-view]");
+  if (holdingsViewButton && getRoute() === "dashboard") {
+    dashboardHoldingsView = holdingsViewButton.dataset.dashboardHoldingsView;
+    render();
+    return;
+  }
+
   const mobileMoreButton = event.target.closest("[data-mobile-more]");
   if (mobileMoreButton) {
     mobileSheetOpen = true;
@@ -249,80 +327,6 @@ document.addEventListener("click", (event) => {
   if (mobileSheetClose) {
     mobileSheetOpen = false;
     renderMobileSheet();
-    return;
-  }
-
-  const modalClose = event.target.closest("[data-modal-close]");
-  if (modalClose) {
-    activeModal = null;
-    assetCashError = "";
-    assetCashMessage = "";
-    renderModal();
-    return;
-  }
-
-  const modalPanel = event.target.closest(".modal-panel");
-  if (activeModal && event.target.closest(".modal-backdrop") && !modalPanel) {
-    activeModal = null;
-    assetCashError = "";
-    assetCashMessage = "";
-    renderModal();
-    return;
-  }
-
-  const assetCashModeButton = event.target.closest("[data-asset-cash-mode]");
-  if (assetCashModeButton && activeModal === "assetCash") {
-    assetCashMode = assetCashModeButton.dataset.assetCashMode;
-    assetCashError = "";
-    assetCashMessage = "";
-    renderModal();
-    hydrateIcons(document);
-    return;
-  }
-
-  const assetCashSubmit = event.target.closest("[data-asset-cash-submit]");
-  if (assetCashSubmit && activeModal === "assetCash") {
-    const amountInput = document.querySelector("[data-asset-cash-amount]");
-    const amount = parseKRWInput(amountInput ? amountInput.value : "");
-
-    assetCashMessage = "";
-    if (amount <= 0) {
-      assetCashError = "금액을 1원 이상 입력하세요.";
-      renderModal();
-      return;
-    }
-
-    if (assetCashMode === "withdraw" && amount > assetCashBalance) {
-      assetCashError = "현재 현금 자산보다 큰 금액은 출금할 수 없습니다.";
-      renderModal();
-      return;
-    }
-
-    assetCashBalance = assetCashMode === "withdraw" ? assetCashBalance - amount : assetCashBalance + amount;
-    assetCashError = "";
-    assetCashMessage = `${assetCashMode === "withdraw" ? "출금" : "입금"} ${formatKRW(amount)}이 반영되었습니다.`;
-    render();
-    return;
-  }
-
-  const holdingsViewButton = event.target.closest("[data-dashboard-holdings-view]");
-  if (holdingsViewButton && getRoute() === "dashboard") {
-    dashboardHoldingsView = holdingsViewButton.dataset.dashboardHoldingsView;
-    render();
-    return;
-  }
-
-  const journalTradeModeButton = event.target.closest("[data-journal-trade-mode]");
-  if (journalTradeModeButton) {
-    const form = journalTradeModeButton.closest("[data-journal-entry-form]");
-    if (form) {
-      form.dataset.tradeMode = journalTradeModeButton.dataset.journalTradeMode;
-      form.querySelectorAll("[data-journal-trade-mode]").forEach((button) => {
-        const active = button === journalTradeModeButton;
-        button.classList.toggle("active", active);
-        button.setAttribute("aria-pressed", active ? "true" : "false");
-      });
-    }
     return;
   }
 
@@ -357,7 +361,14 @@ document.addEventListener("click", (event) => {
   }
 });
 
+document.addEventListener("submit", (event) => {
+  if (!event.target.closest(".modal-panel form")) return;
+  event.preventDefault();
+});
+
 document.addEventListener("change", (event) => {
+  if (activeModal && event.target.closest(".modal-panel")) return;
+
   const journalCheckbox = event.target.closest("[data-journal-select]");
   if (!journalCheckbox || getRoute() !== "journal") return;
 
@@ -418,5 +429,11 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-window.addEventListener("hashchange", render);
+window.addEventListener("hashchange", () => {
+  activeModal = null;
+  assetCashError = "";
+  assetCashMessage = "";
+  mobileSheetOpen = false;
+  render();
+});
 render();
