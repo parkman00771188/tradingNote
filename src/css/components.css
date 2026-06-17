@@ -2150,6 +2150,16 @@ body.modal-open {
   border-radius: 12px;
 }
 
+.asset-cash-confirm-card.deposit > span {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.asset-cash-confirm-card.withdraw > span {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
 .asset-cash-card svg,
 .asset-cash-confirm-card svg {
   width: 24px;
@@ -2186,6 +2196,18 @@ body.modal-open {
   white-space: nowrap;
 }
 
+.asset-cash-confirm-card.deposit strong,
+.asset-cash-confirm-question.deposit strong,
+.asset-cash-confirm-question.deposit span {
+  color: var(--red);
+}
+
+.asset-cash-confirm-card.withdraw strong,
+.asset-cash-confirm-question.withdraw strong,
+.asset-cash-confirm-question.withdraw span {
+  color: var(--blue);
+}
+
 .asset-cash-card em,
 .asset-cash-confirm-card em {
   display: block;
@@ -2198,6 +2220,10 @@ body.modal-open {
   font-size: 15px;
   font-weight: 850;
   text-align: center;
+}
+
+.asset-cash-confirm-question strong {
+  font-weight: 900;
 }
 
 .asset-cash-mode {

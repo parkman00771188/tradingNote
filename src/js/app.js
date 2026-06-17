@@ -74,6 +74,25 @@ function scheduleFitValueText(root = document) {
   });
 }
 
+function scrollPageToTop() {
+  const html = document.documentElement;
+  const body = document.body;
+  const previousHtmlScrollBehavior = html ? html.style.scrollBehavior : "";
+  const previousBodyScrollBehavior = body ? body.style.scrollBehavior : "";
+
+  if (html) html.style.scrollBehavior = "auto";
+  if (body) body.style.scrollBehavior = "auto";
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  document.querySelector(".main")?.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
+
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    document.querySelector(".main")?.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
+    if (html) html.style.scrollBehavior = previousHtmlScrollBehavior;
+    if (body) body.style.scrollBehavior = previousBodyScrollBehavior;
+  });
+}
+
 function openLinkedDatePicker(trigger) {
   const shell = trigger.closest(".input-with-icon");
   const input = shell ? shell.querySelector("[data-date-picker]") : null;
@@ -175,7 +194,8 @@ function renderAssetCashModal() {
 function renderAssetCashConfirmModal() {
   const isWithdraw = assetCashPendingMode === "withdraw";
   const actionLabel = isWithdraw ? "출금" : "입금";
-  const question = `${formatKRW(assetCashPendingAmount)}을 ${actionLabel}하시겠습니까?`;
+  const modeClass = isWithdraw ? "withdraw" : "deposit";
+  const question = `<strong>${formatKRW(assetCashPendingAmount)}</strong>을 <span>${actionLabel}</span>하시겠습니까?`;
   const nextCashBalance = isWithdraw ? assetCashBalance - assetCashPendingAmount : assetCashBalance + assetCashPendingAmount;
 
   return `
@@ -189,15 +209,15 @@ function renderAssetCashConfirmModal() {
           <button class="icon-button" type="button" data-modal-close aria-label="닫기">X</button>
         </div>
         <div class="modal-body">
-          <div class="asset-cash-confirm-card">
-            <span>${icon(isWithdraw ? "download" : "plus")}</span>
+          <div class="asset-cash-confirm-card ${modeClass}">
+            <span>${icon(isWithdraw ? "minus" : "plus")}</span>
             <div>
               <p>${actionLabel}금액</p>
               <strong>${formatKRW(assetCashPendingAmount)}</strong>
               <em>처리 후 현금 자산 ${formatKRW(nextCashBalance)}</em>
             </div>
           </div>
-          <p class="asset-cash-confirm-question">${question}</p>
+          <p class="asset-cash-confirm-question ${modeClass}">${question}</p>
           <div class="asset-cash-actions">
             <button class="btn" type="button" data-asset-cash-confirm-cancel>취소</button>
             <button class="btn primary" type="button" data-asset-cash-confirm>${actionLabel}하기</button>
@@ -719,10 +739,14 @@ document.addEventListener("click", (event) => {
   if (routeButton) {
     const route = routeButton.dataset.route;
     if (renderers[route]) {
+      const currentRoute = getRoute();
       activeModal = null;
       mobileSheetOpen = false;
       window.location.hash = route;
-      if (getRoute() === route) render();
+      if (currentRoute === route) {
+        render();
+        scrollPageToTop();
+      }
     }
   }
 
@@ -856,6 +880,7 @@ window.addEventListener("hashchange", () => {
   assetCashPendingMode = "deposit";
   mobileSheetOpen = false;
   render();
+  scrollPageToTop();
 });
 window.addEventListener("resize", () => scheduleFitValueText());
 render();
