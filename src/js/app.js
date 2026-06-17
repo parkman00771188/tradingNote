@@ -139,9 +139,14 @@ function showChartTooltip(target, event) {
   positionChartTooltip(event);
 }
 
-function hideChartTooltip() {
+function clearPinnedChartTooltipTarget() {
   if (pinnedChartTooltipTarget) pinnedChartTooltipTarget.classList.remove("active");
+  pinnedChartTooltipTarget?.closest(".donut")?.classList.remove("has-active-segment");
   pinnedChartTooltipTarget = null;
+}
+
+function hideChartTooltip() {
+  clearPinnedChartTooltipTarget();
   if (!chartTooltip) return;
   chartTooltip.classList.remove("show");
 }
@@ -157,8 +162,10 @@ function togglePinnedChartTooltip(target, event) {
   }
 
   if (pinnedChartTooltipTarget) pinnedChartTooltipTarget.classList.remove("active");
+  pinnedChartTooltipTarget?.closest(".donut")?.classList.remove("has-active-segment");
   pinnedChartTooltipTarget = target;
   pinnedChartTooltipTarget.classList.add("active");
+  pinnedChartTooltipTarget.closest(".donut")?.classList.add("has-active-segment");
   showChartTooltip(target, event);
 }
 

@@ -726,10 +726,18 @@
     stroke-width 0.16s ease;
 }
 
-.donut-segment:hover circle,
-.donut-segment.active circle {
+.donut-segment:hover circle:not(.donut-hit-area) {
   opacity: 0.86;
   stroke-width: 16;
+}
+
+.donut-segment.active circle:not(.donut-hit-area) {
+  opacity: 1;
+  stroke-width: 16;
+}
+
+.donut.has-active-segment .donut-segment:not(.active) circle:not(.donut-hit-area) {
+  opacity: 0.32;
 }
 
 .donut-hit-area {
