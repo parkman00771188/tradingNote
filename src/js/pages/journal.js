@@ -341,7 +341,62 @@ function renderMobileJournalFilters() {
   `;
 }
 
+function renderMobileJournalTable(limit) {
+  const visibleTrades = getJournalTrades().slice(0, limit);
+
+  if (!visibleTrades.length) {
+    return `
+      <section class="mobile-trade-list mobile-trade-table">
+        <article class="mobile-empty-state">
+          <strong>조건에 맞는 기록이 없습니다.</strong>
+          <p>종목이나 매수/매도 필터를 변경해보세요.</p>
+        </article>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="mobile-trade-list mobile-trade-table" aria-label="매매 기록 목록">
+      <table>
+        <colgroup>
+          <col class="mobile-trade-date-col">
+          <col class="mobile-trade-stock-col">
+          <col class="mobile-trade-type-col">
+          <col class="mobile-trade-qty-col">
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col">일자</th>
+            <th scope="col">종목명</th>
+            <th scope="col">구분</th>
+            <th scope="col">수량</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${visibleTrades
+            .map(({ trade }) => {
+              const [date, stock, type, qty] = trade;
+              const normalizedType = normalizeJournalText(type);
+              const isSell = normalizedType === normalizeJournalText("매도") || type.includes("도");
+
+              return `
+                <tr>
+                  <td class="mobile-trade-date">${date}</td>
+                  <td class="mobile-trade-stock">${stock}</td>
+                  <td><span class="trade-type ${isSell ? "sell" : "buy"}">${type}</span></td>
+                  <td class="mobile-trade-qty">${qty}</td>
+                </tr>
+              `;
+            })
+            .join("")}
+        </tbody>
+      </table>
+    </section>
+  `;
+}
+
 function renderMobileJournalCards(limit) {
+
   const weekdays = {
     "06/20": "목",
     "06/19": "수",
@@ -437,7 +492,7 @@ function renderJournal() {
       </section>
 
       ${renderMobileJournalFilters()}
-      ${renderMobileJournalCards(6)}
+      ${renderMobileJournalTable(6)}
 
       <section class="journal-layout desktop-journal-list">
         <article class="panel">
