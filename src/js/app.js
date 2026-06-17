@@ -13,6 +13,7 @@ const renderers = {
 var activeModal = null;
 var mobileSheetOpen = false;
 var chartTooltip = null;
+var fitMetricValueFrame = 0;
 var assetCashBalance = 8480000;
 var assetCashMode = "deposit";
 var assetCashError = "";
@@ -39,6 +40,31 @@ function parseKRWInput(value) {
 function formatNumberInput(input) {
   const digits = String(input.value).replace(/[^0-9]/g, "");
   input.value = digits ? Number(digits).toLocaleString() : "";
+}
+
+function fitValueText(root = document) {
+  root.querySelectorAll("[data-fit-value]").forEach((node) => {
+    node.style.fontSize = "";
+
+    if (!node.clientWidth || !node.scrollWidth) return;
+
+    const maxSize = parseFloat(window.getComputedStyle(node).fontSize);
+    const minSize = Number(node.dataset.fitMin) || 12;
+    let nextSize = maxSize;
+
+    while (node.scrollWidth > node.clientWidth && nextSize > minSize) {
+      nextSize -= 0.5;
+      node.style.fontSize = `${nextSize}px`;
+    }
+  });
+}
+
+function scheduleFitValueText(root = document) {
+  if (fitMetricValueFrame) cancelAnimationFrame(fitMetricValueFrame);
+  fitMetricValueFrame = requestAnimationFrame(() => {
+    fitMetricValueFrame = 0;
+    fitValueText(root);
+  });
 }
 
 function openLinkedDatePicker(trigger) {
@@ -311,6 +337,7 @@ function render() {
   renderModal();
   renderMobileSheet();
   hydrateIcons(document);
+  scheduleFitValueText();
 }
 
 document.addEventListener("click", (event) => {
@@ -610,4 +637,5 @@ window.addEventListener("hashchange", () => {
   mobileSheetOpen = false;
   render();
 });
+window.addEventListener("resize", () => scheduleFitValueText());
 render();

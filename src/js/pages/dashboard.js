@@ -93,10 +93,10 @@ function renderDashboard() {
           iconPosition: "end"
         })}
         ${metricCard({
-          title: "보유종목 수",
-          value: "12개",
-          iconName: "wallet",
-          tone: "purple",
+          title: "보유 현금",
+          value: formatKRW(getAssetCashBalance()),
+          iconName: "coin",
+          tone: "green",
           className: "dashboard-metric",
           iconPosition: "end"
         })}
@@ -107,8 +107,8 @@ function renderDashboard() {
           <div class="panel-header">
             <h2 class="panel-title">자산 추이</h2>
             <div class="segmented" aria-label="기간 선택">
-              <button type="button">1M</button><button type="button">3M</button><button type="button">6M</button>
-              <button class="active" type="button">YTD</button><button type="button">1Y</button><button type="button">전체</button>
+              <button type="button">1M</button><button type="button">3M</button><button class="active" type="button">6M</button>
+              <button type="button">1Y</button><button type="button">전체</button>
             </div>
           </div>
           <div class="legend"><span><i class="dot"></i>총자산</span><span><i class="dot gray"></i>투자원금</span><span><i class="dot teal"></i>보유현금</span></div>

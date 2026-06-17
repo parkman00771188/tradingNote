@@ -54,7 +54,7 @@ function metricCard({
       <div class="metric-head">
         ${iconPosition === "start" ? `${iconMarkup}${titleMarkup}` : `${titleMarkup}${iconMarkup}`}
       </div>
-      <p class="metric-value ${valueClass}">${value}</p>
+      <p class="metric-value ${valueClass}" data-fit-value data-fit-min="15">${value}</p>
       ${sub ? `<p class="metric-sub">${sub}</p>` : ""}
     </article>
   `;

@@ -52,13 +52,16 @@
 }
 
 .metric-value {
+  min-width: 0;
   max-width: 100%;
   margin: 0;
   font-size: clamp(22px, 1.35vw, 28px);
   line-height: 1.1;
   font-weight: 850;
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
   overflow-wrap: normal;
+  text-overflow: clip;
   white-space: nowrap;
 }
 
