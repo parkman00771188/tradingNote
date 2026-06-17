@@ -726,7 +726,8 @@
     stroke-width 0.16s ease;
 }
 
-.donut-segment:hover circle {
+.donut-segment:hover circle,
+.donut-segment.active circle {
   opacity: 0.86;
   stroke-width: 16;
 }

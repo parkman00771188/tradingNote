@@ -13,6 +13,8 @@ const renderers = {
 var activeModal = null;
 var mobileSheetOpen = false;
 var chartTooltip = null;
+var pinnedChartTooltipTarget = null;
+var chartTooltipPointerTapTarget = null;
 var fitMetricValueFrame = 0;
 var assetCashBalance = 8480000;
 var assetCashMode = "deposit";
@@ -138,8 +140,26 @@ function showChartTooltip(target, event) {
 }
 
 function hideChartTooltip() {
+  if (pinnedChartTooltipTarget) pinnedChartTooltipTarget.classList.remove("active");
+  pinnedChartTooltipTarget = null;
   if (!chartTooltip) return;
   chartTooltip.classList.remove("show");
+}
+
+function isTouchChartTooltipMode() {
+  return window.matchMedia("(hover: none), (pointer: coarse), (any-pointer: coarse)").matches;
+}
+
+function togglePinnedChartTooltip(target, event) {
+  if (pinnedChartTooltipTarget === target && chartTooltip?.classList.contains("show")) {
+    hideChartTooltip();
+    return;
+  }
+
+  if (pinnedChartTooltipTarget) pinnedChartTooltipTarget.classList.remove("active");
+  pinnedChartTooltipTarget = target;
+  pinnedChartTooltipTarget.classList.add("active");
+  showChartTooltip(target, event);
 }
 
 function renderAssetCashModal() {
@@ -735,7 +755,7 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  const routeButton = event.target.closest("[data-route]");
+  const routeButton = event.target.closest("button[data-route], a[data-route]");
   if (routeButton) {
     const route = routeButton.dataset.route;
     if (renderers[route]) {
@@ -836,21 +856,48 @@ document.addEventListener("input", (event) => {
 document.addEventListener("pointerover", (event) => {
   const target = event.target.closest("[data-chart-tooltip]");
   if (!target) return;
+  if (pinnedChartTooltipTarget) return;
   showChartTooltip(target, event);
 });
 
 document.addEventListener("pointermove", (event) => {
   const target = event.target.closest("[data-chart-tooltip]");
   if (!target) return;
+  if (pinnedChartTooltipTarget) return;
   positionChartTooltip(event);
 });
 
 document.addEventListener("pointerout", (event) => {
   const target = event.target.closest("[data-chart-tooltip]");
   if (!target) return;
+  if (pinnedChartTooltipTarget) return;
   const relatedTarget = event.relatedTarget && event.relatedTarget.closest ? event.relatedTarget.closest("[data-chart-tooltip]") : null;
   if (relatedTarget === target) return;
   hideChartTooltip();
+});
+
+document.addEventListener("pointerup", (event) => {
+  const target = event.target.closest("[data-chart-tooltip]");
+  if (!target || !isTouchChartTooltipMode()) return;
+
+  chartTooltipPointerTapTarget = target;
+  event.preventDefault();
+  togglePinnedChartTooltip(target, event);
+});
+
+document.addEventListener("click", (event) => {
+  const target = event.target.closest("[data-chart-tooltip]");
+  if (target && isTouchChartTooltipMode()) {
+    if (chartTooltipPointerTapTarget === target) {
+      chartTooltipPointerTapTarget = null;
+      return;
+    }
+    togglePinnedChartTooltip(target, event);
+    return;
+  }
+
+  chartTooltipPointerTapTarget = null;
+  if (pinnedChartTooltipTarget) hideChartTooltip();
 });
 
 document.addEventListener("keydown", (event) => {
@@ -879,6 +926,7 @@ window.addEventListener("hashchange", () => {
   assetCashPendingAmount = 0;
   assetCashPendingMode = "deposit";
   mobileSheetOpen = false;
+  hideChartTooltip();
   render();
   scrollPageToTop();
 });
