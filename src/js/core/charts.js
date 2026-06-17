@@ -29,7 +29,8 @@ function lineChart({
   tertiaryColor = "#2aa7a1",
   tooltipLabels = [],
   className = "",
-  compactViewBox = null
+  compactViewBox = null,
+  tickUnit = unit
 }) {
   const compact = isCompactChart();
   const compactBox = compactViewBox || {};
@@ -97,7 +98,7 @@ function lineChart({
             const y = scaleY(tick);
             return `
               <line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="#dfe7f1" stroke-dasharray="4 5"/>
-              <text x="${left - 10}" y="${y + 4}" fill="#64748b" font-size="${yLabelFontSize}" text-anchor="end">${Math.round(tick).toLocaleString()}${unit}</text>
+              <text x="${left - 10}" y="${y + 4}" fill="#64748b" font-size="${yLabelFontSize}" text-anchor="end">${Math.round(tick).toLocaleString()}${tickUnit}</text>
             `;
           })
           .join("")}

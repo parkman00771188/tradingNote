@@ -1612,7 +1612,7 @@
   }
 
   body[data-route="dashboard"] .dashboard-asset-chart {
-    height: clamp(252px, 68vw, 278px);
+    height: clamp(218px, 58vw, 240px);
     margin-top: 4px;
   }
 
