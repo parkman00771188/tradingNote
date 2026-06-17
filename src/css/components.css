@@ -714,6 +714,10 @@
   transform: translateY(0);
 }
 
+.chart-target-line {
+  pointer-events: stroke;
+}
+
 .donut svg {
   width: 100%;
   height: 100%;
@@ -1820,6 +1824,11 @@ body.modal-open {
   background: white;
 }
 
+.asset-target-modal {
+  width: min(640px, calc(100vw - 40px));
+  background: white;
+}
+
 .journal-date-modal {
   width: min(620px, calc(100vw - 32px));
   background: white;
@@ -2290,6 +2299,102 @@ body.modal-open {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
   margin-top: 8px;
+}
+
+.asset-target-modal .modal-body {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.asset-target-list {
+  display: grid;
+  gap: 10px;
+}
+
+.asset-target-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 38px;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.asset-target-visible {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+}
+
+.asset-target-visible input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.asset-target-visible span {
+  display: block;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border: 1.6px solid #b8c4d6;
+  border-radius: 6px;
+}
+
+.asset-target-visible input:checked + span {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+.asset-target-visible input:checked + span::after {
+  content: "";
+  display: block;
+  width: 5px;
+  height: 9px;
+  margin: 2px auto 0;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.asset-target-fields {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.2fr);
+  gap: 10px;
+  min-width: 0;
+}
+
+.asset-target-fields .journal-input-shell {
+  min-height: 42px;
+}
+
+.asset-target-fields .journal-input-shell input {
+  height: 40px;
+}
+
+.asset-target-remove {
+  color: var(--red);
+}
+
+.asset-target-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.asset-target-footer span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .journal-entry-form {

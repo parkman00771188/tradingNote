@@ -65,7 +65,7 @@ function formatDashboardChartLabel(value) {
   return `${Math.round(value).toLocaleString()}만원`;
 }
 
-function getAssetTrendChartData() {
+function getAssetTrendChartData(targetLines = []) {
   const cashBalance = getAssetCashBalance();
   const totalAssets = getAssetTotalValue();
   const investmentPrincipal = typeof getHoldingTotalCostBasis === "function" ? getHoldingTotalCostBasis() : getAssetInvestedValue();
@@ -75,7 +75,8 @@ function getAssetTrendChartData() {
   const primaryTrend = buildDashboardTrendValues(totalUnit, [0.93, 0.94, 0.955, 0.965, 0.96, 0.972, 0.98, 0.988, 0.982, 0.99, 0.996, 1.003, 0.992, 0.998, 1.006, 1]);
   const secondaryTrend = buildDashboardTrendValues(principalUnit, [0.96, 0.965, 0.972, 0.978, 0.982, 0.986, 0.99, 0.993, 0.995, 0.997, 0.998, 0.999, 0.998, 0.999, 1, 1]);
   const tertiaryTrend = buildDashboardTrendValues(cashUnit, [1.08, 1.06, 1.04, 1.02, 1.03, 1.01, 1.0, 0.99, 1.0, 0.98, 0.97, 0.96, 0.98, 0.99, 1.01, 1]);
-  const chartMax = Math.max(6000, Math.ceil(Math.max(...primaryTrend, ...secondaryTrend, ...tertiaryTrend) / 1500) * 1500);
+  const targetValues = targetLines.map((line) => Number(line.value) || 0);
+  const chartMax = Math.max(6000, Math.ceil(Math.max(...primaryTrend, ...secondaryTrend, ...tertiaryTrend, ...targetValues) / 1500) * 1500);
 
   return {
     totalUnit,
@@ -88,8 +89,9 @@ function getAssetTrendChartData() {
   };
 }
 
-function renderAssetTrendChart(className = "dashboard-asset-chart asset-trend-chart") {
-  const trend = getAssetTrendChartData();
+function renderAssetTrendChart(options = {}) {
+  const { className = "dashboard-asset-chart asset-trend-chart", targetLines = [] } = options;
+  const trend = getAssetTrendChartData(targetLines);
 
   return lineChart({
     primary: trend.primaryTrend,
@@ -109,6 +111,7 @@ function renderAssetTrendChart(className = "dashboard-asset-chart asset-trend-ch
     tertiaryColor: "#2aa7a1",
     tooltipLabels: ["01/02", "01/12", "01/22", "02/01", "02/11", "02/21", "03/01", "03/11", "03/21", "04/01", "04/11", "04/21", "05/02", "05/12", "05/22", "06/01"],
     className,
+    targetLines,
     desktopViewBox: getDashboardAssetDesktopViewBox(),
     compactViewBox: {
       width: 352,
@@ -132,18 +135,28 @@ function renderAssetTrendChart(className = "dashboard-asset-chart asset-trend-ch
   });
 }
 
-function renderAssetTrendPanel(className = "dashboard-asset-panel asset-trend-panel") {
+function renderAssetTrendPanel(options = {}) {
+  const {
+    className = "dashboard-asset-panel asset-trend-panel",
+    title = "자산 추이",
+    showTargetSettings = false,
+    targetLines = []
+  } = typeof options === "string" ? { className: options } : options;
+
   return `
     <article class="panel ${className}">
       <div class="panel-header">
-        <h2 class="panel-title">자산 추이</h2>
-        <div class="segmented" aria-label="기간 선택">
-          <button type="button">1M</button><button type="button">3M</button><button class="active" type="button">6M</button>
-          <button type="button">1Y</button><button type="button">전체</button>
+        <h2 class="panel-title">${title}</h2>
+        <div class="header-actions asset-trend-actions">
+          <div class="segmented" aria-label="기간 선택">
+            <button type="button">1M</button><button type="button">3M</button><button class="active" type="button">6M</button>
+            <button type="button">1Y</button><button type="button">전체</button>
+          </div>
+          ${showTargetSettings ? `<button class="mini-action" type="button" data-modal="assetTrendTargets" aria-label="목표가 설정">${icon("settings")}</button>` : ""}
         </div>
       </div>
       <div class="legend"><span><i class="dot"></i>총자산</span><span><i class="dot gray"></i>투자원금</span><span><i class="dot teal"></i>보유현금</span></div>
-      ${renderAssetTrendChart()}
+      ${renderAssetTrendChart({ targetLines })}
     </article>
   `;
 }

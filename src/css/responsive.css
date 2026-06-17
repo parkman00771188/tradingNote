@@ -303,7 +303,8 @@
   }
 
   .asset-cash-modal,
-  .asset-cash-confirm-modal {
+  .asset-cash-confirm-modal,
+  .asset-target-modal {
     width: min(420px, calc(100vw - 24px));
     height: auto;
     max-height: calc(100vh - 40px);
@@ -332,8 +333,20 @@
     padding: 14px;
   }
 
-  .asset-cash-modal .modal-body {
+  .asset-cash-modal .modal-body,
+  .asset-target-modal .modal-body {
     padding: 18px;
+  }
+
+  .asset-target-row {
+    grid-template-columns: 30px minmax(0, 1fr) 36px;
+    align-items: start;
+    padding: 10px;
+  }
+
+  .asset-target-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
   }
 
   .journal-date-modal .modal-body {

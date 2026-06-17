@@ -1,3 +1,123 @@
+var assetTrendTargets = [];
+var assetTrendTargetDrafts = [];
+var assetTrendTargetNextId = 1;
+
+function createAssetTrendTargetDraft(index = assetTrendTargetDrafts.length) {
+  const nextIndex = index + 1;
+  return {
+    id: `asset-target-${assetTrendTargetNextId++}`,
+    label: `목표 ${nextIndex}`,
+    amount: 0,
+    visible: true
+  };
+}
+
+function beginAssetTrendTargetEdit() {
+  assetTrendTargetDrafts = assetTrendTargets.length
+    ? assetTrendTargets.map((target) => ({ ...target }))
+    : [createAssetTrendTargetDraft(0)];
+}
+
+function cancelAssetTrendTargetEdit() {
+  assetTrendTargetDrafts = [];
+}
+
+function addAssetTrendTargetDraft() {
+  if (assetTrendTargetDrafts.length >= 5) return;
+  assetTrendTargetDrafts.push(createAssetTrendTargetDraft(assetTrendTargetDrafts.length));
+}
+
+function removeAssetTrendTargetDraft(targetId) {
+  assetTrendTargetDrafts = assetTrendTargetDrafts.filter((target) => target.id !== targetId);
+  if (!assetTrendTargetDrafts.length) {
+    assetTrendTargetDrafts.push(createAssetTrendTargetDraft(0));
+  }
+}
+
+function updateAssetTrendTargetDraft(targetId, patch) {
+  assetTrendTargetDrafts = assetTrendTargetDrafts.map((target) => (target.id === targetId ? { ...target, ...patch } : target));
+}
+
+function applyAssetTrendTargetEdit() {
+  assetTrendTargets = assetTrendTargetDrafts
+    .map((target, index) => ({
+      id: target.id,
+      label: String(target.label || "").trim() || `목표 ${index + 1}`,
+      amount: Math.max(0, Number(target.amount) || 0),
+      visible: Boolean(target.visible)
+    }))
+    .filter((target) => target.amount > 0)
+    .slice(0, 5);
+  assetTrendTargetDrafts = [];
+}
+
+function getVisibleAssetTrendTargetLines() {
+  return assetTrendTargets
+    .filter((target) => target.visible && target.amount > 0)
+    .slice(0, 5)
+    .map((target, index) => ({
+      label: target.label || `목표 ${index + 1}`,
+      value: target.amount / 10000,
+      amount: formatKRW(target.amount)
+    }));
+}
+
+function renderAssetTrendTargetsModal() {
+  const drafts = assetTrendTargetDrafts.length ? assetTrendTargetDrafts : [createAssetTrendTargetDraft(0)];
+
+  return `
+    <div class="modal-backdrop">
+      <section class="modal-panel asset-target-modal" role="dialog" aria-modal="true" aria-labelledby="assetTargetModalTitle">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Asset Targets</p>
+            <h2 class="modal-title" id="assetTargetModalTitle">목표가 설정</h2>
+          </div>
+          <button class="icon-button" type="button" data-modal-close aria-label="닫기">X</button>
+        </div>
+        <div class="modal-body">
+          <div class="asset-target-list">
+            ${drafts
+              .map(
+                (target, index) => `
+                  <div class="asset-target-row" data-asset-target-row="${target.id}">
+                    <label class="asset-target-visible">
+                      <input type="checkbox" ${target.visible ? "checked" : ""} data-asset-target-visible data-asset-target-id="${target.id}">
+                      <span></span>
+                    </label>
+                    <div class="asset-target-fields">
+                      <div class="field">
+                        <label for="assetTargetLabel${index}">목표명</label>
+                        <input id="assetTargetLabel${index}" class="input" type="text" value="${escapeChartText(target.label)}" autocomplete="off" data-asset-target-label data-asset-target-id="${target.id}">
+                      </div>
+                      <div class="field">
+                        <label for="assetTargetAmount${index}">목표가</label>
+                        <div class="journal-input-shell">
+                          <input id="assetTargetAmount${index}" type="text" value="${target.amount ? target.amount.toLocaleString() : ""}" inputmode="numeric" autocomplete="off" placeholder="목표가를 입력하세요" data-number-input data-asset-target-amount data-asset-target-id="${target.id}">
+                          <span>원</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button class="mini-action asset-target-remove" type="button" data-asset-target-remove="${target.id}" aria-label="목표 삭제">${icon("trash")}</button>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
+          <div class="asset-target-footer">
+            <button class="btn ghost" type="button" data-asset-target-add ${drafts.length >= 5 ? "disabled" : ""}>${icon("plus")}목표 추가</button>
+            <span>${drafts.length}/5</span>
+          </div>
+          <div class="asset-cash-actions">
+            <button class="btn" type="button" data-modal-close>취소</button>
+            <button class="btn primary" type="button" data-asset-target-apply>적용</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function renderAssets() {
   const cashBalance = getAssetCashBalance();
   const investedValue = getAssetInvestedValue();
@@ -83,7 +203,7 @@ function renderAssets() {
             <div class="list-row"><span class="list-icon" style="color:var(--purple);background:var(--purple-soft)">${icon("wallet")}</span><div><p class="list-title">현금 계좌</p><p class="list-sub">입출금 반영</p></div><strong>${formatKRW(cashBalance)}</strong></div>
           </div>
         </article>
-        ${renderAssetTrendPanel()}
+        ${renderAssetTrendPanel({ title: "종합 자산 추이", showTargetSettings: true, targetLines: getVisibleAssetTrendTargetLines() })}
         <article class="panel">
           <div class="panel-header tight"><h2 class="panel-title">주식 vs 현금 비중</h2></div>
           <div class="donut-row asset-compact-donut">

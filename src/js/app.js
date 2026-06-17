@@ -351,6 +351,7 @@ function cancelActiveModalDraft(modalName = activeModal) {
   if (modalName === "journalDateRange") cancelJournalDateRangeEdit();
   if (modalName === "journalStockFilter") cancelJournalStockFilterEdit();
   if (modalName === "journalTradeTypeFilter") cancelJournalTradeTypeFilterEdit();
+  if (modalName === "assetTrendTargets") cancelAssetTrendTargetEdit();
 }
 
 function getRoute() {
@@ -362,7 +363,7 @@ function renderModal() {
   const modalRoot = document.querySelector("#modalRoot");
   if (!modalRoot) return;
 
-  if (!["journalWrite", "assetCash", "assetCashConfirm", "journalDateRange", "journalStockFilter", "journalTradeTypeFilter"].includes(activeModal)) {
+  if (!["journalWrite", "assetCash", "assetCashConfirm", "assetTrendTargets", "journalDateRange", "journalStockFilter", "journalTradeTypeFilter"].includes(activeModal)) {
     modalRoot.innerHTML = "";
     if (document.body) document.body.classList.remove("modal-open");
     return;
@@ -391,6 +392,11 @@ function renderModal() {
 
   if (activeModal === "assetCashConfirm") {
     modalRoot.innerHTML = renderAssetCashConfirmModal();
+    return;
+  }
+
+  if (activeModal === "assetTrendTargets") {
+    modalRoot.innerHTML = renderAssetTrendTargetsModal();
     return;
   }
 
@@ -544,6 +550,9 @@ document.addEventListener("click", (event) => {
     if (activeModal === "journalTradeTypeFilter") {
       beginJournalTradeTypeFilterEdit();
     }
+    if (activeModal === "assetTrendTargets") {
+      beginAssetTrendTargetEdit();
+    }
     renderModal();
     hydrateIcons(document);
     return;
@@ -689,6 +698,30 @@ document.addEventListener("click", (event) => {
       assetCashDraftAmount = "";
       assetCashPendingAmount = 0;
       assetCashPendingMode = "deposit";
+      activeModal = null;
+      render();
+      return;
+    }
+
+    const assetTargetAdd = event.target.closest("[data-asset-target-add]");
+    if (assetTargetAdd && activeModal === "assetTrendTargets") {
+      addAssetTrendTargetDraft();
+      renderModal();
+      hydrateIcons(document);
+      return;
+    }
+
+    const assetTargetRemove = event.target.closest("[data-asset-target-remove]");
+    if (assetTargetRemove && activeModal === "assetTrendTargets") {
+      removeAssetTrendTargetDraft(assetTargetRemove.dataset.assetTargetRemove);
+      renderModal();
+      hydrateIcons(document);
+      return;
+    }
+
+    const assetTargetApply = event.target.closest("[data-asset-target-apply]");
+    if (assetTargetApply && activeModal === "assetTrendTargets") {
+      applyAssetTrendTargetEdit();
       activeModal = null;
       render();
       return;
@@ -847,6 +880,12 @@ document.addEventListener("change", (event) => {
     return;
   }
 
+  const assetTargetVisible = event.target.closest("[data-asset-target-visible]");
+  if (assetTargetVisible && activeModal === "assetTrendTargets") {
+    updateAssetTrendTargetDraft(assetTargetVisible.dataset.assetTargetId, { visible: assetTargetVisible.checked });
+    return;
+  }
+
   if (activeModal && event.target.closest(".modal-panel")) return;
 
   const journalCheckbox = event.target.closest("[data-journal-select]");
@@ -865,6 +904,18 @@ document.addEventListener("input", (event) => {
   const numberInput = event.target.closest("[data-number-input]");
   if (numberInput) {
     formatNumberInput(numberInput);
+  }
+
+  const assetTargetAmount = event.target.closest("[data-asset-target-amount]");
+  if (assetTargetAmount && activeModal === "assetTrendTargets") {
+    updateAssetTrendTargetDraft(assetTargetAmount.dataset.assetTargetId, { amount: parseKRWInput(assetTargetAmount.value) });
+    return;
+  }
+
+  const assetTargetLabel = event.target.closest("[data-asset-target-label]");
+  if (assetTargetLabel && activeModal === "assetTrendTargets") {
+    updateAssetTrendTargetDraft(assetTargetLabel.dataset.assetTargetId, { label: assetTargetLabel.value });
+    return;
   }
 
   const journalEntryForm = event.target.closest("[data-journal-entry-form]");
