@@ -15,15 +15,19 @@ function renderStock() {
     <div class="stock-layout">
       <div class="stock-main-grid">
         <section class="toolbar stock-search-toolbar">
-          <div class="field"><div class="input-with-icon"><input class="input" placeholder="종목 검색 (종목명 또는 코드 입력)" value=""><span class="field-icon">${icon("search")}</span></div></div>
+          <div class="field"><div class="input-with-icon"><input class="input stock-search-input" placeholder="종목 검색 (종목명 또는 코드 입력)" value=""><span class="field-icon">${icon("search")}</span></div></div>
         </section>
         <article class="panel">
           <div class="stock-hero">
             <div class="stock-name">
-              <span class="text-blue">${icon("star")}</span>
-              <div>
-                <h2>삼성전자 <span class="tiny">005930</span> ${tag("코스피")}</h2>
-                <p class="list-sub">전자제품 | 시가총액 456.72조</p>
+              <button class="stock-favorite" type="button" aria-label="관심 종목 등록">${icon("star")}</button>
+              <div class="stock-title-block">
+                <div class="stock-title-row">
+                  <h2>삼성전자</h2>
+                  <span class="stock-code">005930</span>
+                  <span class="stock-market">코스피</span>
+                </div>
+                <p class="list-sub">전자제품 <span>|</span> 시가총액 456.72조</p>
               </div>
             </div>
             <div class="price-block">

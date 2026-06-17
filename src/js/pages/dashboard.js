@@ -90,11 +90,11 @@ function renderDashboard() {
             className: "dashboard-asset-chart",
             compactViewBox: {
               width: 340,
-              height: 320,
+              height: 282,
               left: 64,
               right: 68,
               top: 16,
-              bottom: 42,
+              bottom: 36,
               labelFontSize: 12,
               endLabelFontSize: 13,
               primaryStrokeWidth: 3.7,

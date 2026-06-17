@@ -36,6 +36,29 @@ function parseKRWInput(value) {
   return Math.max(0, Number(String(value).replace(/[^0-9]/g, "")) || 0);
 }
 
+function formatNumberInput(input) {
+  const digits = String(input.value).replace(/[^0-9]/g, "");
+  input.value = digits ? Number(digits).toLocaleString() : "";
+}
+
+function openLinkedDatePicker(trigger) {
+  const shell = trigger.closest(".input-with-icon");
+  const input = shell ? shell.querySelector("[data-date-picker]") : null;
+  if (!input) return;
+
+  input.focus();
+  if (typeof input.showPicker === "function") {
+    try {
+      input.showPicker();
+      return;
+    } catch (error) {
+      input.click();
+      return;
+    }
+  }
+  input.click();
+}
+
 function getChartTooltip() {
   if (chartTooltip) return chartTooltip;
   chartTooltip = document.createElement("div");
@@ -99,7 +122,7 @@ function renderAssetCashModal() {
           <div class="asset-cash-form" data-asset-cash-form data-mode="${assetCashMode}">
             <label for="assetCashAmount">${actionLabel}액</label>
             <div class="journal-input-shell">
-              <input id="assetCashAmount" type="number" min="0" ${isWithdraw ? `max="${assetCashBalance}"` : ""} inputmode="numeric" placeholder="${actionLabel}액을 입력하세요" data-asset-cash-amount>
+              <input id="assetCashAmount" type="text" ${isWithdraw ? `data-max="${assetCashBalance}"` : ""} inputmode="numeric" autocomplete="off" placeholder="${actionLabel}액을 입력하세요" data-number-input data-asset-cash-amount>
               <span>원</span>
             </div>
             <p class="asset-cash-help">${isWithdraw ? `출금 가능 금액은 ${formatKRW(assetCashBalance)}입니다.` : "입금액은 현금 자산에 더해집니다."}</p>
@@ -239,6 +262,12 @@ document.addEventListener("click", (event) => {
 
   const modalPanel = event.target.closest(".modal-panel");
   if (activeModal) {
+    const datePickerButton = event.target.closest("[data-date-picker-trigger]");
+    if (datePickerButton && modalPanel) {
+      openLinkedDatePicker(datePickerButton);
+      return;
+    }
+
     const modalClose = event.target.closest("[data-modal-close]");
     if (modalClose && modalPanel) {
       activeModal = null;
@@ -382,6 +411,11 @@ document.addEventListener("change", (event) => {
 });
 
 document.addEventListener("input", (event) => {
+  const numberInput = event.target.closest("[data-number-input]");
+  if (numberInput) {
+    formatNumberInput(numberInput);
+  }
+
   const amountInput = event.target.closest("[data-asset-cash-amount]");
   if (!amountInput || activeModal !== "assetCash") return;
 

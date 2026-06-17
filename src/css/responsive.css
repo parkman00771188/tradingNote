@@ -174,6 +174,12 @@
     padding: 18px 20px;
   }
 
+  .dashboard-metric .metric-value,
+  .page-summary-metric .metric-value {
+    font-size: clamp(22px, 4.4vw, 28px);
+    line-height: 1.1;
+  }
+
   .dashboard-metric .metric-icon {
     width: 24px;
     height: 24px;
@@ -335,10 +341,6 @@
     gap: 10px;
   }
 
-  .cash-balance-box button {
-    justify-self: start;
-  }
-
   .holding-box span,
   .holding-box span + span {
     padding: 0;
@@ -378,7 +380,7 @@
   }
 
   .dashboard-metric .metric-value {
-    font-size: clamp(24px, 6.2vw, 28px);
+    font-size: clamp(22px, 5.5vw, 26px);
     font-weight: 650;
   }
 
@@ -735,13 +737,13 @@
 
   .dashboard-metric .metric-value,
   .page-summary-metric .metric-value {
-    font-size: clamp(26px, 6vw, 34px);
+    font-size: clamp(23px, 4.6vw, 30px);
     line-height: 1.15;
     font-weight: 900;
   }
 
   .page-summary-metric .metric-value {
-    font-size: clamp(22px, 5.2vw, 28px);
+    font-size: clamp(21px, 4.4vw, 26px);
     overflow-wrap: anywhere;
     white-space: normal;
   }
@@ -1191,8 +1193,24 @@
     display: none;
   }
 
+  body[data-route="stock"] .topbar {
+    margin-bottom: 8px;
+  }
+
+  body[data-route="stock"] .stock-search-toolbar {
+    margin-top: -5px;
+  }
+
   .stock-hero {
-    gap: 16px;
+    gap: 12px;
+  }
+
+  body[data-route="stock"] .stock-title-row {
+    gap: 7px;
+  }
+
+  body[data-route="stock"] .price-block {
+    padding-left: 50px;
   }
 
   body[data-route="stock"] .stock-main-grid > article.panel:nth-of-type(2) {
@@ -1238,7 +1256,7 @@
   }
 
   .stock-name h2 {
-    font-size: 25px;
+    font-size: 28px;
   }
 
   .price-block strong {
@@ -1518,12 +1536,12 @@
 
   .dashboard-metric .metric-value,
   .page-summary-metric .metric-value {
-    font-size: clamp(24px, 6vw, 28px);
+    font-size: clamp(22px, 5.4vw, 25px);
   }
 
   body[data-route="dashboard"] .dashboard-metric .metric-value {
     color: #071125;
-    font-size: clamp(24px, 6.2vw, 26px);
+    font-size: clamp(21px, 5.5vw, 24px);
     font-weight: 850;
     line-height: 1.08;
     white-space: nowrap;
@@ -1579,7 +1597,7 @@
   }
 
   body[data-route="dashboard"] .dashboard-asset-chart {
-    height: clamp(300px, 79vw, 318px);
+    height: clamp(252px, 68vw, 278px);
     margin-top: 4px;
   }
 
@@ -1610,6 +1628,8 @@
 
   .donut .donut-center {
     inset: 38px;
+    gap: 1px;
+    line-height: 1.04;
   }
 
   .portfolio-legend {
@@ -1638,6 +1658,7 @@
   body[data-route="assets"] .asset-grid > article:first-child .donut .donut-center {
     inset: 34px;
     font-size: 12px;
+    line-height: 1.04;
   }
 
   body[data-route="assets"] .asset-grid > article:first-child .legend-row {
@@ -1650,7 +1671,7 @@
   }
 
   body[data-route="assets"] .page-summary-metric .metric-value {
-    font-size: clamp(20px, 4.9vw, 24px);
+    font-size: clamp(19px, 4.7vw, 22px);
     overflow-wrap: normal;
     white-space: nowrap;
   }
@@ -1770,11 +1791,11 @@
   }
 
   .dashboard-metric .metric-value {
-    font-size: clamp(20px, 5.4vw, 22px);
+    font-size: clamp(19px, 5vw, 21px);
   }
 
   .page-summary-metric .metric-value {
-    font-size: clamp(19px, 5.2vw, 22px);
+    font-size: clamp(18px, 4.9vw, 21px);
   }
 
   .journal-summary-metric {

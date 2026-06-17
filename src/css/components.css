@@ -494,6 +494,17 @@
   pointer-events: none;
 }
 
+.field-icon-button {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  pointer-events: auto;
+}
+
+.input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -1046,14 +1057,29 @@ body[data-route="assets"] .asset-grid > article:first-child .legend-row > span:l
 .donut .donut-center {
   position: absolute;
   inset: 48px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   color: #475569;
   background: white;
   border-radius: 50%;
   text-align: center;
   font-weight: 850;
+  line-height: 1.06;
   box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.donut .donut-center br {
+  display: none;
+}
+
+.donut .donut-center strong {
+  display: block;
+  margin-top: 1px;
+  color: #334155;
+  line-height: 1.05;
 }
 
 .donut.small .donut-center {
@@ -1880,30 +1906,27 @@ body.modal-open {
 .trade-toggle {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  overflow: hidden;
+  gap: 4px;
+  padding: 4px;
   border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background: white;
+  border-radius: 12px;
+  background: #f8fbff;
 }
 
 .trade-toggle button {
   min-width: 0;
   color: #1e2b45;
-  background: white;
+  background: transparent;
   border: 0;
-  border-right: 1px solid var(--line-strong);
+  border-radius: 9px;
   font-size: 16px;
   font-weight: 850;
 }
 
-.trade-toggle button:last-child {
-  border-right: 0;
-}
-
 .trade-toggle button.active {
-  color: var(--blue);
-  background: #f5f9ff;
-  box-shadow: inset 0 0 0 1.5px var(--blue);
+  color: #ffffff;
+  background: var(--blue);
+  box-shadow: 0 6px 14px rgba(36, 116, 242, 0.18);
 }
 
 [data-journal-entry-form][data-trade-mode="buy"] [data-visible-for="sell"],
@@ -1913,7 +1936,7 @@ body.modal-open {
 
 .cash-balance-box {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 14px;
   min-height: 72px;
@@ -1995,7 +2018,7 @@ body.modal-open {
 }
 
 .compact-textarea {
-  min-height: 72px;
+  min-height: 118px;
 }
 
 .journal-entry-actions {
@@ -2067,13 +2090,68 @@ body.modal-open {
 
 .stock-name {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
+  min-width: 0;
 }
 
 .stock-name h2 {
   margin: 0;
-  font-size: 26px;
+  color: #0f172a;
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.stock-favorite {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  color: var(--blue);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.stock-favorite svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.stock-title-block {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.stock-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stock-code {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.stock-market {
+  min-height: 26px;
+  padding: 4px 10px;
+  color: #334155;
+  background: #eef4fb;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .price-block {
