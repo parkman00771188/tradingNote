@@ -8,10 +8,10 @@ function renderAssets() {
   return `
     <div class="stack">
       <section class="metric-grid">
-        ${metricCard({ title: "총자산", value: "45,680,000원", sub: `<span>전일 대비</span><strong class="text-blue">+620,000원 (+1.37%)</strong>`, iconName: "wallet", info: true, className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
+        ${metricCard({ title: "총자산", value: "45,680,000원", sub: `<span>전일 대비</span><strong class="text-red">+620,000원 (+1.37%)</strong>`, iconName: "wallet", info: true, className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
         ${metricCard({ title: "현금비중", value: "18.6%", sub: `<span>8,480,000원</span>`, iconName: "coin", className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
-        ${metricCard({ title: "평가손익", value: "+5,680,000원", sub: `<strong class="text-green">+14.20%</strong>`, iconName: "trend", tone: "green", valueClass: "text-green", className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
-        ${metricCard({ title: "실현손익", value: "+1,250,000원", sub: `<strong class="text-green">+3.21%</strong>`, iconName: "target", tone: "green", valueClass: "text-green", className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
+        ${metricCard({ title: "평가손익", value: "+5,680,000원", sub: `<strong class="text-red">+14.20%</strong>`, iconName: "trend", tone: "red", valueClass: "text-red", className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
+        ${metricCard({ title: "실현손익", value: "+1,250,000원", sub: `<strong class="text-red">+3.21%</strong>`, iconName: "target", tone: "red", valueClass: "text-red", className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
       </section>
 
       <section class="asset-grid">
@@ -100,10 +100,10 @@ function renderAssets() {
           </div>
           ${renderTable(["종목명", "수량", "평균단가", "현재가", "평가손익", "수익률", "비중"], [
             ["삼성전자", "50", "81,500", "81,500", "0", "0.00%", "9.0%"],
-            ["SK하이닉스", "20", "126,000", "128,000", `<span class="text-blue">+40,000</span>`, `<span class="text-blue">+1.59%</span>`, "5.6%"],
-            ["NAVER", "10", "178,000", "187,500", `<span class="text-blue">+95,000</span>`, `<span class="text-blue">+5.34%</span>`, "4.1%"],
-            ["카카오", "15", "52,100", "54,300", `<span class="text-blue">+33,000</span>`, `<span class="text-blue">+4.22%</span>`, "3.6%"],
-            ["TIGER 200", "30", "12,450", "12,830", `<span class="text-blue">+11,400</span>`, `<span class="text-blue">+3.05%</span>`, "2.8%"]
+            ["SK하이닉스", "20", "126,000", "128,000", `<span class="text-red">+40,000</span>`, `<span class="text-red">+1.59%</span>`, "5.6%"],
+            ["NAVER", "10", "178,000", "187,500", `<span class="text-red">+95,000</span>`, `<span class="text-red">+5.34%</span>`, "4.1%"],
+            ["카카오", "15", "52,100", "54,300", `<span class="text-red">+33,000</span>`, `<span class="text-red">+4.22%</span>`, "3.6%"],
+            ["TIGER 200", "30", "12,450", "12,830", `<span class="text-red">+11,400</span>`, `<span class="text-red">+3.05%</span>`, "2.8%"]
           ])}
         </article>
         <aside class="panel">

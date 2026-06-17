@@ -108,7 +108,7 @@ function renderJournal() {
         ${metricCard({
           title: "이번달 거래수",
           value: `${journalTradeCount}회`,
-          sub: `<span>전월 대비</span><strong class="text-blue">+6회 (+33.3%)</strong>`,
+          sub: `<span>전월 대비</span><strong class="text-red">+6회 (+33.3%)</strong>`,
           iconName: "target",
           className: "dashboard-metric journal-summary-metric",
           iconPosition: "end"
@@ -116,20 +116,20 @@ function renderJournal() {
         ${metricCard({
           title: "실현손익",
           value: "+2,450,000원",
-          sub: `<span>전월 대비</span><strong class="text-green">+620,000원 (+33.87%)</strong>`,
+          sub: `<span>전월 대비</span><strong class="text-red">+620,000원 (+33.87%)</strong>`,
           iconName: "trend",
-          tone: "green",
-          valueClass: "text-green",
+          tone: "red",
+          valueClass: "text-red",
           className: "dashboard-metric journal-summary-metric",
           iconPosition: "end"
         })}
         ${metricCard({
           title: "평균 수익률",
           value: "+3.21%",
-          sub: `<span>전월 대비</span><strong class="text-green">+1.12%p</strong>`,
+          sub: `<span>전월 대비</span><strong class="text-red">+1.12%p</strong>`,
           iconName: "target",
-          tone: "green",
-          valueClass: "text-green",
+          tone: "red",
+          valueClass: "text-red",
           className: "dashboard-metric journal-summary-metric",
           iconPosition: "end"
         })}

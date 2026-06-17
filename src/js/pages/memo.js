@@ -29,7 +29,7 @@ function renderMemo() {
                 <h3 class="note-title">${title}</h3>
                 <div class="tag-cloud">${tags.map((item) => tag(item, toneForTag(item))).join("")}</div>
                 <p class="note-text">${body}</p>
-                ${profit ? `<p>${profit.startsWith("+") ? "목표 손익" : "손익"} · <span class="${profit.startsWith("+") ? "text-green" : "text-red"}">${profit}</span></p>` : `<p class="stars">★ ★ ★ ★ ☆</p>`}
+                ${profit ? `<p>${profit.startsWith("+") ? "목표 손익" : "손익"} · <span class="${profit.startsWith("+") ? "text-red" : "text-blue"}">${profit}</span></p>` : `<p class="stars">★ ★ ★ ★ ☆</p>`}
               </article>
             `).join("")}
           </div>
@@ -42,7 +42,7 @@ function renderMemo() {
           </div>
           <div class="panel-header tight">
             <div class="tag-cloud">${["복기", "일지", "감정"].map((item) => tag(item, toneForTag(item))).join("")}</div>
-            <strong>손익 <span class="text-green">+125,000원</span></strong>
+            <strong>손익 <span class="text-red">+125,000원</span></strong>
           </div>
           <div class="note-detail-body">
             <p>오늘은 장중 변동성이 컸던 하루였다. 오전에 매수한 종목이 오후에 큰 조정을 받아 손절을 고려했지만, 계획대로 대응하며 리스크를 최소화할 수 있었다.</p>
@@ -59,7 +59,7 @@ function renderMemo() {
             <div><h3>다음에 개선할 점</h3><p>분할 매도 전략을 더 연습하고, 수익 실현 목표를 구체화할 것.</p></div>
             <div class="related-trade">
               <p class="tiny">관련 매매</p>
-              <div class="panel-header tight"><strong>현대차</strong><strong class="text-green">+42,500원</strong></div>
+              <div class="panel-header tight"><strong>현대차</strong><strong class="text-red">+42,500원</strong></div>
               <p class="list-sub">06/20 15:30 · 매수 후 익일 매도</p>
             </div>
           </div>
@@ -86,7 +86,7 @@ function renderMemo() {
             <div class="panel-header"><h2 class="panel-title">최근 복기</h2><button class="btn ghost" type="button">더보기 ${icon("chevronRight")}</button></div>
             <div class="list">
               ${notes.slice(1, 5).map(([date, title, tags, body, profit]) => `
-                <div class="list-row"><div><p class="list-sub">${date}</p><p class="list-title">${title}</p></div><span class="${profit.startsWith("+") ? "text-green" : profit.startsWith("-") ? "text-red" : ""}">${profit || tag(tags[0], toneForTag(tags[0]))}</span></div>
+                <div class="list-row"><div><p class="list-sub">${date}</p><p class="list-title">${title}</p></div><span class="${profit.startsWith("+") ? "text-red" : profit.startsWith("-") ? "text-blue" : ""}">${profit || tag(tags[0], toneForTag(tags[0]))}</span></div>
               `).join("")}
             </div>
             <button class="btn ghost full" type="button">모든 복기 보기 ${icon("chevronRight")}</button>

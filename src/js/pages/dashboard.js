@@ -37,8 +37,8 @@ function renderDashboard() {
           title: "평가 손익",
           value: "+2,250,000원",
           iconName: "trend",
-          tone: "green",
-          valueClass: "text-green",
+          tone: "red",
+          valueClass: "text-red",
           className: "dashboard-metric",
           iconPosition: "end"
         })}
@@ -46,8 +46,8 @@ function renderDashboard() {
           title: "수익률",
           value: "+4.59%",
           iconName: "target",
-          tone: "green",
-          valueClass: "text-green",
+          tone: "red",
+          valueClass: "text-red",
           className: "dashboard-metric",
           iconPosition: "end"
         })}

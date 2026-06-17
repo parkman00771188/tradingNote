@@ -1517,6 +1517,14 @@
     white-space: nowrap;
   }
 
+  body[data-route="dashboard"] .dashboard-metric .metric-value.text-red {
+    color: var(--red);
+  }
+
+  body[data-route="dashboard"] .dashboard-metric .metric-value.text-blue {
+    color: var(--blue);
+  }
+
   .page-summary-metric .metric-value {
     font-size: clamp(20px, 5vw, 24px);
   }

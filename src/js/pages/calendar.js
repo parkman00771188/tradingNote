@@ -80,11 +80,11 @@ function renderCalendar() {
             <div class="panel-header tight"><h2 class="panel-title">6월 20일 (목) 거래 내역</h2></div>
             <div class="panel-header tight"><span>총 수익 <strong class="text-red">+125,000원</strong></span><span>총 손실 <strong class="text-blue">0원</strong></span><span>순수익 <strong class="text-red">+125,000원</strong></span></div>
             ${renderTable(["종목명", "거래구분", "수량", "매수가", "매도가", "실현손익"], [
-              ["삼성전자", `<span class="text-blue">매수</span>`, "10", "81,500", "83,000", `<span class="text-red">+15,000</span>`],
-              ["SK하이닉스", `<span class="text-red">매도</span>`, "5", "126,000", "128,500", `<span class="text-red">+12,500</span>`],
-              ["카카오", `<span class="text-blue">매수</span>`, "5", "57,700", "58,900", `<span class="text-red">+6,000</span>`],
-              ["현대차", `<span class="text-red">매도</span>`, "10", "169,000", "174,000", `<span class="text-red">+50,000</span>`],
-              ["NAVER", `<span class="text-blue">매수</span>`, "3", "178,000", "180,500", `<span class="text-red">+7,500</span>`]
+              ["삼성전자", `<span class="text-red">매수</span>`, "10", "81,500", "83,000", `<span class="text-red">+15,000</span>`],
+              ["SK하이닉스", `<span class="text-blue">매도</span>`, "5", "126,000", "128,500", `<span class="text-red">+12,500</span>`],
+              ["카카오", `<span class="text-red">매수</span>`, "5", "57,700", "58,900", `<span class="text-red">+6,000</span>`],
+              ["현대차", `<span class="text-blue">매도</span>`, "10", "169,000", "174,000", `<span class="text-red">+50,000</span>`],
+              ["NAVER", `<span class="text-red">매수</span>`, "3", "178,000", "180,500", `<span class="text-red">+7,500</span>`]
             ])}
           </article>
           <article class="panel">

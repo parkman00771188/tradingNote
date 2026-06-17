@@ -59,9 +59,9 @@ function renderStock() {
           <article class="panel">
             <div class="panel-header tight"><h2 class="panel-title">기술적 지표</h2></div>
             ${renderTable(["지표", "값", "신호"], [
-              ["이동평균 정배열", "정배열", `<span class="text-green">매수</span>`],
+              ["이동평균 정배열", "정배열", `<span class="text-red">매수</span>`],
               ["RSI (14)", "61.32", "중립"],
-              ["MACD", "1,215.45", `<span class="text-green">매수</span>`],
+              ["MACD", "1,215.45", `<span class="text-red">매수</span>`],
               ["스토캐스틱 (K)", "72.48", "중립"],
               ["볼린저 밴드", "상단 근접", `<span class="text-orange">주의</span>`]
             ])}

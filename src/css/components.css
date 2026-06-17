@@ -99,6 +99,11 @@
   background: var(--green-soft);
 }
 
+.metric-icon.red {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
 .metric-icon.purple {
   color: var(--purple);
   background: var(--purple-soft);
@@ -1147,13 +1152,13 @@ body[data-route="assets"] .asset-grid > article:first-child .legend-row > span:l
 }
 
 .heat-cell.win {
-  color: var(--blue);
-  background: #dcebff;
+  color: var(--red);
+  background: #ffe2e2;
 }
 
 .heat-cell.loss {
-  color: var(--red);
-  background: #ffe2e2;
+  color: var(--blue);
+  background: #dcebff;
 }
 
 .ratio-panel {
@@ -1182,11 +1187,15 @@ body[data-route="assets"] .asset-grid > article:first-child .legend-row > span:l
 .hist-fill {
   height: 10px;
   border-radius: 999px;
-  background: var(--blue);
+  background: var(--red);
 }
 
 .hist-fill.red {
   background: var(--red);
+}
+
+.hist-fill.blue {
+  background: var(--blue);
 }
 
 .memo-grid {
@@ -1984,13 +1993,13 @@ body.modal-open {
 }
 
 .trade-type.buy {
-  color: var(--blue);
-  background: var(--blue-soft);
+  color: var(--red);
+  background: var(--red-soft);
 }
 
 .trade-type.sell {
-  color: var(--red);
-  background: var(--red-soft);
+  color: var(--blue);
+  background: var(--blue-soft);
 }
 
 .footer-note {
