@@ -1745,8 +1745,8 @@ body.modal-open {
 
 .journal-date-modal .modal-body {
   display: grid;
-  gap: 18px;
-  padding: 20px;
+  gap: 14px;
+  padding: 18px;
 }
 
 .journal-date-range-picker {
@@ -1755,14 +1755,14 @@ body.modal-open {
   gap: 0;
   overflow: hidden;
   background: #f6f6f7;
-  border-radius: 14px;
+  border-radius: 12px;
 }
 
 .journal-date-field {
   display: grid;
-  gap: 8px;
+  gap: 5px;
   min-width: 0;
-  padding: 18px 22px;
+  padding: 13px 18px 12px;
 }
 
 .journal-date-field + .journal-date-field {
@@ -1772,15 +1772,15 @@ body.modal-open {
 .journal-date-field span {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: #334155;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 850;
 }
 
 .journal-date-field svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   color: #64748b;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -1792,11 +1792,12 @@ body.modal-open {
 .journal-date-field input {
   width: 100%;
   min-width: 0;
-  height: 34px;
+  height: 28px;
   color: #0f172a;
   background: transparent;
   border: 0;
   outline: 0;
+  font-size: 14px;
   font-weight: 800;
 }
 

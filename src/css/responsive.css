@@ -316,7 +316,8 @@
   }
 
   .journal-date-modal .modal-body {
-    padding: 18px;
+    gap: 14px;
+    padding: 14px 16px 16px;
   }
 
   .journal-write-modal .modal-body {
