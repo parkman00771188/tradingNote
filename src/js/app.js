@@ -256,8 +256,15 @@ function renderModal() {
   modalRoot.innerHTML = `
     <div class="modal-backdrop">
       <section class="modal-panel journal-write-modal" role="dialog" aria-modal="true" aria-labelledby="journalWriteModalTitle">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">New Record</p>
+            <h2 class="modal-title" id="journalWriteModalTitle">매매 일지 작성</h2>
+          </div>
+          <button class="icon-button" type="button" data-modal-close aria-label="닫기">X</button>
+        </div>
         <div class="modal-body">
-          ${renderJournalWrite()}
+          ${renderJournalWrite({ showTitle: false })}
         </div>
       </section>
     </div>

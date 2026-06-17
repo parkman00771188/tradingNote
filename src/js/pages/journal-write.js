@@ -18,11 +18,11 @@ function inputWithSuffix({ value = "", placeholder = "", suffix = "", readonly =
   `;
 }
 
-function renderJournalWrite() {
+function renderJournalWrite({ showTitle = true } = {}) {
   return `
     <form class="journal-entry-form" data-journal-entry-form data-trade-mode="buy">
       <div class="journal-entry-content">
-        <h2 id="journalWriteModalTitle" class="journal-entry-title">매매 일지 작성</h2>
+        ${showTitle ? `<h2 id="journalWriteModalTitle" class="journal-entry-title">매매 일지 작성</h2>` : ""}
 
         ${journalWriteField(
           "일자",

@@ -283,6 +283,24 @@
     border: 0;
   }
 
+  .journal-write-modal {
+    width: min(540px, calc(100vw - 24px));
+    height: auto;
+    max-height: calc(100vh - 40px);
+    overflow: hidden;
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+
+  .journal-write-modal .modal-header {
+    padding: 16px 18px;
+  }
+
+  .journal-write-modal .modal-title {
+    font-size: 22px;
+  }
+
   .asset-cash-modal {
     width: min(420px, calc(100vw - 24px));
     height: auto;

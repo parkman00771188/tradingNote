@@ -1763,16 +1763,23 @@ body.modal-open {
 }
 
 .journal-write-modal {
-  display: block;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   width: min(690px, calc(100vw - 40px));
   max-height: min(860px, calc(100vh - 48px));
   background: white;
 }
 
 .journal-write-modal .modal-body {
-  max-height: inherit;
+  min-height: 0;
+  max-height: 100%;
   overflow: hidden;
   padding: 0;
+}
+
+.journal-write-modal .journal-entry-form {
+  height: 100%;
+  max-height: none;
 }
 
 .asset-cash-modal {
