@@ -90,8 +90,27 @@ function getAssetTrendChartData(targetLines = []) {
 }
 
 function renderAssetTrendChart(options = {}) {
-  const { className = "dashboard-asset-chart asset-trend-chart", targetLines = [] } = options;
+  const { className = "dashboard-asset-chart asset-trend-chart", targetLines = [], compactViewBox = null } = options;
   const trend = getAssetTrendChartData(targetLines);
+  const defaultCompactViewBox = {
+    width: 352,
+    height: 246,
+    left: 40,
+    right: 66,
+    top: 14,
+    bottom: 32,
+    labelFontSize: 11,
+    endLabelFontSize: 12,
+    primaryStrokeWidth: 3.4,
+    secondaryStrokeWidth: 2.3,
+    tertiaryStrokeWidth: 2.5,
+    pointRadius: 4,
+    primaryBadgeWidth: 78,
+    secondaryBadgeWidth: 76,
+    tertiaryBadgeWidth: 62,
+    secondaryBadgeOffsetY: -26,
+    tertiaryBadgeOffsetY: 6
+  };
 
   return lineChart({
     primary: trend.primaryTrend,
@@ -113,25 +132,7 @@ function renderAssetTrendChart(options = {}) {
     className,
     targetLines,
     desktopViewBox: getDashboardAssetDesktopViewBox(),
-    compactViewBox: {
-      width: 384,
-      height: 268,
-      left: 38,
-      right: 86,
-      top: 18,
-      bottom: 34,
-      labelFontSize: 11,
-      endLabelFontSize: 12,
-      primaryStrokeWidth: 3.4,
-      secondaryStrokeWidth: 2.3,
-      tertiaryStrokeWidth: 2.5,
-      pointRadius: 4,
-      primaryBadgeWidth: 78,
-      secondaryBadgeWidth: 76,
-      tertiaryBadgeWidth: 62,
-      secondaryBadgeOffsetY: -26,
-      tertiaryBadgeOffsetY: 6
-    }
+    compactViewBox: compactViewBox || defaultCompactViewBox
   });
 }
 
@@ -140,8 +141,29 @@ function renderAssetTrendPanel(options = {}) {
     className = "dashboard-asset-panel asset-trend-panel",
     title = "자산 추이",
     showTargetSettings = false,
-    targetLines = []
+    targetLines = [],
+    compactViewBox = null
   } = typeof options === "string" ? { className: options } : options;
+  const targetSettingsCompactViewBox = {
+    width: 384,
+    height: 268,
+    left: 38,
+    right: 86,
+    top: 18,
+    bottom: 34,
+    labelFontSize: 11,
+    endLabelFontSize: 12,
+    primaryStrokeWidth: 3.4,
+    secondaryStrokeWidth: 2.3,
+    tertiaryStrokeWidth: 2.5,
+    pointRadius: 4,
+    primaryBadgeWidth: 78,
+    secondaryBadgeWidth: 76,
+    tertiaryBadgeWidth: 62,
+    secondaryBadgeOffsetY: -26,
+    tertiaryBadgeOffsetY: 6
+  };
+  const panelCompactViewBox = compactViewBox || (showTargetSettings ? targetSettingsCompactViewBox : null);
 
   return `
     <article class="panel ${className}">
@@ -156,7 +178,7 @@ function renderAssetTrendPanel(options = {}) {
         </div>
       </div>
       <div class="legend"><span><i class="dot"></i>총자산</span><span><i class="dot gray"></i>투자원금</span><span><i class="dot teal"></i>보유현금</span></div>
-      ${renderAssetTrendChart({ targetLines })}
+      ${renderAssetTrendChart({ targetLines, compactViewBox: panelCompactViewBox })}
     </article>
   `;
 }
