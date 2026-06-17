@@ -413,6 +413,40 @@
   min-width: 112px;
 }
 
+.date-range-trigger {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 42px;
+  padding: 0 14px 0 20px;
+  color: #334155;
+  background: white;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  text-align: left;
+  font-weight: 700;
+}
+
+.date-range-trigger span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date-range-trigger svg {
+  width: 22px;
+  height: 22px;
+  color: #64748b;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
 .field {
   display: grid;
   gap: 7px;
@@ -1702,6 +1736,74 @@ body.modal-open {
 .asset-cash-modal {
   width: min(470px, calc(100vw - 40px));
   background: white;
+}
+
+.journal-date-modal {
+  width: min(620px, calc(100vw - 32px));
+  background: white;
+}
+
+.journal-date-modal .modal-body {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.journal-date-range-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  overflow: hidden;
+  background: #f6f6f7;
+  border-radius: 14px;
+}
+
+.journal-date-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 18px 22px;
+}
+
+.journal-date-field + .journal-date-field {
+  border-left: 1px solid #d8dde6;
+}
+
+.journal-date-field span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #334155;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.journal-date-field svg {
+  width: 20px;
+  height: 20px;
+  color: #64748b;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.journal-date-field input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  color: #0f172a;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-weight: 800;
+}
+
+.journal-date-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
 }
 
 .asset-cash-modal .modal-body {

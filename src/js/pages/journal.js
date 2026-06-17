@@ -1,5 +1,59 @@
 var journalSelectedTradeIds = new Set();
 var journalDeletedTradeIds = new Set();
+var journalDateRange = getDefaultJournalDateRange();
+var journalDateRangeDraft = null;
+
+function formatJournalDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getDefaultJournalDateRange() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setMonth(start.getMonth() - 1);
+  return {
+    start: formatJournalDateInput(start),
+    end: formatJournalDateInput(end)
+  };
+}
+
+function formatJournalDisplayDate(value) {
+  return String(value || "").replace(/-/g, ".");
+}
+
+function getJournalDateRangeLabel(range = journalDateRange) {
+  return `${formatJournalDisplayDate(range.start)} ~ ${formatJournalDisplayDate(range.end)}`;
+}
+
+function getJournalDateRangeDraft() {
+  return journalDateRangeDraft || journalDateRange;
+}
+
+function beginJournalDateRangeEdit() {
+  journalDateRangeDraft = { ...journalDateRange };
+}
+
+function setJournalDateRangeDraft(field, value) {
+  if (!journalDateRangeDraft) beginJournalDateRangeEdit();
+  journalDateRangeDraft[field] = value;
+}
+
+function cancelJournalDateRangeEdit() {
+  journalDateRangeDraft = null;
+}
+
+function applyJournalDateRangeEdit() {
+  if (!journalDateRangeDraft) return;
+  const nextRange = { ...journalDateRangeDraft };
+  if (nextRange.start && nextRange.end && nextRange.start > nextRange.end) {
+    [nextRange.start, nextRange.end] = [nextRange.end, nextRange.start];
+  }
+  journalDateRange = nextRange;
+  journalDateRangeDraft = null;
+}
 
 function journalTradeId(index) {
   return `trade-${index}`;
@@ -39,7 +93,7 @@ function renderSelectableJournalRows(limit) {
 function renderMobileJournalFilters() {
   return `
     <section class="mobile-filter-card">
-      <button type="button"><span>${icon("calendar")}</span><strong>기간</strong><em>2024.05.20 ~ 2024.06.20</em>${icon("chevronRight")}</button>
+      <button type="button" data-modal="journalDateRange"><span>${icon("calendar")}</span><strong>기간</strong><em>${getJournalDateRangeLabel()}</em>${icon("chevronRight")}</button>
       <button type="button"><span>${icon("journal")}</span><strong>종목</strong><em>전체</em>${icon("chevronRight")}</button>
       <button type="button"><span>${icon("swap")}</span><strong>매수/매도</strong><em>전체</em>${icon("chevronRight")}</button>
     </section>
@@ -105,7 +159,13 @@ function renderJournal() {
   return `
     <div class="stack">
       <section class="toolbar journal-filter-toolbar desktop-journal-filter">
-        <div class="field"><label>기간</label><div class="input-with-icon"><input class="input" value="2024.05.20 ~ 2024.06.20" readonly><span class="field-icon">${icon("calendar")}</span></div></div>
+        <div class="field">
+          <label>기간</label>
+          <button class="date-range-trigger" type="button" data-modal="journalDateRange">
+            <span>${getJournalDateRangeLabel()}</span>
+            ${icon("calendar")}
+          </button>
+        </div>
         <div class="field"><label>종목</label><select class="select"><option>종목 선택</option></select></div>
         <div class="field"><label>매수/매도</label><select class="select"><option>전체</option><option>매수</option><option>매도</option></select></div>
         <button class="btn primary journal-search-button" type="button">${icon("search")}검색</button>

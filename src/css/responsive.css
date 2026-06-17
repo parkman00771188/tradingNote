@@ -291,6 +291,14 @@
     border-radius: 16px;
   }
 
+  .journal-date-modal {
+    width: min(440px, calc(100vw - 24px));
+    height: auto;
+    max-height: calc(100vh - 40px);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+
   .modal-header {
     padding: 16px;
   }
@@ -304,6 +312,10 @@
   }
 
   .asset-cash-modal .modal-body {
+    padding: 18px;
+  }
+
+  .journal-date-modal .modal-body {
     padding: 18px;
   }
 
@@ -990,7 +1002,8 @@
 
   .mobile-filter-card {
     display: grid;
-    padding: 10px 20px;
+    margin-bottom: 4px;
+    padding: 8px 18px;
     background: white;
     border: 1px solid var(--line);
     border-radius: 16px;
@@ -999,10 +1012,10 @@
 
   .mobile-filter-card button {
     display: grid;
-    grid-template-columns: 32px auto minmax(0, 1fr) 20px;
-    gap: 14px;
+    grid-template-columns: 28px auto minmax(0, 1fr) 18px;
+    gap: 11px;
     align-items: center;
-    min-height: 62px;
+    min-height: 56px;
     padding: 0;
     color: #334155;
     background: transparent;
@@ -1016,8 +1029,8 @@
   }
 
   .mobile-filter-card svg {
-    width: 24px;
-    height: 24px;
+    width: 21px;
+    height: 21px;
     stroke: currentColor;
     stroke-width: 1.9;
     stroke-linecap: round;
@@ -1026,7 +1039,7 @@
   }
 
   .mobile-filter-card strong {
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 850;
   }
 
@@ -1034,7 +1047,7 @@
     min-width: 0;
     color: #475569;
     font-style: normal;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
     text-align: right;
     overflow: hidden;
@@ -1045,6 +1058,7 @@
   .mobile-trade-list {
     display: grid;
     gap: 12px;
+    margin-top: 2px;
   }
 
   .mobile-trade-card {
@@ -1834,20 +1848,21 @@
   }
 
   .mobile-filter-card {
-    padding: 8px 18px;
+    padding: 7px 16px;
   }
 
   .mobile-filter-card button {
-    grid-template-columns: 28px auto minmax(0, 1fr) 18px;
-    gap: 10px;
+    grid-template-columns: 26px auto minmax(0, 1fr) 18px;
+    gap: 9px;
+    min-height: 52px;
   }
 
   .mobile-filter-card strong {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .mobile-filter-card em {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .mobile-trade-card {

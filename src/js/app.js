@@ -139,6 +139,40 @@ function renderAssetCashModal() {
   `;
 }
 
+function renderJournalDateRangeModal() {
+  const range = getJournalDateRangeDraft();
+
+  return `
+    <div class="modal-backdrop">
+      <section class="modal-panel journal-date-modal" role="dialog" aria-modal="true" aria-labelledby="journalDateModalTitle">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Date Range</p>
+            <h2 class="modal-title" id="journalDateModalTitle">기간 선택</h2>
+          </div>
+          <button class="icon-button" type="button" data-modal-close aria-label="닫기">X</button>
+        </div>
+        <div class="modal-body">
+          <div class="journal-date-range-picker">
+            <label class="journal-date-field">
+              <span>${icon("calendar")}시작일</span>
+              <input type="date" value="${range.start}" data-journal-date-input="start">
+            </label>
+            <label class="journal-date-field">
+              <span>${icon("calendar")}종료일</span>
+              <input type="date" value="${range.end}" data-journal-date-input="end">
+            </label>
+          </div>
+          <div class="journal-date-actions">
+            <button class="btn" type="button" data-modal-close>취소</button>
+            <button class="btn primary" type="button" data-journal-date-apply>적용</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function getRoute() {
   const route = window.location.hash.replace("#", "");
   return renderers[route] ? route : "dashboard";
@@ -148,13 +182,18 @@ function renderModal() {
   const modalRoot = document.querySelector("#modalRoot");
   if (!modalRoot) return;
 
-  if (!["journalWrite", "assetCash"].includes(activeModal)) {
+  if (!["journalWrite", "assetCash", "journalDateRange"].includes(activeModal)) {
     modalRoot.innerHTML = "";
     if (document.body) document.body.classList.remove("modal-open");
     return;
   }
 
   if (document.body) document.body.classList.add("modal-open");
+  if (activeModal === "journalDateRange") {
+    modalRoot.innerHTML = renderJournalDateRangeModal();
+    return;
+  }
+
   if (activeModal === "assetCash") {
     modalRoot.innerHTML = renderAssetCashModal();
     return;
@@ -255,6 +294,9 @@ document.addEventListener("click", (event) => {
       assetCashError = "";
       assetCashMessage = "";
     }
+    if (activeModal === "journalDateRange") {
+      beginJournalDateRangeEdit();
+    }
     renderModal();
     hydrateIcons(document);
     return;
@@ -270,10 +312,19 @@ document.addEventListener("click", (event) => {
 
     const modalClose = event.target.closest("[data-modal-close]");
     if (modalClose && modalPanel) {
+      if (activeModal === "journalDateRange") cancelJournalDateRangeEdit();
       activeModal = null;
       assetCashError = "";
       assetCashMessage = "";
       renderModal();
+      return;
+    }
+
+    const journalDateApply = event.target.closest("[data-journal-date-apply]");
+    if (journalDateApply && activeModal === "journalDateRange") {
+      applyJournalDateRangeEdit();
+      activeModal = null;
+      render();
       return;
     }
 
@@ -327,6 +378,7 @@ document.addEventListener("click", (event) => {
     }
 
     if (event.target.matches(".modal-backdrop")) {
+      if (activeModal === "journalDateRange") cancelJournalDateRangeEdit();
       activeModal = null;
       assetCashError = "";
       assetCashMessage = "";
@@ -396,6 +448,12 @@ document.addEventListener("submit", (event) => {
 });
 
 document.addEventListener("change", (event) => {
+  const journalDateInput = event.target.closest("[data-journal-date-input]");
+  if (journalDateInput && activeModal === "journalDateRange") {
+    setJournalDateRangeDraft(journalDateInput.dataset.journalDateInput, journalDateInput.value);
+    return;
+  }
+
   if (activeModal && event.target.closest(".modal-panel")) return;
 
   const journalCheckbox = event.target.closest("[data-journal-select]");
@@ -452,6 +510,7 @@ document.addEventListener("pointerout", (event) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && activeModal) {
+    if (activeModal === "journalDateRange") cancelJournalDateRangeEdit();
     activeModal = null;
     assetCashError = "";
     assetCashMessage = "";
@@ -464,6 +523,7 @@ document.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("hashchange", () => {
+  if (activeModal === "journalDateRange") cancelJournalDateRangeEdit();
   activeModal = null;
   assetCashError = "";
   assetCashMessage = "";
