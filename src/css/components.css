@@ -1974,6 +1974,54 @@ body.modal-open {
   box-shadow: 0 0 0 2px rgba(36, 116, 242, 0.09);
 }
 
+.journal-option-neutral .journal-option-icon {
+  color: #334155;
+  background: #eef2f7;
+}
+
+.journal-option-neutral.active {
+  border-color: #64748b;
+  background: linear-gradient(180deg, #f8fafc, #ffffff);
+  box-shadow: 0 0 0 2px rgba(51, 65, 85, 0.1);
+}
+
+.journal-option.journal-option-neutral.active b {
+  color: #334155;
+}
+
+.journal-option-stock .journal-option-icon,
+.journal-option-sell .journal-option-icon {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.journal-option-stock.active,
+.journal-option-sell.active {
+  border-color: #8bbcff;
+  background: linear-gradient(180deg, #f5f9ff, #ffffff);
+  box-shadow: 0 0 0 2px rgba(36, 116, 242, 0.09);
+}
+
+.journal-option.journal-option-stock.active b,
+.journal-option.journal-option-sell.active b {
+  color: var(--blue);
+}
+
+.journal-option-buy .journal-option-icon {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.journal-option-buy.active {
+  border-color: #ffaaa5;
+  background: linear-gradient(180deg, #fff7f6, #ffffff);
+  box-shadow: 0 0 0 2px rgba(240, 68, 56, 0.1);
+}
+
+.journal-option.journal-option-buy.active b {
+  color: var(--red);
+}
+
 .journal-option-icon {
   display: grid;
   place-items: center;

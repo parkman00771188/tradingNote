@@ -219,7 +219,7 @@ function renderJournalStockFilterModal() {
             <span>${icon("search")}</span>
           </div>
           <div class="journal-option-list">
-            <button class="journal-option ${journalStockFilterDraft === "all" ? "active" : ""}" type="button" data-journal-stock-option="all">
+            <button class="journal-option journal-option-neutral ${journalStockFilterDraft === "all" ? "active" : ""}" type="button" data-journal-stock-option="all">
               <span class="journal-option-icon">${icon("journal")}</span>
               <span><strong>전체 종목</strong><em>모든 매매 기록을 봅니다.</em></span>
               <b>${journalStockFilterDraft === "all" ? "선택됨" : ""}</b>
@@ -229,7 +229,7 @@ function renderJournalStockFilterModal() {
                 const active = journalStockFilterDraft === name;
                 const profitClass = profit.startsWith("+") ? "text-red" : profit.startsWith("-") ? "text-blue" : "";
                 return `
-                  <button class="journal-option ${active ? "active" : ""}" type="button" data-journal-stock-option="${name}" data-search-text="${normalizeJournalText(`${name} ${code}`)}">
+                  <button class="journal-option journal-option-stock ${active ? "active" : ""}" type="button" data-journal-stock-option="${name}" data-search-text="${normalizeJournalText(`${name} ${code}`)}">
                     <span class="journal-option-icon">${icon("chart")}</span>
                     <span>
                       <strong>${name}</strong>
@@ -254,9 +254,9 @@ function renderJournalStockFilterModal() {
 
 function renderJournalTradeTypeFilterModal() {
   const options = [
-    ["all", "전체", "매수와 매도를 모두 봅니다.", "swap"],
-    ["매수", "매수", "매수 기록만 봅니다.", "plus"],
-    ["매도", "매도", "매도 기록만 봅니다.", "download"]
+    ["all", "전체", "매수와 매도를 모두 봅니다.", "swap", "journal-option-neutral"],
+    ["매수", "매수", "매수 기록만 봅니다.", "plus", "journal-option-buy"],
+    ["매도", "매도", "매도 기록만 봅니다.", "download", "journal-option-sell"]
   ];
 
   return `
@@ -272,10 +272,10 @@ function renderJournalTradeTypeFilterModal() {
         <div class="modal-body">
           <div class="journal-option-list">
             ${options
-              .map(([value, label, description, iconName]) => {
+              .map(([value, label, description, iconName, toneClass]) => {
                 const active = journalTradeTypeFilterDraft === value;
                 return `
-                  <button class="journal-option ${active ? "active" : ""}" type="button" data-journal-type-filter-option="${value}">
+                  <button class="journal-option ${toneClass} ${active ? "active" : ""}" type="button" data-journal-type-filter-option="${value}">
                     <span class="journal-option-icon">${icon(iconName)}</span>
                     <span><strong>${label}</strong><em>${description}</em></span>
                     <b>${active ? "선택됨" : ""}</b>
