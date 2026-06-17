@@ -1145,89 +1145,8 @@
     margin-top: 2px;
   }
 
-  .mobile-trade-table {
-    display: block;
+  .mobile-journal-table-panel {
     overflow: hidden;
-    margin-top: 8px;
-    background: white;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
-  }
-
-  .mobile-trade-table table {
-    width: 100%;
-    table-layout: fixed;
-    border-collapse: collapse;
-  }
-
-  .mobile-trade-table th,
-  .mobile-trade-table td {
-    height: 64px;
-    padding: 0 12px;
-    border-bottom: 1px solid #e5ebf3;
-    text-align: left;
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-
-  .mobile-trade-table th {
-    height: 54px;
-    color: #64748b;
-    background: #f7f9fc;
-    font-size: 16px;
-    font-weight: 850;
-  }
-
-  .mobile-trade-table td {
-    color: #111827;
-    font-size: 17px;
-    font-weight: 850;
-  }
-
-  .mobile-trade-table tbody tr:last-child td {
-    border-bottom: 0;
-  }
-
-  .mobile-trade-table th:nth-child(3),
-  .mobile-trade-table td:nth-child(3),
-  .mobile-trade-table th:nth-child(4),
-  .mobile-trade-table td:nth-child(4) {
-    text-align: center;
-  }
-
-  .mobile-trade-date-col {
-    width: 22%;
-  }
-
-  .mobile-trade-stock-col {
-    width: 38%;
-  }
-
-  .mobile-trade-type-col {
-    width: 23%;
-  }
-
-  .mobile-trade-qty-col {
-    width: 17%;
-  }
-
-  .mobile-trade-stock {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .mobile-trade-date,
-  .mobile-trade-qty {
-    font-variant-numeric: tabular-nums;
-  }
-
-  .mobile-trade-table .trade-type {
-    min-width: 58px;
-    min-height: 34px;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 900;
   }
 
   .mobile-trade-card {
@@ -2248,25 +2167,6 @@
     gap: 8px 10px;
     min-height: 96px;
     padding: 14px 14px 14px 16px;
-  }
-
-  .mobile-trade-table th,
-  .mobile-trade-table td {
-    height: 58px;
-    padding: 0 8px;
-    font-size: 15px;
-  }
-
-  .mobile-trade-table th {
-    height: 48px;
-    font-size: 14px;
-  }
-
-  .mobile-trade-table .trade-type {
-    min-width: 48px;
-    min-height: 30px;
-    border-radius: 9px;
-    font-size: 14px;
   }
 
   .mobile-trade-price {

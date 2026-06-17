@@ -346,7 +346,7 @@ function renderMobileJournalTable(limit) {
 
   if (!visibleTrades.length) {
     return `
-      <section class="mobile-trade-list mobile-trade-table">
+      <section class="panel mobile-journal-table-panel">
         <article class="mobile-empty-state">
           <strong>조건에 맞는 기록이 없습니다.</strong>
           <p>종목이나 매수/매도 필터를 변경해보세요.</p>
@@ -355,42 +355,28 @@ function renderMobileJournalTable(limit) {
     `;
   }
 
-  return `
-    <section class="mobile-trade-list mobile-trade-table" aria-label="매매 기록 목록">
-      <table>
-        <colgroup>
-          <col class="mobile-trade-date-col">
-          <col class="mobile-trade-stock-col">
-          <col class="mobile-trade-type-col">
-          <col class="mobile-trade-qty-col">
-        </colgroup>
-        <thead>
-          <tr>
-            <th scope="col">일자</th>
-            <th scope="col">종목명</th>
-            <th scope="col">구분</th>
-            <th scope="col">수량</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${visibleTrades
-            .map(({ trade }) => {
-              const [date, stock, type, qty] = trade;
-              const normalizedType = normalizeJournalText(type);
-              const isSell = normalizedType === normalizeJournalText("매도") || type.includes("도");
+  const rows = visibleTrades.map(({ trade }) => {
+    const [date, stock, type, qty, buy, sell, profit, rate] = trade;
+    const normalizedType = normalizeJournalText(type);
+    const isSell = normalizedType === normalizeJournalText("매도") || type.includes("도");
+    const price = sell !== "-" ? sell : buy;
+    const profitClass = profit.startsWith("+") ? "text-red" : profit.startsWith("-") ? "text-blue" : "";
 
-              return `
-                <tr>
-                  <td class="mobile-trade-date">${date}</td>
-                  <td class="mobile-trade-stock">${stock}</td>
-                  <td><span class="trade-type ${isSell ? "sell" : "buy"}">${type}</span></td>
-                  <td class="mobile-trade-qty">${qty}</td>
-                </tr>
-              `;
-            })
-            .join("")}
-        </tbody>
-      </table>
+    return [
+      date,
+      stock,
+      `<span class="trade-type ${isSell ? "sell" : "buy"}">${type}</span>`,
+      qty,
+      price,
+      `<span class="${profitClass}">${profit}</span>`,
+      `<span class="${profitClass}">${rate}</span>`
+    ];
+  });
+
+  return `
+    <section class="panel mobile-journal-table-panel">
+      ${renderTable(["일자", "종목명", "구분", "수량", "체결가", "손익", "수익률"], rows)}
+      <p class="footer-note">기준: 최근 매매 기록 / 단위: 원</p>
     </section>
   `;
 }
