@@ -88,7 +88,23 @@ function renderDashboard() {
             tertiaryColor: "#2aa7a1",
             tooltipLabels: ["01/02", "01/12", "01/22", "02/01", "02/11", "02/21", "03/01", "03/11", "03/21", "04/01", "04/11", "04/21", "05/02", "05/12", "05/22", "06/01"],
             className: "dashboard-asset-chart",
-            compactViewBox: { width: 360, height: 320, left: 58, right: 64, top: 18, bottom: 42 }
+            compactViewBox: {
+              width: 340,
+              height: 320,
+              left: 64,
+              right: 68,
+              top: 16,
+              bottom: 42,
+              labelFontSize: 12,
+              endLabelFontSize: 13,
+              primaryStrokeWidth: 3.7,
+              secondaryStrokeWidth: 2.5,
+              tertiaryStrokeWidth: 2.8,
+              pointRadius: 4.5,
+              primaryBadgeWidth: 66,
+              secondaryBadgeWidth: 62,
+              tertiaryBadgeWidth: 62
+            }
           })}
         </article>
 

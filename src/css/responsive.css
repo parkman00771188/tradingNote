@@ -1483,6 +1483,11 @@
     padding: 16px 14px;
   }
 
+  body[data-route="dashboard"] .dashboard-metric {
+    gap: 14px;
+    padding: 17px 14px 15px;
+  }
+
   .journal-summary-metric {
     min-height: 86px;
     padding: 12px;
@@ -1493,9 +1498,23 @@
     line-height: 1.25;
   }
 
+  body[data-route="dashboard"] .dashboard-metric .metric-title {
+    color: #334155;
+    font-size: 14px;
+    font-weight: 750;
+  }
+
   .dashboard-metric .metric-value,
   .page-summary-metric .metric-value {
     font-size: clamp(24px, 6vw, 28px);
+  }
+
+  body[data-route="dashboard"] .dashboard-metric .metric-value {
+    color: #071125;
+    font-size: clamp(24px, 6.2vw, 26px);
+    font-weight: 850;
+    line-height: 1.08;
+    white-space: nowrap;
   }
 
   .page-summary-metric .metric-value {
@@ -1540,12 +1559,12 @@
   }
 
   body[data-route="dashboard"] .dashboard-asset-chart {
-    height: clamp(292px, 82vw, 330px);
-    margin-top: 6px;
+    height: clamp(300px, 79vw, 318px);
+    margin-top: 4px;
   }
 
   body[data-route="dashboard"] .dashboard-asset-panel .legend {
-    gap: 12px;
+    gap: 10px 12px;
     font-size: 13px;
   }
 

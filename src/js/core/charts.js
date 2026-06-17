@@ -39,6 +39,18 @@ function lineChart({
   const right = compact ? compactBox.right || 58 : 64;
   const top = compact ? compactBox.top || 22 : 22;
   const bottom = compact ? compactBox.bottom || 36 : 36;
+  const labelFontSize = compact ? compactBox.labelFontSize || 11 : 12;
+  const xLabelFontSize = compact ? compactBox.xLabelFontSize || labelFontSize : 12;
+  const yLabelFontSize = compact ? compactBox.yLabelFontSize || labelFontSize : 12;
+  const endLabelFontSize = compact ? compactBox.endLabelFontSize || 13 : 13;
+  const primaryStrokeWidth = compact ? compactBox.primaryStrokeWidth || 3.1 : 3.1;
+  const secondaryStrokeWidth = compact ? compactBox.secondaryStrokeWidth || 2.2 : 2.2;
+  const tertiaryStrokeWidth = compact ? compactBox.tertiaryStrokeWidth || 2.4 : 2.4;
+  const pointRadius = compact ? compactBox.pointRadius || 4 : 4;
+  const badgeHeight = compact ? compactBox.badgeHeight || 26 : 26;
+  const primaryBadgeWidth = compact ? compactBox.primaryBadgeWidth || 62 : 62;
+  const secondaryBadgeWidth = compact ? compactBox.secondaryBadgeWidth || 58 : 58;
+  const tertiaryBadgeWidth = compact ? compactBox.tertiaryBadgeWidth || secondaryBadgeWidth : secondaryBadgeWidth;
   const innerW = width - left - right;
   const innerH = height - top - bottom;
   const scaleY = (v) => top + ((max - v) / (max - min)) * innerH;
@@ -51,7 +63,7 @@ function lineChart({
   const xLabels = labels
     .map((label, index) => {
       const x = left + (index / (labels.length - 1)) * innerW;
-      return `<text x="${x}" y="${height - 8}" fill="#64748b" font-size="${compact ? 11 : 12}" text-anchor="middle">${label}</text>`;
+      return `<text x="${x}" y="${height - 8}" fill="#64748b" font-size="${xLabelFontSize}" text-anchor="middle">${label}</text>`;
     })
     .join("");
   const formatTooltipValue = (value) => `${Number(value).toLocaleString()}${unit}`;
@@ -85,32 +97,32 @@ function lineChart({
             const y = scaleY(tick);
             return `
               <line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="#dfe7f1" stroke-dasharray="4 5"/>
-              <text x="${left - 10}" y="${y + 4}" fill="#64748b" font-size="${compact ? 11 : 12}" text-anchor="end">${Math.round(tick).toLocaleString()}${unit}</text>
+              <text x="${left - 10}" y="${y + 4}" fill="#64748b" font-size="${yLabelFontSize}" text-anchor="end">${Math.round(tick).toLocaleString()}${unit}</text>
             `;
           })
           .join("")}
         <path d="${pathFor(primary)} L ${width - right} ${height - bottom} L ${left} ${height - bottom} Z" fill="url(#lineArea)"/>
-        ${tertiary ? `<path d="${pathFor(tertiary)}" fill="none" stroke="${tertiaryColor}" stroke-width="2.4"/>` : ""}
-        <path d="${pathFor(secondary)}" fill="none" stroke="#b8c2d3" stroke-width="2.2"/>
-        <path d="${pathFor(primary)}" fill="none" stroke="#2474f2" stroke-width="3.1"/>
+        ${tertiary ? `<path d="${pathFor(tertiary)}" fill="none" stroke="${tertiaryColor}" stroke-width="${tertiaryStrokeWidth}"/>` : ""}
+        <path d="${pathFor(secondary)}" fill="none" stroke="#b8c2d3" stroke-width="${secondaryStrokeWidth}"/>
+        <path d="${pathFor(primary)}" fill="none" stroke="#2474f2" stroke-width="${primaryStrokeWidth}"/>
         ${tertiary ? pointTooltips(tertiary, tertiaryName) : ""}
         ${pointTooltips(secondary, secondaryName)}
         ${pointTooltips(primary, primaryName)}
-        <circle cx="${width - right}" cy="${scaleY(primary[primary.length - 1])}" r="4" fill="#2474f2"/>
-        <circle cx="${width - right}" cy="${scaleY(secondary[secondary.length - 1])}" r="4" fill="#b8c2d3"/>
-        ${tertiary ? `<circle cx="${width - right}" cy="${scaleY(tertiary[tertiary.length - 1])}" r="4" fill="${tertiaryColor}"/>` : ""}
-        <rect x="${width - right - 2}" y="${scaleY(primary[primary.length - 1]) - 18}" width="62" height="26" rx="6" fill="#2474f2"/>
-        <text x="${width - right + 29}" y="${scaleY(primary[primary.length - 1]) - 1}" fill="white" font-size="13" font-weight="800" text-anchor="middle">${endPrimary}</text>
+        <circle cx="${width - right}" cy="${scaleY(primary[primary.length - 1])}" r="${pointRadius}" fill="#2474f2"/>
+        <circle cx="${width - right}" cy="${scaleY(secondary[secondary.length - 1])}" r="${pointRadius}" fill="#b8c2d3"/>
+        ${tertiary ? `<circle cx="${width - right}" cy="${scaleY(tertiary[tertiary.length - 1])}" r="${pointRadius}" fill="${tertiaryColor}"/>` : ""}
+        <rect x="${width - right - 2}" y="${scaleY(primary[primary.length - 1]) - 18}" width="${primaryBadgeWidth}" height="${badgeHeight}" rx="6" fill="#2474f2"/>
+        <text x="${width - right - 2 + primaryBadgeWidth / 2}" y="${scaleY(primary[primary.length - 1]) - 1}" fill="white" font-size="${endLabelFontSize}" font-weight="800" text-anchor="middle">${endPrimary}</text>
         ${
           endSecondary
-            ? `<rect x="${width - right + 4}" y="${scaleY(secondary[secondary.length - 1]) - 3}" width="58" height="24" rx="6" fill="#f1f5f9"/>
-        <text x="${width - right + 33}" y="${scaleY(secondary[secondary.length - 1]) + 13}" fill="#64748b" font-size="13" font-weight="800" text-anchor="middle">${endSecondary}</text>`
+            ? `<rect x="${width - right + 4}" y="${scaleY(secondary[secondary.length - 1]) - 3}" width="${secondaryBadgeWidth}" height="24" rx="6" fill="#f1f5f9"/>
+        <text x="${width - right + 4 + secondaryBadgeWidth / 2}" y="${scaleY(secondary[secondary.length - 1]) + 13}" fill="#64748b" font-size="${endLabelFontSize}" font-weight="800" text-anchor="middle">${endSecondary}</text>`
             : ""
         }
         ${
           tertiary && endTertiary
-            ? `<rect x="${width - right + 4}" y="${scaleY(tertiary[tertiary.length - 1]) - 3}" width="58" height="24" rx="6" fill="${tertiaryColor}"/>
-        <text x="${width - right + 33}" y="${scaleY(tertiary[tertiary.length - 1]) + 13}" fill="white" font-size="13" font-weight="800" text-anchor="middle">${endTertiary}</text>`
+            ? `<rect x="${width - right + 4}" y="${scaleY(tertiary[tertiary.length - 1]) - 3}" width="${tertiaryBadgeWidth}" height="24" rx="6" fill="${tertiaryColor}"/>
+        <text x="${width - right + 4 + tertiaryBadgeWidth / 2}" y="${scaleY(tertiary[tertiary.length - 1]) + 13}" fill="white" font-size="${endLabelFontSize}" font-weight="800" text-anchor="middle">${endTertiary}</text>`
             : ""
         }
         ${xLabels}
