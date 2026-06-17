@@ -10,18 +10,58 @@ function journalWriteField(label, control) {
 const journalDefaultHolding = {
   stock: "삼성전자",
   quantity: 10,
-  amount: 785000
+  amount: 785000,
+  currentPrice: 77300
 };
 
-function inputWithSuffix({ value = "", placeholder = "", suffix = "", readonly = false, numeric = false, attrs = "" }) {
+const journalCurrentPriceAliases = {
+  NAVER: ["네이버"]
+};
+
+function normalizeJournalCurrentPriceText(value) {
+  return String(value || "").replace(/\s+/g, "").toLowerCase();
+}
+
+function getJournalCurrentPrice(form) {
+  const stockInput = form ? form.querySelector("[data-journal-stock-name]") : null;
+  const query = normalizeJournalCurrentPriceText(stockInput && stockInput.value ? stockInput.value : journalDefaultHolding.stock);
+
+  if (typeof watchList !== "undefined" && Array.isArray(watchList)) {
+    const match = watchList.find(([name, code]) => {
+      const candidates = [name, code, ...(journalCurrentPriceAliases[name] || [])];
+      return candidates.some((candidate) => normalizeJournalCurrentPriceText(candidate) === query);
+    });
+    if (match) return parseKRWInput(match[2]);
+  }
+
+  return journalDefaultHolding.currentPrice;
+}
+
+function inputWithSuffix({ value = "", placeholder = "", suffix = "", readonly = false, numeric = false, attrs = "", currentPrice = false }) {
   const numericAttrs = numeric ? `inputmode="numeric" autocomplete="off" data-number-input` : "";
+  const currentPriceButton = currentPrice
+    ? `<button class="journal-current-price-button" type="button" data-journal-current-price>현재가</button>`
+    : "";
 
   return `
-    <div class="journal-input-shell ${readonly ? "readonly" : ""}">
+    <div class="journal-input-shell ${readonly ? "readonly" : ""} ${currentPrice ? "has-current-price" : ""}">
       <input value="${value}" placeholder="${placeholder}" ${readonly ? "readonly" : ""} ${numericAttrs} ${attrs}>
+      ${currentPriceButton}
       ${suffix ? `<span>${suffix}</span>` : ""}
     </div>
   `;
+}
+
+function applyJournalCurrentPrice(button) {
+  const form = button ? button.closest("[data-journal-entry-form]") : null;
+  if (!form) return;
+
+  const mode = form.dataset.tradeMode === "sell" ? "sell" : "buy";
+  const priceInput = form.querySelector(mode === "sell" ? "[data-journal-trade-sell-price]" : "[data-journal-trade-buy-price]");
+  if (!priceInput) return;
+
+  priceInput.value = getJournalCurrentPrice(form).toLocaleString();
+  updateJournalTradeEstimate(form);
 }
 
 function journalTradeTotalBox(type) {
@@ -107,7 +147,7 @@ function renderJournalWrite({ showTitle = true } = {}) {
           )}
         </div>
 
-        ${journalWriteField("종목명", `<input class="input" placeholder="종목명을 입력하세요">`)}
+        ${journalWriteField("종목명", `<input class="input" placeholder="종목명을 입력하세요" data-journal-stock-name>`)}
 
         <div class="journal-entry-row">
           <span></span>
@@ -120,8 +160,8 @@ function renderJournalWrite({ showTitle = true } = {}) {
           </div>
         </div>
 
-        <div data-visible-for="buy">${journalWriteField("매수가", inputWithSuffix({ placeholder: "매수가를 입력하세요", suffix: "원", numeric: true, attrs: "data-journal-trade-buy-price" }))}</div>
-        <div data-visible-for="sell">${journalWriteField("매도가", inputWithSuffix({ placeholder: "매도가를 입력하세요", suffix: "원", numeric: true, attrs: "data-journal-trade-sell-price" }))}</div>
+        <div data-visible-for="buy">${journalWriteField("매수가", inputWithSuffix({ placeholder: "매수가를 입력하세요", suffix: "원", numeric: true, attrs: "data-journal-trade-buy-price", currentPrice: true }))}</div>
+        <div data-visible-for="sell">${journalWriteField("매도가", inputWithSuffix({ placeholder: "매도가를 입력하세요", suffix: "원", numeric: true, attrs: "data-journal-trade-sell-price", currentPrice: true }))}</div>
         ${journalWriteField("수량", inputWithSuffix({ placeholder: "수량을 입력하세요", suffix: "주", numeric: true, attrs: "data-journal-trade-quantity" }))}
         <div data-visible-for="buy">${journalTradeTotalBox("buy")}</div>
         <div data-visible-for="sell">${journalTradeTotalBox("sell")}</div>

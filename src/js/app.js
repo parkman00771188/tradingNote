@@ -560,6 +560,12 @@ document.addEventListener("click", (event) => {
       return;
     }
 
+    const journalCurrentPriceButton = event.target.closest("[data-journal-current-price]");
+    if (journalCurrentPriceButton) {
+      applyJournalCurrentPrice(journalCurrentPriceButton);
+      return;
+    }
+
     const journalTradeModeButton = event.target.closest("[data-journal-trade-mode]");
     if (journalTradeModeButton) {
       const form = journalTradeModeButton.closest("[data-journal-entry-form]");
@@ -617,6 +623,12 @@ document.addEventListener("click", (event) => {
       });
       updateJournalTradeEstimate(form);
     }
+    return;
+  }
+
+  const pageJournalCurrentPriceButton = event.target.closest("[data-journal-current-price]");
+  if (pageJournalCurrentPriceButton) {
+    applyJournalCurrentPrice(pageJournalCurrentPriceButton);
     return;
   }
 
