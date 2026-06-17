@@ -15,6 +15,7 @@ var mobileSheetOpen = false;
 var chartTooltip = null;
 var pinnedChartTooltipTarget = null;
 var chartTooltipPointerTapTarget = null;
+var chartTooltipPositionFrame = 0;
 var fitMetricValueFrame = 0;
 var assetCashBalance = 8480000;
 var assetCashMode = "deposit";
@@ -132,6 +133,48 @@ function positionChartTooltip(event) {
   chartTooltip.style.top = `${Math.max(gap, top)}px`;
 }
 
+function positionPinnedChartTooltip() {
+  if (!chartTooltip || !pinnedChartTooltipTarget) return;
+
+  if (!pinnedChartTooltipTarget.isConnected) {
+    hideChartTooltip();
+    return;
+  }
+
+  const gap = 10;
+  const targetRect = pinnedChartTooltipTarget.getBoundingClientRect();
+
+  if (targetRect.bottom < 0 || targetRect.top > window.innerHeight || targetRect.right < 0 || targetRect.left > window.innerWidth) {
+    hideChartTooltip();
+    return;
+  }
+
+  const { offsetWidth, offsetHeight } = chartTooltip;
+  const canPlaceRight = targetRect.right + gap + offsetWidth <= window.innerWidth - gap;
+  const canPlaceLeft = targetRect.left - gap - offsetWidth >= gap;
+  let left = targetRect.right + gap;
+
+  if (!canPlaceRight && canPlaceLeft) {
+    left = targetRect.left - offsetWidth - gap;
+  } else if (!canPlaceRight) {
+    left = targetRect.left + targetRect.width / 2 - offsetWidth / 2;
+  }
+
+  const top = targetRect.top + targetRect.height / 2 - offsetHeight / 2;
+
+  chartTooltip.style.left = `${Math.min(Math.max(gap, left), window.innerWidth - offsetWidth - gap)}px`;
+  chartTooltip.style.top = `${Math.min(Math.max(gap, top), window.innerHeight - offsetHeight - gap)}px`;
+}
+
+function schedulePinnedChartTooltipPosition() {
+  if (!pinnedChartTooltipTarget || !chartTooltip?.classList.contains("show")) return;
+  if (chartTooltipPositionFrame) cancelAnimationFrame(chartTooltipPositionFrame);
+  chartTooltipPositionFrame = requestAnimationFrame(() => {
+    chartTooltipPositionFrame = 0;
+    positionPinnedChartTooltip();
+  });
+}
+
 function showChartTooltip(target, event) {
   const tooltip = getChartTooltip();
   tooltip.textContent = target.dataset.chartTooltip;
@@ -140,6 +183,8 @@ function showChartTooltip(target, event) {
 }
 
 function clearPinnedChartTooltipTarget() {
+  if (chartTooltipPositionFrame) cancelAnimationFrame(chartTooltipPositionFrame);
+  chartTooltipPositionFrame = 0;
   if (pinnedChartTooltipTarget) pinnedChartTooltipTarget.classList.remove("active");
   pinnedChartTooltipTarget?.closest(".donut")?.classList.remove("has-active-segment");
   pinnedChartTooltipTarget = null;
@@ -167,6 +212,7 @@ function togglePinnedChartTooltip(target, event) {
   pinnedChartTooltipTarget.classList.add("active");
   pinnedChartTooltipTarget.closest(".donut")?.classList.add("has-active-segment");
   showChartTooltip(target, event);
+  positionPinnedChartTooltip();
 }
 
 function renderAssetCashModal() {
@@ -937,5 +983,9 @@ window.addEventListener("hashchange", () => {
   render();
   scrollPageToTop();
 });
-window.addEventListener("resize", () => scheduleFitValueText());
+document.addEventListener("scroll", schedulePinnedChartTooltipPosition, { capture: true, passive: true });
+window.addEventListener("resize", () => {
+  scheduleFitValueText();
+  schedulePinnedChartTooltipPosition();
+});
 render();
