@@ -1,15 +1,23 @@
 function renderAssets() {
+  const cashBalance = getAssetCashBalance();
+  const totalAssets = getAssetTotalValue();
+  const cashRatio = totalAssets ? (cashBalance / totalAssets) * 100 : 0;
+  const totalAssetsMillion = Number((totalAssets / 1000000).toFixed(2));
   const portfolioSegments = [
-    { label: "국내 주식", value: 58.3, amount: "26,630,000원", color: "#2474f2" },
-    { label: "해외 주식", value: 24.7, amount: "11,280,000원", color: "#22c55e" },
-    { label: "ETF", value: 10.5, amount: "4,790,000원", color: "#8b5cf6" },
-    { label: "현금", value: 6.5, amount: "2,980,000원", color: "#f79009" }
-  ];
+    { label: "국내 주식", amountValue: 26630000, color: "#2474f2" },
+    { label: "해외 주식", amountValue: 11280000, color: "#22c55e" },
+    { label: "ETF", amountValue: 4840000, color: "#8b5cf6" },
+    { label: "현금", amountValue: cashBalance, color: "#f79009" }
+  ].map((item) => ({
+    ...item,
+    value: totalAssets ? Number(((item.amountValue / totalAssets) * 100).toFixed(1)) : 0,
+    amount: formatKRW(item.amountValue)
+  }));
   return `
     <div class="stack">
       <section class="metric-grid">
-        ${metricCard({ title: "총자산", value: "45,680,000원", sub: `<span>전일 대비</span><strong class="text-red">+620,000원 (+1.37%)</strong>`, iconName: "wallet", info: true, className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
-        ${metricCard({ title: "현금비중", value: "18.6%", sub: `<span>8,480,000원</span>`, iconName: "coin", className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
+        ${metricCard({ title: "총자산", value: formatKRW(totalAssets), sub: `<span>전일 대비</span><strong class="text-red">+620,000원 (+1.37%)</strong>`, iconName: "wallet", info: true, className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
+        ${metricCard({ title: "현금비중", value: `${cashRatio.toFixed(1)}%`, sub: `<span>${formatKRW(cashBalance)}</span>`, iconName: "coin", className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
         ${metricCard({ title: "평가손익", value: "+5,680,000원", sub: `<strong class="text-red">+14.20%</strong>`, iconName: "trend", tone: "red", valueClass: "text-red", className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
         ${metricCard({ title: "실현손익", value: "+1,250,000원", sub: `<strong class="text-red">+3.21%</strong>`, iconName: "target", tone: "red", valueClass: "text-red", className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
       </section>
@@ -18,7 +26,7 @@ function renderAssets() {
         <article class="panel">
           <div class="panel-header tight"><h2 class="panel-title">포트폴리오 구성</h2></div>
           <div class="donut-row">
-            ${donutChart(portfolioSegments, "총 자산<br><strong>45,680,000원</strong>")}
+            ${donutChart(portfolioSegments, `총 자산<br><strong>${formatKRW(totalAssets)}</strong>`)}
             <div class="portfolio-legend">
               ${portfolioSegments.map((item) => `
                 <div class="legend-row"><span><i class="dot" style="background:${item.color}"></i>${item.label}</span><strong>${item.value}%</strong><span>${item.amount}</span></div>
@@ -68,13 +76,13 @@ function renderAssets() {
         <article class="panel">
           <div class="panel-header"><h2 class="panel-title">자산 추이</h2><div class="segmented"><button type="button">1M</button><button type="button">3M</button><button type="button">6M</button><button class="active" type="button">YTD</button><button type="button">1Y</button><button type="button">전체</button></div></div>
           ${lineChart({
-            primary: [26, 28, 29, 31, 34, 39, 37, 41, 40, 43, 41, 42, 44, 45.68],
+            primary: [26, 28, 29, 31, 34, 39, 37, 41, 40, 43, 41, 42, 44, totalAssetsMillion],
             secondary: [24, 24, 25, 26, 27, 27, 29, 30, 30, 31, 32, 32, 33, 34],
             min: 0,
             max: 60,
             unit: "M",
             labels: ["01/02", "02/01", "03/01", "04/01", "05/02", "06/01"],
-            endPrimary: "45.68M",
+            endPrimary: `${totalAssetsMillion}M`,
             endSecondary: ""
           })}
         </article>

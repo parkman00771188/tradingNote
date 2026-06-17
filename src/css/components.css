@@ -1673,6 +1673,133 @@ body.modal-open {
   padding: 0;
 }
 
+.asset-cash-modal {
+  width: min(470px, calc(100vw - 40px));
+  background: white;
+}
+
+.asset-cash-modal .modal-body {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.asset-cash-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 86px;
+  padding: 18px;
+  background: linear-gradient(180deg, #f7fbff, #ffffff);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.asset-cash-card > span {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-radius: 12px;
+}
+
+.asset-cash-card svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.asset-cash-card p,
+.asset-cash-card em,
+.asset-cash-help,
+.asset-cash-feedback {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.asset-cash-card strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 25px;
+  line-height: 1.1;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.asset-cash-card em {
+  display: block;
+  margin-top: 6px;
+  font-style: normal;
+}
+
+.asset-cash-mode {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 4px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.asset-cash-mode button {
+  min-height: 42px;
+  color: #475569;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  font-weight: 850;
+}
+
+.asset-cash-mode button.active {
+  color: white;
+  background: var(--blue);
+  box-shadow: 0 6px 14px rgba(36, 116, 242, 0.2);
+}
+
+.asset-cash-form {
+  display: grid;
+  gap: 10px;
+}
+
+.asset-cash-form label {
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.asset-cash-feedback:empty {
+  display: none;
+}
+
+.asset-cash-feedback.error {
+  min-height: 18px;
+  color: var(--red);
+}
+
+.asset-cash-feedback.success {
+  min-height: 18px;
+  color: var(--green);
+}
+
+.asset-cash-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+
 .journal-entry-form {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;

@@ -13,6 +13,28 @@ const renderers = {
 var activeModal = null;
 var mobileSheetOpen = false;
 var chartTooltip = null;
+var assetCashBalance = 8480000;
+var assetCashMode = "deposit";
+var assetCashError = "";
+var assetCashMessage = "";
+
+const assetBaseNonCashBalance = 42750000;
+
+function formatKRW(value) {
+  return `${Math.max(0, Math.round(Number(value) || 0)).toLocaleString()}원`;
+}
+
+function getAssetCashBalance() {
+  return assetCashBalance;
+}
+
+function getAssetTotalValue() {
+  return assetBaseNonCashBalance + assetCashBalance;
+}
+
+function parseKRWInput(value) {
+  return Math.max(0, Number(String(value).replace(/[^0-9]/g, "")) || 0);
+}
 
 function getChartTooltip() {
   if (chartTooltip) return chartTooltip;
@@ -45,6 +67,55 @@ function hideChartTooltip() {
   chartTooltip.classList.remove("show");
 }
 
+function renderAssetCashModal() {
+  const isWithdraw = assetCashMode === "withdraw";
+  const actionLabel = isWithdraw ? "출금" : "입금";
+
+  return `
+    <div class="modal-backdrop">
+      <section class="modal-panel asset-cash-modal" role="dialog" aria-modal="true" aria-labelledby="assetCashModalTitle">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Cash Balance</p>
+            <h2 class="modal-title" id="assetCashModalTitle">현금 입/출금</h2>
+          </div>
+          <button class="icon-button" type="button" data-modal-close aria-label="닫기">X</button>
+        </div>
+        <div class="modal-body">
+          <div class="asset-cash-card">
+            <span>${icon("wallet")}</span>
+            <div>
+              <p>현재 현금 자산</p>
+              <strong>${formatKRW(assetCashBalance)}</strong>
+              <em>총자산 ${formatKRW(getAssetTotalValue())}</em>
+            </div>
+          </div>
+
+          <div class="asset-cash-mode" role="tablist" aria-label="입출금 선택">
+            <button class="${assetCashMode === "deposit" ? "active" : ""}" type="button" data-asset-cash-mode="deposit" aria-pressed="${assetCashMode === "deposit"}">입금</button>
+            <button class="${assetCashMode === "withdraw" ? "active" : ""}" type="button" data-asset-cash-mode="withdraw" aria-pressed="${assetCashMode === "withdraw"}">출금</button>
+          </div>
+
+          <div class="asset-cash-form" data-asset-cash-form data-mode="${assetCashMode}">
+            <label for="assetCashAmount">${actionLabel}액</label>
+            <div class="journal-input-shell">
+              <input id="assetCashAmount" type="number" min="0" ${isWithdraw ? `max="${assetCashBalance}"` : ""} inputmode="numeric" placeholder="${actionLabel}액을 입력하세요" data-asset-cash-amount>
+              <span>원</span>
+            </div>
+            <p class="asset-cash-help">${isWithdraw ? `출금 가능 금액은 ${formatKRW(assetCashBalance)}입니다.` : "입금액은 현금 자산에 더해집니다."}</p>
+            <p class="asset-cash-feedback error" data-asset-cash-live-error>${assetCashError}</p>
+            <p class="asset-cash-feedback success">${assetCashMessage}</p>
+            <div class="asset-cash-actions">
+              <button class="btn" type="button" data-modal-close>취소</button>
+              <button class="btn primary" type="button" data-asset-cash-submit>${actionLabel}하기</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function getRoute() {
   const route = window.location.hash.replace("#", "");
   return renderers[route] ? route : "dashboard";
@@ -54,13 +125,18 @@ function renderModal() {
   const modalRoot = document.querySelector("#modalRoot");
   if (!modalRoot) return;
 
-  if (activeModal !== "journalWrite") {
+  if (!["journalWrite", "assetCash"].includes(activeModal)) {
     modalRoot.innerHTML = "";
     if (document.body) document.body.classList.remove("modal-open");
     return;
   }
 
   if (document.body) document.body.classList.add("modal-open");
+  if (activeModal === "assetCash") {
+    modalRoot.innerHTML = renderAssetCashModal();
+    return;
+  }
+
   modalRoot.innerHTML = `
     <div class="modal-backdrop">
       <section class="modal-panel journal-write-modal" role="dialog" aria-modal="true" aria-labelledby="journalWriteModalTitle">
@@ -151,6 +227,11 @@ document.addEventListener("click", (event) => {
   const modalButton = event.target.closest("[data-modal]");
   if (modalButton) {
     activeModal = modalButton.dataset.modal;
+    if (activeModal === "assetCash") {
+      assetCashMode = "deposit";
+      assetCashError = "";
+      assetCashMessage = "";
+    }
     renderModal();
     hydrateIcons(document);
     return;
@@ -174,6 +255,8 @@ document.addEventListener("click", (event) => {
   const modalClose = event.target.closest("[data-modal-close]");
   if (modalClose) {
     activeModal = null;
+    assetCashError = "";
+    assetCashMessage = "";
     renderModal();
     return;
   }
@@ -181,7 +264,44 @@ document.addEventListener("click", (event) => {
   const modalPanel = event.target.closest(".modal-panel");
   if (activeModal && event.target.closest(".modal-backdrop") && !modalPanel) {
     activeModal = null;
+    assetCashError = "";
+    assetCashMessage = "";
     renderModal();
+    return;
+  }
+
+  const assetCashModeButton = event.target.closest("[data-asset-cash-mode]");
+  if (assetCashModeButton && activeModal === "assetCash") {
+    assetCashMode = assetCashModeButton.dataset.assetCashMode;
+    assetCashError = "";
+    assetCashMessage = "";
+    renderModal();
+    hydrateIcons(document);
+    return;
+  }
+
+  const assetCashSubmit = event.target.closest("[data-asset-cash-submit]");
+  if (assetCashSubmit && activeModal === "assetCash") {
+    const amountInput = document.querySelector("[data-asset-cash-amount]");
+    const amount = parseKRWInput(amountInput ? amountInput.value : "");
+
+    assetCashMessage = "";
+    if (amount <= 0) {
+      assetCashError = "금액을 1원 이상 입력하세요.";
+      renderModal();
+      return;
+    }
+
+    if (assetCashMode === "withdraw" && amount > assetCashBalance) {
+      assetCashError = "현재 현금 자산보다 큰 금액은 출금할 수 없습니다.";
+      renderModal();
+      return;
+    }
+
+    assetCashBalance = assetCashMode === "withdraw" ? assetCashBalance - amount : assetCashBalance + amount;
+    assetCashError = "";
+    assetCashMessage = `${assetCashMode === "withdraw" ? "출금" : "입금"} ${formatKRW(amount)}이 반영되었습니다.`;
+    render();
     return;
   }
 
@@ -250,6 +370,21 @@ document.addEventListener("change", (event) => {
   render();
 });
 
+document.addEventListener("input", (event) => {
+  const amountInput = event.target.closest("[data-asset-cash-amount]");
+  if (!amountInput || activeModal !== "assetCash") return;
+
+  const feedback = document.querySelector(".asset-cash-feedback.error");
+  if (!feedback) return;
+
+  const amount = parseKRWInput(amountInput.value);
+  if (assetCashMode === "withdraw" && amount > assetCashBalance) {
+    feedback.textContent = "현재 현금 자산보다 큰 금액은 출금할 수 없습니다.";
+  } else {
+    feedback.textContent = "";
+  }
+});
+
 document.addEventListener("pointerover", (event) => {
   const target = event.target.closest("[data-chart-tooltip]");
   if (!target) return;
@@ -273,6 +408,8 @@ document.addEventListener("pointerout", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && activeModal) {
     activeModal = null;
+    assetCashError = "";
+    assetCashMessage = "";
     renderModal();
   }
   if (event.key === "Escape" && mobileSheetOpen) {

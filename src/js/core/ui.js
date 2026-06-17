@@ -90,13 +90,13 @@ function renderNav(currentRoute) {
 function renderPageActions(route) {
   const actions = document.querySelector("#pageActions");
   const actionMap = {
-    dashboard: `<span class="mobile-date-pill">${icon("calendar")}2024.06.20 (목)</span>`,
+    dashboard: "",
     journal: `<button class="btn primary" type="button" data-modal="journalWrite">${icon("edit")}매매 기록 작성</button>`,
     journalWrite: `<button class="btn ghost" type="button" data-route="journal">${icon("chevronLeft")}목록으로</button>`,
     memo: `<button class="btn primary" type="button">${icon("plus")}새 메모 작성</button>`,
     stock: "",
     performance: `<button class="btn" type="button">${icon("calendar")}전체 기간</button>`,
-    assets: `<span class="mobile-date-pill">${icon("calendar")}2024.06.20 (목)</span>`,
+    assets: `<button class="btn primary asset-cash-action" type="button" data-modal="assetCash">${icon("wallet")}입/출금</button>`,
     calendar: "",
     settings: ""
   };

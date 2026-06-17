@@ -277,6 +277,14 @@
     border: 0;
   }
 
+  .asset-cash-modal {
+    width: min(420px, calc(100vw - 24px));
+    height: auto;
+    max-height: calc(100vh - 40px);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+
   .modal-header {
     padding: 16px;
   }
@@ -287,6 +295,10 @@
 
   .modal-body {
     padding: 14px;
+  }
+
+  .asset-cash-modal .modal-body {
+    padding: 18px;
   }
 
   .journal-write-modal .modal-body {
