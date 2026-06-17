@@ -611,6 +611,25 @@
   border-color: #b8d3ff;
 }
 
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  box-shadow: none;
+}
+
+.dashboard-more-btn {
+  min-height: 34px;
+  padding: 0 12px;
+  gap: 4px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.dashboard-more-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 .btn.danger {
   color: white;
   background: linear-gradient(135deg, #f97066, #e03137);
@@ -1787,6 +1806,11 @@ body.modal-open {
   background: white;
 }
 
+.asset-cash-confirm-modal {
+  width: min(430px, calc(100vw - 40px));
+  background: white;
+}
+
 .journal-date-modal {
   width: min(620px, calc(100vw - 32px));
   background: white;
@@ -2095,13 +2119,15 @@ body.modal-open {
   font-weight: 900;
 }
 
-.asset-cash-modal .modal-body {
+.asset-cash-modal .modal-body,
+.asset-cash-confirm-modal .modal-body {
   display: grid;
   gap: 18px;
   padding: 22px;
 }
 
-.asset-cash-card {
+.asset-cash-card,
+.asset-cash-confirm-card {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
@@ -2113,7 +2139,8 @@ body.modal-open {
   border-radius: 8px;
 }
 
-.asset-cash-card > span {
+.asset-cash-card > span,
+.asset-cash-confirm-card > span {
   display: grid;
   place-items: center;
   width: 48px;
@@ -2123,7 +2150,8 @@ body.modal-open {
   border-radius: 12px;
 }
 
-.asset-cash-card svg {
+.asset-cash-card svg,
+.asset-cash-confirm-card svg {
   width: 24px;
   height: 24px;
   stroke: currentColor;
@@ -2135,8 +2163,11 @@ body.modal-open {
 
 .asset-cash-card p,
 .asset-cash-card em,
+.asset-cash-confirm-card p,
+.asset-cash-confirm-card em,
 .asset-cash-help,
-.asset-cash-feedback {
+.asset-cash-feedback,
+.asset-cash-confirm-question {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
@@ -2144,7 +2175,8 @@ body.modal-open {
   font-weight: 700;
 }
 
-.asset-cash-card strong {
+.asset-cash-card strong,
+.asset-cash-confirm-card strong {
   display: block;
   margin-top: 4px;
   color: var(--text);
@@ -2154,10 +2186,18 @@ body.modal-open {
   white-space: nowrap;
 }
 
-.asset-cash-card em {
+.asset-cash-card em,
+.asset-cash-confirm-card em {
   display: block;
   margin-top: 6px;
   font-style: normal;
+}
+
+.asset-cash-confirm-question {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 850;
+  text-align: center;
 }
 
 .asset-cash-mode {
@@ -2406,6 +2446,57 @@ body.modal-open {
   color: #0f1f3d;
   font-size: 17px;
   font-weight: 850;
+}
+
+.journal-total-row {
+  align-items: start;
+  margin-top: -4px;
+}
+
+.journal-total-box {
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+}
+
+.journal-total-box strong {
+  color: #0f172a;
+  font-size: 18px;
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+.journal-total-box.buy strong {
+  color: var(--red);
+}
+
+.journal-total-box.sell strong {
+  color: var(--blue);
+}
+
+.journal-total-box p,
+.journal-total-box em {
+  margin: 0;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 750;
+}
+
+.journal-total-box p {
+  color: #64748b;
+}
+
+.journal-total-box em {
+  min-height: 16px;
+  color: var(--red);
+}
+
+.journal-total-box em:empty {
+  display: none;
 }
 
 .compact-textarea {

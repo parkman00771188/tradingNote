@@ -301,7 +301,8 @@
     font-size: 22px;
   }
 
-  .asset-cash-modal {
+  .asset-cash-modal,
+  .asset-cash-confirm-modal {
     width: min(420px, calc(100vw - 24px));
     height: auto;
     max-height: calc(100vh - 40px);
@@ -359,7 +360,7 @@
   }
 
   .journal-entry-content {
-    padding: 24px 18px 16px;
+    padding: 24px 18px 110px;
   }
 
   .journal-entry-title {

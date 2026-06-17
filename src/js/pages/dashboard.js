@@ -186,7 +186,7 @@ function renderDashboard() {
         <article class="panel">
           <div class="panel-header">
             <h2 class="panel-title">최근 매매 기록</h2>
-            <button class="btn ghost" type="button" data-route="journal">더보기 ${icon("chevronRight")}</button>
+            <button class="btn ghost dashboard-more-btn" type="button" data-route="journal">더보기 ${icon("chevronRight")}</button>
           </div>
           ${renderTable(["일자", "종목명", "구분", "수량", "체결가", "손익", "수익률"], renderTradeRows(5).map((row) => [row[0], row[1], row[2], row[3], row[4], row[6], row[7]]))}
         </article>
