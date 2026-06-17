@@ -104,37 +104,6 @@ function renderJournal() {
 
   return `
     <div class="stack">
-      <section class="metric-grid three">
-        ${metricCard({
-          title: "이번달 거래수",
-          value: `${journalTradeCount}회`,
-          sub: `<span>전월 대비</span><strong class="text-red">+6회 (+33.3%)</strong>`,
-          iconName: "target",
-          className: "dashboard-metric journal-summary-metric",
-          iconPosition: "end"
-        })}
-        ${metricCard({
-          title: "실현손익",
-          value: "+2,450,000원",
-          sub: `<span>전월 대비</span><strong class="text-red">+620,000원 (+33.87%)</strong>`,
-          iconName: "trend",
-          tone: "red",
-          valueClass: "text-red",
-          className: "dashboard-metric journal-summary-metric",
-          iconPosition: "end"
-        })}
-        ${metricCard({
-          title: "평균 수익률",
-          value: "+3.21%",
-          sub: `<span>전월 대비</span><strong class="text-red">+1.12%p</strong>`,
-          iconName: "target",
-          tone: "red",
-          valueClass: "text-red",
-          className: "dashboard-metric journal-summary-metric",
-          iconPosition: "end"
-        })}
-      </section>
-
       <section class="toolbar journal-filter-toolbar desktop-journal-filter">
         <div class="field"><label>기간</label><div class="input-with-icon"><input class="input" value="2024.05.20 ~ 2024.06.20" readonly><span class="field-icon">${icon("calendar")}</span></div></div>
         <div class="field"><label>종목</label><select class="select"><option>종목 선택</option></select></div>
