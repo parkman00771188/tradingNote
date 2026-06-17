@@ -1062,13 +1062,21 @@ body[data-route="assets"] .asset-grid > article:first-child .legend-row > span:l
 }
 
 .dashboard-portfolio {
-  grid-template-columns: 210px minmax(0, 1fr);
-  min-height: 270px;
+  --dashboard-donut-size: clamp(240px, 15.5vw, 280px);
+  --dashboard-donut-center-inset: clamp(52px, 3.4vw, 62px);
+
+  grid-template-columns: var(--dashboard-donut-size) minmax(0, 1fr);
+  gap: 28px;
+  min-height: 315px;
 }
 
 .dashboard-portfolio .donut {
-  width: 200px;
-  height: 200px;
+  width: var(--dashboard-donut-size);
+  height: var(--dashboard-donut-size);
+}
+
+.dashboard-portfolio .donut .donut-center {
+  inset: var(--dashboard-donut-center-inset);
 }
 
 .dashboard-portfolio .portfolio-legend {

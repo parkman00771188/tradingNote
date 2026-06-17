@@ -85,6 +85,13 @@
     grid-column: 1 / -1;
     order: -1;
   }
+
+  .dashboard-portfolio {
+    --dashboard-donut-size: clamp(240px, 24vw, 270px);
+    --dashboard-donut-center-inset: clamp(52px, 5.4vw, 60px);
+
+    min-height: 300px;
+  }
 }
 
 @media (max-width: 860px) {
@@ -194,6 +201,19 @@
   .profile,
   .stock-hero {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-portfolio {
+    --dashboard-donut-size: clamp(230px, 34vw, 270px);
+    --dashboard-donut-center-inset: clamp(50px, 7.4vw, 60px);
+
+    justify-items: center;
+    gap: 18px;
+    min-height: 0;
+  }
+
+  .dashboard-portfolio .portfolio-legend {
+    width: min(100%, 480px);
   }
 
   .memo-grid {
@@ -392,13 +412,16 @@
   }
 
   .dashboard-portfolio {
+    --dashboard-donut-size: 210px;
+    --dashboard-donut-center-inset: 46px;
+
     grid-template-columns: 1fr;
     min-height: 0;
   }
 
   .dashboard-portfolio .donut {
-    width: 190px;
-    height: 190px;
+    width: var(--dashboard-donut-size);
+    height: var(--dashboard-donut-size);
   }
 
   .donut .donut-center {
@@ -1517,14 +1540,23 @@
   }
 
   .dashboard-portfolio {
-    grid-template-columns: 170px minmax(0, 1fr);
+    --dashboard-donut-size: clamp(176px, 44vw, 188px);
+    --dashboard-donut-center-inset: clamp(39px, 10vw, 42px);
+
+    grid-template-columns: var(--dashboard-donut-size) minmax(0, 1fr);
     align-items: center;
+    justify-items: stretch;
+    gap: 12px;
   }
 
-  .dashboard-portfolio .donut,
   .donut {
     width: 165px;
     height: 165px;
+  }
+
+  .dashboard-portfolio .donut {
+    width: var(--dashboard-donut-size);
+    height: var(--dashboard-donut-size);
   }
 
   .donut .donut-center {
