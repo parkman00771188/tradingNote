@@ -84,14 +84,164 @@ const holdings = [
 ];
 
 const watchList = [
-  ["삼성전자", "005930", "77,300", "+2.11%"],
-  ["SK하이닉스", "000660", "189,200", "-0.58%"],
-  ["NAVER", "035420", "210,000", "+1.45%"],
-  ["카카오", "035720", "52,100", "-1.51%"],
-  ["현대차", "005380", "248,000", "+0.81%"],
-  ["LG에너지솔루션", "373220", "362,500", "-0.96%"],
-  ["한미반도체", "042700", "148,600", "+2.27%"],
-  ["삼성SDI", "006400", "387,000", "-1.15%"],
-  ["기아", "000270", "118,400", "+0.42%"],
-  ["셀트리온", "068270", "181,700", "-0.33%"]
+  ["삼성전자", "005930", "346,500", "+1.02%", "+3,500"],
+  ["SK하이닉스", "000660", "2,521,000", "+5.84%", "+139,000"],
+  ["NAVER", "035420", "243,500", "+0.62%", "+1,500"],
+  ["카카오", "035720", "40,550", "+0.25%", "+100"],
+  ["현대차", "005380", "618,000", "-3.44%", "-22,000"],
+  ["LG에너지솔루션", "373220", "416,000", "+1.34%", "+5,500"],
+  ["한미반도체", "042700", "319,500", "-2.74%", "-9,000"],
+  ["삼성SDI", "006400", "550,000", "+0.18%", "+1,000"],
+  ["기아", "000270", "166,300", "-2.29%", "-3,900"],
+  ["셀트리온", "068270", "174,600", "+0.06%", "+100"]
 ];
+
+const stockAliases = {
+  네이버: ["NAVER"],
+  NAVER: ["네이버"]
+};
+
+function normalizeStockKey(value) {
+  return String(value || "").replace(/\s+/g, "").toLowerCase();
+}
+
+function getStockCandidates(name, code = "") {
+  return [name, code, ...(stockAliases[name] || [])].filter(Boolean);
+}
+
+function parseMarketNumber(value) {
+  return Number(String(value || "").replace(/[^0-9]/g, "")) || 0;
+}
+
+function parseSignedMarketNumber(value) {
+  const text = String(value || "").trim();
+  const sign = text.startsWith("-") ? -1 : 1;
+  return sign * parseMarketNumber(text);
+}
+
+function formatMarketNumber(value) {
+  return Math.round(Number(value) || 0).toLocaleString();
+}
+
+function formatSignedMarketNumber(value) {
+  const amount = Math.round(Number(value) || 0);
+  const sign = amount >= 0 ? "+" : "-";
+  return `${sign}${Math.abs(amount).toLocaleString()}`;
+}
+
+function formatSignedRate(value) {
+  const rate = Number(value) || 0;
+  const sign = rate >= 0 ? "+" : "-";
+  return `${sign}${Math.abs(rate).toFixed(2)}%`;
+}
+
+function stockMatches(name, code, queryName, queryCode = "") {
+  const queries = getStockCandidates(queryName, queryCode).map(normalizeStockKey);
+  return getStockCandidates(name, code)
+    .map(normalizeStockKey)
+    .some((candidate) => queries.includes(candidate));
+}
+
+function findWatchListRow(name, code = "") {
+  return watchList.find(([watchName, watchCode]) => stockMatches(watchName, watchCode, name, code)) || null;
+}
+
+function getWatchStock(name, code = "") {
+  const row = findWatchListRow(name, code);
+  if (!row) return null;
+
+  return {
+    name: row[0],
+    code: row[1],
+    price: parseMarketNumber(row[2]),
+    priceText: row[2],
+    rate: row[3],
+    change: row[4] || ""
+  };
+}
+
+function getHoldingData() {
+  const rows = holdings.map(([name, quantityText, amountText, profitText]) => {
+    const quantity = parseMarketNumber(quantityText);
+    const previousAmount = parseMarketNumber(amountText);
+    const previousProfit = parseSignedMarketNumber(profitText);
+    const costBasis = Math.max(0, previousAmount - previousProfit);
+    const watch = getWatchStock(name);
+    const currentPrice = watch && watch.price ? watch.price : Math.round(previousAmount / Math.max(1, quantity));
+    const currentAmount = currentPrice * quantity;
+    const profit = currentAmount - costBasis;
+    const rate = costBasis ? (profit / costBasis) * 100 : 0;
+
+    return {
+      name,
+      code: watch ? watch.code : "",
+      quantity,
+      averagePrice: quantity ? Math.round(costBasis / quantity) : 0,
+      currentPrice,
+      amount: currentAmount,
+      costBasis,
+      profit,
+      rate
+    };
+  });
+  const totalAmount = rows.reduce((sum, item) => sum + item.amount, 0);
+
+  return rows.map((item) => ({
+    ...item,
+    weight: totalAmount ? (item.amount / totalAmount) * 100 : 0
+  }));
+}
+
+function getHoldingRows() {
+  return getHoldingData().map((item) => [
+    item.name,
+    formatMarketNumber(item.quantity),
+    formatMarketNumber(item.amount),
+    formatSignedMarketNumber(item.profit),
+    formatSignedRate(item.rate),
+    `${item.weight.toFixed(1)}%`
+  ]);
+}
+
+function getHoldingDetailRows() {
+  return getHoldingData().map((item) => [
+    item.name,
+    formatMarketNumber(item.quantity),
+    formatMarketNumber(item.averagePrice),
+    formatMarketNumber(item.currentPrice),
+    formatSignedMarketNumber(item.profit),
+    formatSignedRate(item.rate),
+    `${item.weight.toFixed(1)}%`
+  ]);
+}
+
+function getHoldingTotalValue() {
+  return getHoldingData().reduce((sum, item) => sum + item.amount, 0);
+}
+
+function getHoldingTotalCostBasis() {
+  return getHoldingData().reduce((sum, item) => sum + item.costBasis, 0);
+}
+
+function getHoldingTotalProfit() {
+  return getHoldingData().reduce((sum, item) => sum + item.profit, 0);
+}
+
+function getHoldingTotalReturn() {
+  const costBasis = getHoldingTotalCostBasis();
+  return costBasis ? (getHoldingTotalProfit() / costBasis) * 100 : 0;
+}
+
+function getHoldingDailyChange() {
+  return getHoldingData().reduce((sum, item) => {
+    const watch = getWatchStock(item.name, item.code);
+    return sum + (watch ? parseSignedMarketNumber(watch.change) * item.quantity : 0);
+  }, 0);
+}
+
+function getHoldingDailyChangeRate() {
+  const currentValue = getHoldingTotalValue();
+  const dailyChange = getHoldingDailyChange();
+  const previousValue = currentValue - dailyChange;
+  return previousValue ? (dailyChange / previousValue) * 100 : 0;
+}

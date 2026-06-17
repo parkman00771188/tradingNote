@@ -15,8 +15,8 @@ function getDashboardAssetDesktopViewBox() {
       right: 76,
       top: 20,
       bottom: 36,
-      primaryBadgeWidth: 72,
-      secondaryBadgeWidth: 68,
+      primaryBadgeWidth: 84,
+      secondaryBadgeWidth: 80,
       tertiaryBadgeWidth: 68
     };
   }
@@ -29,8 +29,8 @@ function getDashboardAssetDesktopViewBox() {
       right: 76,
       top: 20,
       bottom: 36,
-      primaryBadgeWidth: 72,
-      secondaryBadgeWidth: 68,
+      primaryBadgeWidth: 84,
+      secondaryBadgeWidth: 80,
       tertiaryBadgeWidth: 68
     };
   }
@@ -41,42 +41,97 @@ function getDashboardAssetDesktopViewBox() {
     left: 72,
     right: 64,
     top: 22,
-    bottom: 36
+    bottom: 36,
+    primaryBadgeWidth: 84,
+    secondaryBadgeWidth: 80,
+    tertiaryBadgeWidth: 68
   };
+}
+
+function buildDashboardTrendValues(currentValue, multipliers) {
+  return multipliers.map((ratio, index) => {
+    if (index === multipliers.length - 1) return currentValue;
+    return Math.round(currentValue * ratio);
+  });
+}
+
+function formatDashboardChartLabel(value) {
+  return `${Math.round(value).toLocaleString()}만원`;
+}
+
+function getDashboardPortfolioSegments(totalAssets, cashBalance) {
+  const colors = ["#2474f2", "#22c55e", "#8b5cf6", "#f79009", "#0ea5e9"];
+  const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
+  const sortedHoldings = holdingData.slice().sort((a, b) => b.amount - a.amount);
+  const topHoldings = sortedHoldings.slice(0, 3);
+  const topAmount = topHoldings.reduce((sum, item) => sum + item.amount, 0);
+  const otherAmount = Math.max(0, sortedHoldings.reduce((sum, item) => sum + item.amount, 0) - topAmount);
+  const segments = topHoldings.map((item, index) => ({
+    label: item.name,
+    amountValue: item.amount,
+    color: colors[index]
+  }));
+
+  if (otherAmount > 0) {
+    segments.push({ label: "기타", amountValue: otherAmount, color: colors[3] });
+  }
+  if (cashBalance > 0) {
+    segments.push({ label: "현금", amountValue: cashBalance, color: colors[4] });
+  }
+
+  return segments.map((item) => ({
+    ...item,
+    value: totalAssets ? Number(((item.amountValue / totalAssets) * 100).toFixed(1)) : 0,
+    amount: formatKRW(item.amountValue)
+  }));
 }
 
 function renderDashboardHoldingRows() {
   const sortIndex = dashboardHoldingsView === "rate" ? 4 : 2;
-  return holdings
+  const rows = typeof getHoldingRows === "function" ? getHoldingRows() : holdings;
+
+  return rows
     .slice()
     .sort((a, b) => parseDashboardNumber(b[sortIndex]) - parseDashboardNumber(a[sortIndex]))
     .slice(0, 5)
     .map((row) =>
-      row.map((cell, index) => index === 3 || index === 4 ? `<span class="${cell.startsWith("+") ? "text-red" : "text-blue"}">${cell}</span>` : cell)
+      row.map((cell, index) => {
+        if (index !== 3 && index !== 4) return cell;
+        const colorClass = cell.startsWith("+") ? "text-red" : cell.startsWith("-") ? "text-blue" : "";
+        return `<span class="${colorClass}">${cell}</span>`;
+      })
     );
 }
 
 function renderDashboard() {
-  const dashboardPortfolio = [
-    { label: "삼성전자", value: 34.5, amount: "17,674,350원", color: "#2474f2" },
-    { label: "SK하이닉스", value: 24.8, amount: "12,705,040원", color: "#22c55e" },
-    { label: "NVIDIA", value: 21.2, amount: "10,860,760원", color: "#8b5cf6" },
-    { label: "기타", value: 19.5, amount: "9,989,850원", color: "#f79009" }
-  ];
+  const cashBalance = getAssetCashBalance();
+  const investedValue = getAssetInvestedValue();
+  const totalAssets = getAssetTotalValue();
+  const holdingProfit = typeof getHoldingTotalProfit === "function" ? getHoldingTotalProfit() : 0;
+  const holdingReturn = typeof getHoldingTotalReturn === "function" ? getHoldingTotalReturn() : 0;
+  const profitClass = holdingProfit >= 0 ? "text-red" : "text-blue";
+  const totalUnit = Math.round(totalAssets / 10000);
+  const investedUnit = Math.round(investedValue / 10000);
+  const cashUnit = Math.round(cashBalance / 10000);
+  const primaryTrend = buildDashboardTrendValues(totalUnit, [0.93, 0.94, 0.955, 0.965, 0.96, 0.972, 0.98, 0.988, 0.982, 0.99, 0.996, 1.003, 0.992, 0.998, 1.006, 1]);
+  const secondaryTrend = buildDashboardTrendValues(investedUnit, [0.92, 0.93, 0.94, 0.955, 0.95, 0.962, 0.974, 0.982, 0.976, 0.986, 0.993, 1.002, 0.991, 0.997, 1.004, 1]);
+  const tertiaryTrend = buildDashboardTrendValues(cashUnit, [1.08, 1.06, 1.04, 1.02, 1.03, 1.01, 1.0, 0.99, 1.0, 0.98, 0.97, 0.96, 0.98, 0.99, 1.01, 1]);
+  const chartMax = Math.max(6000, Math.ceil(Math.max(...primaryTrend, ...secondaryTrend, ...tertiaryTrend) / 1500) * 1500);
+  const dashboardPortfolio = getDashboardPortfolioSegments(totalAssets, cashBalance);
 
   return `
     <div class="stack">
       <section class="metric-grid">
         ${metricCard({
           title: "총자산",
-          value: "51,230,000원",
+          value: formatKRW(totalAssets),
           iconName: "wallet",
           className: "dashboard-metric",
           iconPosition: "end"
         })}
         ${metricCard({
           title: "보유 현금",
-          value: formatKRW(getAssetCashBalance()),
+          value: formatKRW(cashBalance),
           iconName: "coin",
           tone: "green",
           className: "dashboard-metric",
@@ -84,19 +139,19 @@ function renderDashboard() {
         })}
         ${metricCard({
           title: "평가 손익",
-          value: "+2,250,000원",
+          value: `${formatSignedMarketNumber(holdingProfit)}원`,
           iconName: "trend",
-          tone: "red",
-          valueClass: "text-red",
+          tone: holdingProfit >= 0 ? "red" : "blue",
+          valueClass: profitClass,
           className: "dashboard-metric",
           iconPosition: "end"
         })}
         ${metricCard({
           title: "수익률",
-          value: "+4.59%",
+          value: formatSignedRate(holdingReturn),
           iconName: "target",
-          tone: "red",
-          valueClass: "text-red",
+          tone: holdingReturn >= 0 ? "red" : "blue",
+          valueClass: holdingReturn >= 0 ? "text-red" : "text-blue",
           className: "dashboard-metric",
           iconPosition: "end"
         })}
@@ -113,16 +168,16 @@ function renderDashboard() {
           </div>
           <div class="legend"><span><i class="dot"></i>총자산</span><span><i class="dot gray"></i>투자원금</span><span><i class="dot teal"></i>보유현금</span></div>
           ${lineChart({
-            primary: [4930, 4960, 4985, 5015, 4990, 5030, 5055, 5080, 5068, 5105, 5130, 5160, 5110, 5145, 5170, 5123],
-            secondary: [4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000],
-            tertiary: [930, 920, 910, 895, 920, 902, 890, 875, 884, 872, 860, 850, 868, 885, 902, 898],
+            primary: primaryTrend,
+            secondary: secondaryTrend,
+            tertiary: tertiaryTrend,
             min: 0,
-            max: 6000,
+            max: chartMax,
             unit: "만원",
             tickUnit: "",
-            endPrimary: "5,123만원",
-            endSecondary: "4,000만원",
-            endTertiary: "898만원",
+            endPrimary: formatDashboardChartLabel(totalUnit),
+            endSecondary: formatDashboardChartLabel(investedUnit),
+            endTertiary: formatDashboardChartLabel(cashUnit),
             ariaLabel: "총자산, 투자원금, 보유현금 추이 차트",
             primaryName: "총자산",
             secondaryName: "투자원금",
@@ -144,8 +199,8 @@ function renderDashboard() {
               secondaryStrokeWidth: 2.3,
               tertiaryStrokeWidth: 2.5,
               pointRadius: 4,
-              primaryBadgeWidth: 66,
-              secondaryBadgeWidth: 62,
+              primaryBadgeWidth: 78,
+              secondaryBadgeWidth: 76,
               tertiaryBadgeWidth: 62
             }
           })}
@@ -156,7 +211,7 @@ function renderDashboard() {
             <h2 class="panel-title">포트폴리오 구성</h2>
           </div>
           <div class="donut-row dashboard-portfolio">
-            ${donutChart(dashboardPortfolio, "총 자산<br><strong>51,230,000원</strong>")}
+            ${donutChart(dashboardPortfolio, `총 자산<br><strong>${formatKRW(totalAssets)}</strong>`)}
             <div class="portfolio-legend">
               ${dashboardPortfolio.map((item) => `
                 <div class="legend-row">
@@ -166,7 +221,7 @@ function renderDashboard() {
               `).join("")}
             </div>
           </div>
-          <p class="footer-note">기준: 평가금액 비중</p>
+          <p class="footer-note">기준: 평가금액 및 현금 비중</p>
         </article>
       </section>
 
@@ -180,7 +235,7 @@ function renderDashboard() {
             </div>
           </div>
           ${renderTable(["종목명", "수량", "평가금액", "평가손익", "수익률", "비중"], renderDashboardHoldingRows())}
-          <p class="footer-note">기준: 전일 종가 / 단위: 원</p>
+          <p class="footer-note">기준: 네이버 증권 장마감 현재가 / 단위: 원</p>
         </article>
 
         <article class="panel">

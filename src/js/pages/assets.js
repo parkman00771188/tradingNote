@@ -1,12 +1,25 @@
 function renderAssets() {
   const cashBalance = getAssetCashBalance();
+  const investedValue = getAssetInvestedValue();
   const totalAssets = getAssetTotalValue();
   const cashRatio = totalAssets ? (cashBalance / totalAssets) * 100 : 0;
+  const stockRatio = totalAssets ? (investedValue / totalAssets) * 100 : 0;
   const totalAssetsMillion = Number((totalAssets / 1000000).toFixed(2));
+  const holdingProfit = typeof getHoldingTotalProfit === "function" ? getHoldingTotalProfit() : 0;
+  const holdingReturn = typeof getHoldingTotalReturn === "function" ? getHoldingTotalReturn() : 0;
+  const dailyChange = typeof getHoldingDailyChange === "function" ? getHoldingDailyChange() : 0;
+  const dailyChangeRate = typeof getHoldingDailyChangeRate === "function" ? getHoldingDailyChangeRate() : 0;
+  const profitClass = holdingProfit >= 0 ? "text-red" : "text-blue";
+  const dailyClass = dailyChange >= 0 ? "text-red" : "text-blue";
+  const holdingDetailRows = (typeof getHoldingDetailRows === "function" ? getHoldingDetailRows() : []).map((row) =>
+    row.map((cell, index) => {
+      if (index !== 4 && index !== 5) return cell;
+      const colorClass = cell.startsWith("+") ? "text-red" : cell.startsWith("-") ? "text-blue" : "";
+      return `<span class="${colorClass}">${cell}</span>`;
+    })
+  );
   const portfolioSegments = [
-    { label: "국내 주식", amountValue: 26630000, color: "#2474f2" },
-    { label: "해외 주식", amountValue: 11280000, color: "#22c55e" },
-    { label: "ETF", amountValue: 4840000, color: "#8b5cf6" },
+    { label: "국내 주식", amountValue: investedValue, color: "#2474f2" },
     { label: "현금", amountValue: cashBalance, color: "#f79009" }
   ].map((item) => ({
     ...item,
@@ -16,9 +29,9 @@ function renderAssets() {
   return `
     <div class="stack">
       <section class="metric-grid">
-        ${metricCard({ title: "총자산", value: formatKRW(totalAssets), sub: `<span>전일 대비</span><strong class="text-red">+620,000원 (+1.37%)</strong>`, iconName: "wallet", info: true, className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
+        ${metricCard({ title: "총자산", value: formatKRW(totalAssets), sub: `<span>전일 대비</span><strong class="${dailyClass}">${formatSignedMarketNumber(dailyChange)}원 (${formatSignedRate(dailyChangeRate)})</strong>`, iconName: "wallet", info: true, className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
         ${metricCard({ title: "현금비중", value: `${cashRatio.toFixed(1)}%`, sub: `<span>${formatKRW(cashBalance)}</span>`, iconName: "coin", className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
-        ${metricCard({ title: "평가손익", value: "+5,680,000원", sub: `<strong class="text-red">+14.20%</strong>`, iconName: "trend", tone: "red", valueClass: "text-red", className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
+        ${metricCard({ title: "평가손익", value: `${formatSignedMarketNumber(holdingProfit)}원`, sub: `<strong class="${profitClass}">${formatSignedRate(holdingReturn)}</strong>`, iconName: "trend", tone: holdingProfit >= 0 ? "red" : "blue", valueClass: profitClass, className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
         ${metricCard({ title: "실현손익", value: "+1,250,000원", sub: `<strong class="text-red">+3.21%</strong>`, iconName: "target", tone: "red", valueClass: "text-red", className: "dashboard-metric page-summary-metric", iconPosition: "end" })}
       </section>
 
@@ -53,10 +66,8 @@ function renderAssets() {
           <div class="panel-header"><h2 class="panel-title">목표 자산 배분</h2><button class="mini-action" type="button">${icon("edit")}</button></div>
           <div class="bar-list">
             ${[
-              ["국내 주식", "60%", "58.3%", 58.3, "#2474f2"],
-              ["해외 주식", "25%", "24.7%", 24.7, "#22c55e"],
-              ["ETF", "10%", "10.5%", 10.5, "#8b5cf6"],
-              ["현금", "5%", "6.5%", 6.5, "#0ea5e9"]
+              ["국내 주식", "90%", `${stockRatio.toFixed(1)}%`, stockRatio, "#2474f2"],
+              ["현금", "10%", `${cashRatio.toFixed(1)}%`, cashRatio, "#f79009"]
             ].map(([name, target, now, width, color]) => `
               <div class="legend-row"><span><i class="dot" style="background:${color}"></i>${name}</span><span>${target}</span><div class="progress-bar"><span class="progress-track"><span class="progress-fill" style="width:${width}%;background:${color}"></span></span><strong>${now}</strong></div></div>
             `).join("")}
@@ -69,8 +80,8 @@ function renderAssets() {
         <article class="panel">
           <div class="panel-header"><h2 class="panel-title">계좌별 현황</h2><button class="btn ghost" type="button">더보기 ${icon("chevronRight")}</button></div>
           <div class="list">
-            <div class="list-row"><span class="list-icon">${icon("wallet")}</span><div><p class="list-title">주식 계좌</p><p class="list-sub">+1.25%</p></div><strong>32,450,000원</strong></div>
-            <div class="list-row"><span class="list-icon" style="color:var(--purple);background:var(--purple-soft)">${icon("wallet")}</span><div><p class="list-title">연금 계좌</p><p class="list-sub">+0.85%</p></div><strong>13,230,000원</strong></div>
+            <div class="list-row"><span class="list-icon">${icon("wallet")}</span><div><p class="list-title">주식 계좌</p><p class="list-sub">${formatSignedRate(holdingReturn)}</p></div><strong>${formatKRW(investedValue)}</strong></div>
+            <div class="list-row"><span class="list-icon" style="color:var(--purple);background:var(--purple-soft)">${icon("wallet")}</span><div><p class="list-title">현금 계좌</p><p class="list-sub">입출금 반영</p></div><strong>${formatKRW(cashBalance)}</strong></div>
           </div>
         </article>
         <article class="panel">
@@ -87,16 +98,15 @@ function renderAssets() {
           })}
         </article>
         <article class="panel">
-          <div class="panel-header tight"><h2 class="panel-title">국내 vs 해외 비중</h2></div>
+          <div class="panel-header tight"><h2 class="panel-title">주식 vs 현금 비중</h2></div>
           <div class="donut-row asset-compact-donut">
-            ${donutChart([{ value: 58.3, color: "#2474f2" }, { value: 24.7, color: "#22c55e" }, { value: 17, color: "#83b8ff" }], "", true)}
+            ${donutChart([{ label: "주식", value: Number(stockRatio.toFixed(1)), color: "#2474f2" }, { label: "현금", value: Number(cashRatio.toFixed(1)), color: "#f79009" }], "", true)}
             <div class="portfolio-legend">
-              <div class="legend-row"><span><i class="dot"></i>국내</span><strong>58.3%</strong></div>
-              <div class="legend-row"><span><i class="dot green"></i>해외</span><strong>24.7%</strong></div>
-              <div class="legend-row"><span><i class="dot gray"></i>기타</span><strong>17.0%</strong></div>
+              <div class="legend-row"><span><i class="dot"></i>주식</span><strong>${stockRatio.toFixed(1)}%</strong></div>
+              <div class="legend-row"><span><i class="dot" style="background:#f79009"></i>현금</span><strong>${cashRatio.toFixed(1)}%</strong></div>
             </div>
           </div>
-          <p class="footer-note">기준: 2024.06.20</p>
+          <p class="footer-note">기준: 현재 평가금액</p>
         </article>
       </section>
 
@@ -106,13 +116,7 @@ function renderAssets() {
             <h2 class="panel-title">보유 종목 상세</h2>
             <div class="header-actions"><span class="tiny">평가 기준</span><select class="select" style="width:120px"><option>현재가</option></select><button class="mini-action" type="button">${icon("download")}</button></div>
           </div>
-          ${renderTable(["종목명", "수량", "평균단가", "현재가", "평가손익", "수익률", "비중"], [
-            ["삼성전자", "50", "81,500", "81,500", "0", "0.00%", "9.0%"],
-            ["SK하이닉스", "20", "126,000", "128,000", `<span class="text-red">+40,000</span>`, `<span class="text-red">+1.59%</span>`, "5.6%"],
-            ["NAVER", "10", "178,000", "187,500", `<span class="text-red">+95,000</span>`, `<span class="text-red">+5.34%</span>`, "4.1%"],
-            ["카카오", "15", "52,100", "54,300", `<span class="text-red">+33,000</span>`, `<span class="text-red">+4.22%</span>`, "3.6%"],
-            ["TIGER 200", "30", "12,450", "12,830", `<span class="text-red">+11,400</span>`, `<span class="text-red">+3.05%</span>`, "2.8%"]
-          ])}
+          ${renderTable(["종목명", "수량", "평균단가", "현재가", "평가손익", "수익률", "비중"], holdingDetailRows)}
         </article>
         <aside class="panel">
           <div class="panel-header"><h2 class="panel-title">리밸런싱 알림</h2><button class="btn ghost" type="button">더보기 ${icon("chevronRight")}</button></div>

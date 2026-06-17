@@ -37,8 +37,21 @@ function journalStockMatchesQuery(stock, query) {
 }
 
 function findJournalHolding(name, code = "") {
-  if (typeof holdings === "undefined" || !Array.isArray(holdings)) return null;
+  if (typeof getHoldingData === "function") {
+    const holding = getHoldingData().find((item) => {
+      if (typeof stockMatches === "function") return stockMatches(item.name, item.code, name, code);
+      return normalizeJournalCurrentPriceText(item.name) === normalizeJournalCurrentPriceText(name);
+    });
 
+    if (!holding) return null;
+    return {
+      name: holding.name,
+      quantity: holding.quantity,
+      amount: holding.amount
+    };
+  }
+
+  if (typeof holdings === "undefined" || !Array.isArray(holdings)) return null;
   const queryCandidates = getJournalStockCandidates(name, code).map(normalizeJournalCurrentPriceText);
   const row = holdings.find(([holdingName]) => {
     const candidates = getJournalStockCandidates(holdingName).map(normalizeJournalCurrentPriceText);
@@ -54,6 +67,20 @@ function findJournalHolding(name, code = "") {
 }
 
 function findJournalWatchStock(name, code = "") {
+  if (typeof getWatchStock === "function") {
+    const match = getWatchStock(name, code);
+    if (match) {
+      const holding = findJournalHolding(match.name, match.code);
+      return {
+        name: match.name,
+        code: match.code,
+        price: match.price,
+        holdingQuantity: holding ? holding.quantity : 0,
+        holdingAmount: holding ? holding.amount : 0
+      };
+    }
+  }
+
   const queries = getJournalStockCandidates(name, code).map(normalizeJournalCurrentPriceText);
 
   if (typeof watchList !== "undefined" && Array.isArray(watchList)) {
@@ -82,6 +109,16 @@ function getJournalStockByQuery(query, mode = "buy") {
 }
 
 function getJournalStockOptionsForMode(mode = "buy") {
+  if (mode === "sell" && typeof getHoldingData === "function") {
+    return getHoldingData().map((holding) => ({
+      name: holding.name,
+      code: holding.code,
+      price: holding.currentPrice,
+      holdingQuantity: holding.quantity,
+      holdingAmount: holding.amount
+    }));
+  }
+
   if (mode === "sell" && typeof holdings !== "undefined" && Array.isArray(holdings)) {
     return holdings.map(([name, quantity, amount]) => {
       const watch = findJournalWatchStock(name);
@@ -117,6 +154,14 @@ function getJournalStockOptionsForMode(mode = "buy") {
   }];
 }
 
+function fillJournalPriceFromStock(form, stock) {
+  if (!form || !stock || !stock.price) return;
+
+  const mode = form.dataset.tradeMode === "sell" ? "sell" : "buy";
+  const priceInput = form.querySelector(mode === "sell" ? "[data-journal-trade-sell-price]" : "[data-journal-trade-buy-price]");
+  if (priceInput) priceInput.value = Number(stock.price).toLocaleString();
+}
+
 function getJournalSelectedStock(form) {
   if (!form) return null;
 
@@ -150,6 +195,7 @@ function setJournalSelectedStock(form, stock) {
   form.querySelectorAll("[data-journal-trade-buy-price], [data-journal-trade-sell-price], [data-journal-trade-quantity]").forEach((input) => {
     input.value = "";
   });
+  fillJournalPriceFromStock(form, stock);
 
   updateJournalHoldingInfo(form);
   updateJournalTradeEstimate(form);
@@ -185,6 +231,7 @@ function syncJournalTradeMode(form) {
     return;
   }
 
+  if (stock && form.dataset.selectedStockName) fillJournalPriceFromStock(form, stock);
   updateJournalHoldingInfo(form);
   updateJournalTradeEstimate(form);
 }
@@ -429,7 +476,7 @@ function journalTradeTotalBox(type) {
       <div class="journal-total-box ${isSell ? "sell" : "buy"}">
         <strong data-journal-total="${type}">0원</strong>
         <p data-journal-total-help="${type}">
-          ${isSell ? `매도 가능 금액은 ${formatKRW(journalDefaultHolding.amount)}입니다.` : `매수 가능 현금은 ${formatKRW(getAssetCashBalance())}입니다.`}
+          ${isSell ? "매도할 보유 종목을 먼저 선택하세요." : `매수 가능 현금은 ${formatKRW(getAssetCashBalance())}입니다.`}
         </p>
         <em data-journal-total-error="${type}"></em>
       </div>
@@ -452,7 +499,9 @@ function updateJournalTradeEstimate(form) {
   const total = quantity * price;
   const stock = getJournalSelectedStock(form);
   const limit = mode === "sell" ? (stock ? stock.holdingAmount : 0) : getAssetCashBalance();
-  const invalid = mode === "sell" ? total > limit || (total > 0 && !stock) : total > limit;
+  const invalid = mode === "sell"
+    ? total > limit || quantity > (stock ? stock.holdingQuantity : 0) || (total > 0 && !stock)
+    : total > limit;
 
   if (totalNode) totalNode.textContent = formatKRW(total);
   if (helpNode) {
@@ -466,7 +515,9 @@ function updateJournalTradeEstimate(form) {
     errorNode.textContent = invalid
       ? mode === "sell"
         ? stock
-          ? "현재 해당 주식의 총 보유금액보다 크게 매도할 수 없습니다."
+          ? quantity > stock.holdingQuantity
+            ? "현재 해당 주식의 보유 수량보다 많이 매도할 수 없습니다."
+            : "현재 해당 주식의 총 보유금액보다 크게 매도할 수 없습니다."
           : "매도할 보유 종목을 먼저 선택하세요."
         : "현재 보유 현금보다 크게 매수할 수 없습니다."
       : "";
@@ -497,18 +548,6 @@ function renderJournalWrite({ showTitle = true } = {}) {
             <button type="button" data-journal-trade-mode="sell" aria-pressed="false">매도</button>
           </div>`
         )}
-
-        <div data-visible-for="buy">
-          ${journalWriteField(
-            "현재 현금 보유량",
-            `<div class="cash-balance-box">
-              <div>
-                <strong>${formatKRW(getAssetCashBalance())}</strong>
-                <p>현재 계좌의 현금 보유량입니다.</p>
-              </div>
-            </div>`
-          )}
-        </div>
 
         ${journalWriteField(
           "종목명",

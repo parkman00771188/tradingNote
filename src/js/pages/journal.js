@@ -113,7 +113,9 @@ function getJournalStockAliases(stock) {
 }
 
 function getJournalStockOptions() {
-  return holdings.map(([name, quantity, value, profit, rate]) => {
+  const rows = typeof getHoldingRows === "function" ? getHoldingRows() : holdings;
+
+  return rows.map(([name, quantity, value, profit, rate]) => {
     const aliases = getJournalStockAliases(name).map(normalizeJournalText);
     const matchedWatch = watchList.find(([watchName]) => aliases.includes(normalizeJournalText(watchName)));
     return {

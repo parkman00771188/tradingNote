@@ -22,7 +22,7 @@ var assetCashDraftAmount = "";
 var assetCashPendingAmount = 0;
 var assetCashPendingMode = "deposit";
 
-const assetBaseNonCashBalance = 42750000;
+const fallbackAssetInvestedBalance = 42750000;
 
 function formatKRW(value) {
   return `${Math.max(0, Math.round(Number(value) || 0)).toLocaleString()}원`;
@@ -32,8 +32,12 @@ function getAssetCashBalance() {
   return assetCashBalance;
 }
 
+function getAssetInvestedValue() {
+  return typeof getHoldingTotalValue === "function" ? getHoldingTotalValue() : fallbackAssetInvestedBalance;
+}
+
 function getAssetTotalValue() {
-  return assetBaseNonCashBalance + assetCashBalance;
+  return getAssetInvestedValue() + assetCashBalance;
 }
 
 function parseKRWInput(value) {

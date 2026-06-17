@@ -11,6 +11,11 @@ function renderStockWatchRows() {
 }
 
 function renderStock() {
+  const heroStock = typeof getWatchStock === "function" ? getWatchStock("삼성전자", "005930") : null;
+  const heroPrice = heroStock ? heroStock.priceText : "346,500";
+  const heroChange = heroStock && heroStock.change ? `${heroStock.change} (${heroStock.rate})` : "+3,500 (+1.02%)";
+  const heroChangeClass = heroChange.startsWith("+") ? "text-red" : "text-blue";
+
   return `
     <div class="stock-layout">
       <div class="stock-main-grid">
@@ -29,12 +34,12 @@ function renderStock() {
                     <span class="stock-market">코스피</span>
                   </div>
                 </div>
-                <p class="list-sub">전자제품 <span>|</span> 시가총액 456.72조</p>
+                <p class="list-sub">전자제품 <span>|</span> 시가총액 2,025.74조</p>
               </div>
             </div>
             <div class="price-block">
-              <strong>77,300원</strong>
-              <p class="list-sub">전일 대비 <span class="text-red">+1,600 (+2.11%)</span></p>
+              <strong>${heroPrice}원</strong>
+              <p class="list-sub">전일 대비 <span class="${heroChangeClass}">${heroChange}</span></p>
             </div>
           </div>
         </article>

@@ -309,9 +309,15 @@ function candleChart() {
     [78900, 80200, 77000, 77300],
     [77300, 79000, 76200, 78100]
   ];
-  const prices = compact ? rawPrices.slice(-32) : rawPrices;
-  const min = 60000;
-  const max = 86000;
+  const currentSamsungPrice = typeof getWatchStock === "function" ? getWatchStock("삼성전자", "005930")?.price : 0;
+  const baseLastClose = rawPrices[rawPrices.length - 1][3];
+  const priceScale = currentSamsungPrice ? currentSamsungPrice / baseLastClose : 1;
+  const scaledRawPrices = rawPrices.map((row) => row.map((value) => Math.round((value * priceScale) / 100) * 100));
+  const prices = compact ? scaledRawPrices.slice(-32) : scaledRawPrices;
+  const visibleValues = prices.flat();
+  const min = Math.floor(Math.min(...visibleValues) / 10000) * 10000;
+  const max = Math.ceil(Math.max(...visibleValues) / 10000) * 10000;
+  const priceTicks = Array.from({ length: 6 }, (_, index) => Math.round(max - ((max - min) * index) / 5));
   const sx = (i) => left + (i / (prices.length - 1)) * (width - left - right);
   const sy = (v) => top + ((max - v) / (max - min)) * candleArea;
   const closeValues = prices.map((p) => p[3]);
@@ -325,7 +331,7 @@ function candleChart() {
   return `
     <div class="chart candles">
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="삼성전자 캔들 차트">
-        ${[85000, 80000, 75000, 70000, 65000, 60000]
+        ${priceTicks
           .map(
             (tick) => `
               <line x1="${left}" y1="${sy(tick)}" x2="${width - right}" y2="${sy(tick)}" stroke="#e3eaf3" stroke-dasharray="4 5"/>
