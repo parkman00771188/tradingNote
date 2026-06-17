@@ -1562,7 +1562,7 @@
   }
 
   h1 {
-    font-size: 36px;
+    font-size: 30px;
     line-height: 1.05;
   }
 
@@ -1573,7 +1573,7 @@
 
   .page-actions .btn {
     width: auto;
-    min-height: 52px;
+    min-height: 45px;
     padding: 0 16px;
     border-radius: 12px;
     white-space: nowrap;
@@ -1875,11 +1875,11 @@
   }
 
   h1 {
-    font-size: 34px;
+    font-size: 30px;
   }
 
   .page-actions .btn {
-    min-height: 50px;
+    min-height: 45px;
     padding: 0 14px;
     font-size: 13px;
   }
