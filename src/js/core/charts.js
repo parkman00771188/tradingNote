@@ -27,15 +27,18 @@ function lineChart({
   secondaryName = "비교 값",
   tertiaryName = "추가 값",
   tertiaryColor = "#2aa7a1",
-  tooltipLabels = []
+  tooltipLabels = [],
+  className = "",
+  compactViewBox = null
 }) {
   const compact = isCompactChart();
-  const width = compact ? 430 : 760;
-  const height = compact ? 255 : 270;
-  const left = compact ? 62 : 72;
-  const right = compact ? 58 : 64;
-  const top = 22;
-  const bottom = 36;
+  const compactBox = compactViewBox || {};
+  const width = compact ? compactBox.width || 430 : 760;
+  const height = compact ? compactBox.height || 255 : 270;
+  const left = compact ? compactBox.left || 62 : 72;
+  const right = compact ? compactBox.right || 58 : 64;
+  const top = compact ? compactBox.top || 22 : 22;
+  const bottom = compact ? compactBox.bottom || 36 : 36;
   const innerW = width - left - right;
   const innerH = height - top - bottom;
   const scaleY = (v) => top + ((max - v) / (max - min)) * innerH;
@@ -69,7 +72,7 @@ function lineChart({
       })
       .join("");
   return `
-    <div class="chart">
+    <div class="chart${className ? ` ${className}` : ""}">
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${ariaLabel}">
         <defs>
           <linearGradient id="lineArea" x1="0" x2="0" y1="0" y2="1">

@@ -62,7 +62,7 @@ function renderDashboard() {
       </section>
 
       <section class="dashboard-grid">
-        <article class="panel">
+        <article class="panel dashboard-asset-panel">
           <div class="panel-header">
             <h2 class="panel-title">자산 추이</h2>
             <div class="segmented" aria-label="기간 선택">
@@ -86,7 +86,9 @@ function renderDashboard() {
             secondaryName: "투자원금",
             tertiaryName: "보유현금",
             tertiaryColor: "#2aa7a1",
-            tooltipLabels: ["01/02", "01/12", "01/22", "02/01", "02/11", "02/21", "03/01", "03/11", "03/21", "04/01", "04/11", "04/21", "05/02", "05/12", "05/22", "06/01"]
+            tooltipLabels: ["01/02", "01/12", "01/22", "02/01", "02/11", "02/21", "03/01", "03/11", "03/21", "04/01", "04/11", "04/21", "05/02", "05/12", "05/22", "06/01"],
+            className: "dashboard-asset-chart",
+            compactViewBox: { width: 360, height: 320, left: 58, right: 64, top: 18, bottom: 42 }
           })}
         </article>
 
