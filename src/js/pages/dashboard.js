@@ -65,6 +65,89 @@ function formatDashboardChartLabel(value) {
   return `${Math.round(value).toLocaleString()}만원`;
 }
 
+function getAssetTrendChartData() {
+  const cashBalance = getAssetCashBalance();
+  const totalAssets = getAssetTotalValue();
+  const investmentPrincipal = typeof getHoldingTotalCostBasis === "function" ? getHoldingTotalCostBasis() : getAssetInvestedValue();
+  const totalUnit = Math.round(totalAssets / 10000);
+  const principalUnit = Math.round(investmentPrincipal / 10000);
+  const cashUnit = Math.round(cashBalance / 10000);
+  const primaryTrend = buildDashboardTrendValues(totalUnit, [0.93, 0.94, 0.955, 0.965, 0.96, 0.972, 0.98, 0.988, 0.982, 0.99, 0.996, 1.003, 0.992, 0.998, 1.006, 1]);
+  const secondaryTrend = buildDashboardTrendValues(principalUnit, [0.96, 0.965, 0.972, 0.978, 0.982, 0.986, 0.99, 0.993, 0.995, 0.997, 0.998, 0.999, 0.998, 0.999, 1, 1]);
+  const tertiaryTrend = buildDashboardTrendValues(cashUnit, [1.08, 1.06, 1.04, 1.02, 1.03, 1.01, 1.0, 0.99, 1.0, 0.98, 0.97, 0.96, 0.98, 0.99, 1.01, 1]);
+  const chartMax = Math.max(6000, Math.ceil(Math.max(...primaryTrend, ...secondaryTrend, ...tertiaryTrend) / 1500) * 1500);
+
+  return {
+    totalUnit,
+    principalUnit,
+    cashUnit,
+    primaryTrend,
+    secondaryTrend,
+    tertiaryTrend,
+    chartMax
+  };
+}
+
+function renderAssetTrendChart(className = "dashboard-asset-chart asset-trend-chart") {
+  const trend = getAssetTrendChartData();
+
+  return lineChart({
+    primary: trend.primaryTrend,
+    secondary: trend.secondaryTrend,
+    tertiary: trend.tertiaryTrend,
+    min: 0,
+    max: trend.chartMax,
+    unit: "만원",
+    tickUnit: "",
+    endPrimary: formatDashboardChartLabel(trend.totalUnit),
+    endSecondary: formatDashboardChartLabel(trend.principalUnit),
+    endTertiary: formatDashboardChartLabel(trend.cashUnit),
+    ariaLabel: "총자산, 투자원금, 보유현금 추이 차트",
+    primaryName: "총자산",
+    secondaryName: "투자원금",
+    tertiaryName: "보유현금",
+    tertiaryColor: "#2aa7a1",
+    tooltipLabels: ["01/02", "01/12", "01/22", "02/01", "02/11", "02/21", "03/01", "03/11", "03/21", "04/01", "04/11", "04/21", "05/02", "05/12", "05/22", "06/01"],
+    className,
+    desktopViewBox: getDashboardAssetDesktopViewBox(),
+    compactViewBox: {
+      width: 352,
+      height: 246,
+      left: 40,
+      right: 66,
+      top: 14,
+      bottom: 32,
+      labelFontSize: 11,
+      endLabelFontSize: 12,
+      primaryStrokeWidth: 3.4,
+      secondaryStrokeWidth: 2.3,
+      tertiaryStrokeWidth: 2.5,
+      pointRadius: 4,
+      primaryBadgeWidth: 78,
+      secondaryBadgeWidth: 76,
+      tertiaryBadgeWidth: 62,
+      secondaryBadgeOffsetY: -26,
+      tertiaryBadgeOffsetY: 6
+    }
+  });
+}
+
+function renderAssetTrendPanel(className = "dashboard-asset-panel asset-trend-panel") {
+  return `
+    <article class="panel ${className}">
+      <div class="panel-header">
+        <h2 class="panel-title">자산 추이</h2>
+        <div class="segmented" aria-label="기간 선택">
+          <button type="button">1M</button><button type="button">3M</button><button class="active" type="button">6M</button>
+          <button type="button">1Y</button><button type="button">전체</button>
+        </div>
+      </div>
+      <div class="legend"><span><i class="dot"></i>총자산</span><span><i class="dot gray"></i>투자원금</span><span><i class="dot teal"></i>보유현금</span></div>
+      ${renderAssetTrendChart()}
+    </article>
+  `;
+}
+
 function getDashboardPortfolioSegments(totalAssets, cashBalance) {
   const colors = ["#2474f2", "#22c55e", "#8b5cf6", "#f79009", "#0ea5e9"];
   const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
@@ -114,15 +197,7 @@ function renderDashboard() {
   const totalAssets = getAssetTotalValue();
   const holdingProfit = typeof getHoldingTotalProfit === "function" ? getHoldingTotalProfit() : 0;
   const holdingReturn = typeof getHoldingTotalReturn === "function" ? getHoldingTotalReturn() : 0;
-  const investmentPrincipal = typeof getHoldingTotalCostBasis === "function" ? getHoldingTotalCostBasis() : getAssetInvestedValue();
   const profitClass = holdingProfit >= 0 ? "text-red" : "text-blue";
-  const totalUnit = Math.round(totalAssets / 10000);
-  const principalUnit = Math.round(investmentPrincipal / 10000);
-  const cashUnit = Math.round(cashBalance / 10000);
-  const primaryTrend = buildDashboardTrendValues(totalUnit, [0.93, 0.94, 0.955, 0.965, 0.96, 0.972, 0.98, 0.988, 0.982, 0.99, 0.996, 1.003, 0.992, 0.998, 1.006, 1]);
-  const secondaryTrend = buildDashboardTrendValues(principalUnit, [0.96, 0.965, 0.972, 0.978, 0.982, 0.986, 0.99, 0.993, 0.995, 0.997, 0.998, 0.999, 0.998, 0.999, 1, 1]);
-  const tertiaryTrend = buildDashboardTrendValues(cashUnit, [1.08, 1.06, 1.04, 1.02, 1.03, 1.01, 1.0, 0.99, 1.0, 0.98, 0.97, 0.96, 0.98, 0.99, 1.01, 1]);
-  const chartMax = Math.max(6000, Math.ceil(Math.max(...primaryTrend, ...secondaryTrend, ...tertiaryTrend) / 1500) * 1500);
   const dashboardPortfolio = getDashboardPortfolioSegments(totalAssets, cashBalance);
 
   return `
@@ -164,55 +239,7 @@ function renderDashboard() {
       </section>
 
       <section class="dashboard-grid">
-        <article class="panel dashboard-asset-panel">
-          <div class="panel-header">
-            <h2 class="panel-title">자산 추이</h2>
-            <div class="segmented" aria-label="기간 선택">
-              <button type="button">1M</button><button type="button">3M</button><button class="active" type="button">6M</button>
-              <button type="button">1Y</button><button type="button">전체</button>
-            </div>
-          </div>
-          <div class="legend"><span><i class="dot"></i>총자산</span><span><i class="dot gray"></i>투자원금</span><span><i class="dot teal"></i>보유현금</span></div>
-          ${lineChart({
-            primary: primaryTrend,
-            secondary: secondaryTrend,
-            tertiary: tertiaryTrend,
-            min: 0,
-            max: chartMax,
-            unit: "만원",
-            tickUnit: "",
-            endPrimary: formatDashboardChartLabel(totalUnit),
-            endSecondary: formatDashboardChartLabel(principalUnit),
-            endTertiary: formatDashboardChartLabel(cashUnit),
-            ariaLabel: "총자산, 투자원금, 보유현금 추이 차트",
-            primaryName: "총자산",
-            secondaryName: "투자원금",
-            tertiaryName: "보유현금",
-            tertiaryColor: "#2aa7a1",
-            tooltipLabels: ["01/02", "01/12", "01/22", "02/01", "02/11", "02/21", "03/01", "03/11", "03/21", "04/01", "04/11", "04/21", "05/02", "05/12", "05/22", "06/01"],
-            className: "dashboard-asset-chart",
-            desktopViewBox: getDashboardAssetDesktopViewBox(),
-            compactViewBox: {
-              width: 352,
-              height: 246,
-              left: 40,
-              right: 66,
-              top: 14,
-              bottom: 32,
-              labelFontSize: 11,
-              endLabelFontSize: 12,
-              primaryStrokeWidth: 3.4,
-              secondaryStrokeWidth: 2.3,
-              tertiaryStrokeWidth: 2.5,
-              pointRadius: 4,
-              primaryBadgeWidth: 78,
-              secondaryBadgeWidth: 76,
-              tertiaryBadgeWidth: 62,
-              secondaryBadgeOffsetY: -26,
-              tertiaryBadgeOffsetY: 6
-            }
-          })}
-        </article>
+        ${renderAssetTrendPanel()}
 
         <article class="panel">
           <div class="panel-header tight">

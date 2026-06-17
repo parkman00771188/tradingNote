@@ -4,7 +4,6 @@ function renderAssets() {
   const totalAssets = getAssetTotalValue();
   const cashRatio = totalAssets ? (cashBalance / totalAssets) * 100 : 0;
   const stockRatio = totalAssets ? (investedValue / totalAssets) * 100 : 0;
-  const totalAssetsMillion = Number((totalAssets / 1000000).toFixed(2));
   const holdingProfit = typeof getHoldingTotalProfit === "function" ? getHoldingTotalProfit() : 0;
   const holdingReturn = typeof getHoldingTotalReturn === "function" ? getHoldingTotalReturn() : 0;
   const dailyChange = typeof getHoldingDailyChange === "function" ? getHoldingDailyChange() : 0;
@@ -84,19 +83,7 @@ function renderAssets() {
             <div class="list-row"><span class="list-icon" style="color:var(--purple);background:var(--purple-soft)">${icon("wallet")}</span><div><p class="list-title">현금 계좌</p><p class="list-sub">입출금 반영</p></div><strong>${formatKRW(cashBalance)}</strong></div>
           </div>
         </article>
-        <article class="panel">
-          <div class="panel-header"><h2 class="panel-title">자산 추이</h2><div class="segmented"><button type="button">1M</button><button type="button">3M</button><button type="button">6M</button><button class="active" type="button">YTD</button><button type="button">1Y</button><button type="button">전체</button></div></div>
-          ${lineChart({
-            primary: [26, 28, 29, 31, 34, 39, 37, 41, 40, 43, 41, 42, 44, totalAssetsMillion],
-            secondary: [24, 24, 25, 26, 27, 27, 29, 30, 30, 31, 32, 32, 33, 34],
-            min: 0,
-            max: 60,
-            unit: "M",
-            labels: ["01/02", "02/01", "03/01", "04/01", "05/02", "06/01"],
-            endPrimary: `${totalAssetsMillion}M`,
-            endSecondary: ""
-          })}
-        </article>
+        ${renderAssetTrendPanel()}
         <article class="panel">
           <div class="panel-header tight"><h2 class="panel-title">주식 vs 현금 비중</h2></div>
           <div class="donut-row asset-compact-donut">

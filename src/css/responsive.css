@@ -1748,12 +1748,14 @@
     height: 275px;
   }
 
-  body[data-route="dashboard"] .dashboard-asset-chart {
+  body[data-route="dashboard"] .asset-trend-chart,
+  body[data-route="assets"] .asset-trend-chart {
     height: clamp(218px, 58vw, 240px);
     margin-top: 4px;
   }
 
-  body[data-route="dashboard"] .dashboard-asset-panel .legend {
+  body[data-route="dashboard"] .asset-trend-panel .legend,
+  body[data-route="assets"] .asset-trend-panel .legend {
     gap: 10px 12px;
     font-size: 13px;
   }
