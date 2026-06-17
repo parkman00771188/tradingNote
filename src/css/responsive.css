@@ -291,7 +291,8 @@
     border-radius: 16px;
   }
 
-  .journal-date-modal {
+  .journal-date-modal,
+  .journal-filter-modal {
     width: min(440px, calc(100vw - 24px));
     height: auto;
     max-height: calc(100vh - 40px);
@@ -316,6 +317,11 @@
   }
 
   .journal-date-modal .modal-body {
+    gap: 14px;
+    padding: 14px 16px 16px;
+  }
+
+  .journal-filter-modal .modal-body {
     gap: 14px;
     padding: 14px 16px 16px;
   }
@@ -1216,16 +1222,66 @@
     margin-top: -5px;
   }
 
-  .stock-hero {
+  body[data-route="stock"] .stock-hero-panel {
+    padding: 18px;
+  }
+
+  body[data-route="stock"] .stock-hero {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    align-items: stretch;
+  }
+
+  body[data-route="stock"] .stock-name {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
     gap: 12px;
+    align-items: start;
+  }
+
+  body[data-route="stock"] .stock-favorite {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+    border-radius: 12px;
+    background: #f8fbff;
   }
 
   body[data-route="stock"] .stock-title-row {
+    display: grid;
     gap: 7px;
   }
 
+  body[data-route="stock"] .stock-badges {
+    gap: 6px;
+  }
+
+  body[data-route="stock"] .stock-code {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 3px 0;
+    font-size: 13px;
+  }
+
+  body[data-route="stock"] .stock-market {
+    min-height: 24px;
+    padding: 3px 9px;
+    font-size: 12px;
+  }
+
+  body[data-route="stock"] .stock-title-block .list-sub {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
   body[data-route="stock"] .price-block {
-    padding-left: 50px;
+    margin-left: 54px;
+    padding: 13px 14px;
+    text-align: left;
+    background: #f8fbff;
+    border: 1px solid var(--line);
+    border-radius: 13px;
   }
 
   body[data-route="stock"] .stock-main-grid > article.panel:nth-of-type(2) {
@@ -1270,12 +1326,27 @@
     margin-top: 8px;
   }
 
-  .stock-name h2 {
-    font-size: 28px;
+  body[data-route="stock"] .stock-name h2 {
+    min-width: 0;
+    overflow: hidden;
+    color: #071125;
+    font-size: clamp(29px, 8.6vw, 36px);
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .price-block strong {
-    font-size: 34px;
+  body[data-route="stock"] .price-block strong {
+    color: #071125;
+    font-size: clamp(34px, 9.4vw, 42px);
+    line-height: 1;
+    letter-spacing: 0;
+  }
+
+  body[data-route="stock"] .price-block .list-sub {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.35;
   }
 
   .list-row {
@@ -1689,6 +1760,34 @@
     font-size: clamp(19px, 4.7vw, 22px);
     overflow-wrap: normal;
     white-space: nowrap;
+  }
+
+  body[data-route="stock"] .stock-hero-panel {
+    padding: 16px;
+  }
+
+  body[data-route="stock"] .stock-name {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  body[data-route="stock"] .stock-favorite {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+
+  body[data-route="stock"] .stock-name h2 {
+    font-size: clamp(30px, 9vw, 36px);
+  }
+
+  body[data-route="stock"] .price-block {
+    margin-left: 50px;
+    padding: 12px;
+  }
+
+  body[data-route="stock"] .price-block strong {
+    font-size: clamp(35px, 10.6vw, 42px);
   }
 
   .mobile-trade-card {

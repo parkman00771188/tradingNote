@@ -1743,7 +1743,18 @@ body.modal-open {
   background: white;
 }
 
+.journal-filter-modal {
+  width: min(560px, calc(100vw - 32px));
+  background: white;
+}
+
 .journal-date-modal .modal-body {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.journal-filter-modal .modal-body {
   display: grid;
   gap: 14px;
   padding: 18px;
@@ -1805,6 +1816,146 @@ body.modal-open {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
+}
+
+.journal-choice-search {
+  position: relative;
+}
+
+.journal-choice-search .input {
+  height: 46px;
+  padding-left: 15px;
+  padding-right: 44px;
+  font-weight: 750;
+}
+
+.journal-choice-search span {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: #64748b;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.journal-choice-search svg,
+.journal-option-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.journal-option-list {
+  display: grid;
+  gap: 9px;
+  max-height: min(390px, 48vh);
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.journal-option {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 68px;
+  padding: 12px;
+  color: #334155;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  text-align: left;
+}
+
+.journal-option[hidden] {
+  display: none;
+}
+
+.journal-option.active {
+  border-color: #8bbcff;
+  background: linear-gradient(180deg, #f5f9ff, #ffffff);
+  box-shadow: 0 0 0 2px rgba(36, 116, 242, 0.09);
+}
+
+.journal-option-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-radius: 10px;
+}
+
+.journal-option strong,
+.journal-option em,
+.journal-option b {
+  display: block;
+  min-width: 0;
+}
+
+.journal-option strong {
+  color: #0f172a;
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.journal-option em {
+  margin-top: 4px;
+  color: #64748b;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.journal-option b {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.journal-option.active b {
+  color: var(--blue);
+}
+
+.journal-empty-option,
+.mobile-empty-state p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.journal-empty-option {
+  padding: 18px 12px;
+  text-align: center;
+}
+
+.mobile-empty-state {
+  display: grid;
+  gap: 6px;
+  padding: 20px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+}
+
+.mobile-empty-state strong {
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 900;
 }
 
 .asset-cash-modal .modal-body {
@@ -2239,6 +2390,14 @@ body.modal-open {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.stock-badges {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
 }
 
 .stock-code {

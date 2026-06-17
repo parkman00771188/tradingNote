@@ -173,6 +173,12 @@ function renderJournalDateRangeModal() {
   `;
 }
 
+function cancelActiveModalDraft(modalName = activeModal) {
+  if (modalName === "journalDateRange") cancelJournalDateRangeEdit();
+  if (modalName === "journalStockFilter") cancelJournalStockFilterEdit();
+  if (modalName === "journalTradeTypeFilter") cancelJournalTradeTypeFilterEdit();
+}
+
 function getRoute() {
   const route = window.location.hash.replace("#", "");
   return renderers[route] ? route : "dashboard";
@@ -182,7 +188,7 @@ function renderModal() {
   const modalRoot = document.querySelector("#modalRoot");
   if (!modalRoot) return;
 
-  if (!["journalWrite", "assetCash", "journalDateRange"].includes(activeModal)) {
+  if (!["journalWrite", "assetCash", "journalDateRange", "journalStockFilter", "journalTradeTypeFilter"].includes(activeModal)) {
     modalRoot.innerHTML = "";
     if (document.body) document.body.classList.remove("modal-open");
     return;
@@ -191,6 +197,16 @@ function renderModal() {
   if (document.body) document.body.classList.add("modal-open");
   if (activeModal === "journalDateRange") {
     modalRoot.innerHTML = renderJournalDateRangeModal();
+    return;
+  }
+
+  if (activeModal === "journalStockFilter") {
+    modalRoot.innerHTML = renderJournalStockFilterModal();
+    return;
+  }
+
+  if (activeModal === "journalTradeTypeFilter") {
+    modalRoot.innerHTML = renderJournalTradeTypeFilterModal();
     return;
   }
 
@@ -297,6 +313,12 @@ document.addEventListener("click", (event) => {
     if (activeModal === "journalDateRange") {
       beginJournalDateRangeEdit();
     }
+    if (activeModal === "journalStockFilter") {
+      beginJournalStockFilterEdit();
+    }
+    if (activeModal === "journalTradeTypeFilter") {
+      beginJournalTradeTypeFilterEdit();
+    }
     renderModal();
     hydrateIcons(document);
     return;
@@ -312,7 +334,7 @@ document.addEventListener("click", (event) => {
 
     const modalClose = event.target.closest("[data-modal-close]");
     if (modalClose && modalPanel) {
-      if (activeModal === "journalDateRange") cancelJournalDateRangeEdit();
+      cancelActiveModalDraft();
       activeModal = null;
       assetCashError = "";
       assetCashMessage = "";
@@ -320,9 +342,41 @@ document.addEventListener("click", (event) => {
       return;
     }
 
+    const journalStockOption = event.target.closest("[data-journal-stock-option]");
+    if (journalStockOption && activeModal === "journalStockFilter") {
+      setJournalStockFilterDraft(journalStockOption.dataset.journalStockOption);
+      renderModal();
+      hydrateIcons(document);
+      return;
+    }
+
+    const journalTypeOption = event.target.closest("[data-journal-type-filter-option]");
+    if (journalTypeOption && activeModal === "journalTradeTypeFilter") {
+      setJournalTradeTypeFilterDraft(journalTypeOption.dataset.journalTypeFilterOption);
+      renderModal();
+      hydrateIcons(document);
+      return;
+    }
+
     const journalDateApply = event.target.closest("[data-journal-date-apply]");
     if (journalDateApply && activeModal === "journalDateRange") {
       applyJournalDateRangeEdit();
+      activeModal = null;
+      render();
+      return;
+    }
+
+    const journalStockApply = event.target.closest("[data-journal-stock-apply]");
+    if (journalStockApply && activeModal === "journalStockFilter") {
+      applyJournalStockFilterEdit();
+      activeModal = null;
+      render();
+      return;
+    }
+
+    const journalTypeApply = event.target.closest("[data-journal-type-apply]");
+    if (journalTypeApply && activeModal === "journalTradeTypeFilter") {
+      applyJournalTradeTypeFilterEdit();
       activeModal = null;
       render();
       return;
@@ -378,7 +432,7 @@ document.addEventListener("click", (event) => {
     }
 
     if (event.target.matches(".modal-backdrop")) {
-      if (activeModal === "journalDateRange") cancelJournalDateRangeEdit();
+      cancelActiveModalDraft();
       activeModal = null;
       assetCashError = "";
       assetCashMessage = "";
@@ -474,6 +528,12 @@ document.addEventListener("input", (event) => {
     formatNumberInput(numberInput);
   }
 
+  const journalStockSearchInput = event.target.closest("[data-journal-stock-search]");
+  if (journalStockSearchInput && activeModal === "journalStockFilter") {
+    updateJournalStockSearchView(journalStockSearchInput.value);
+    return;
+  }
+
   const amountInput = event.target.closest("[data-asset-cash-amount]");
   if (!amountInput || activeModal !== "assetCash") return;
 
@@ -510,7 +570,7 @@ document.addEventListener("pointerout", (event) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && activeModal) {
-    if (activeModal === "journalDateRange") cancelJournalDateRangeEdit();
+    cancelActiveModalDraft();
     activeModal = null;
     assetCashError = "";
     assetCashMessage = "";
@@ -523,7 +583,7 @@ document.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("hashchange", () => {
-  if (activeModal === "journalDateRange") cancelJournalDateRangeEdit();
+  cancelActiveModalDraft();
   activeModal = null;
   assetCashError = "";
   assetCashMessage = "";
