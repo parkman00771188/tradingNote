@@ -4,6 +4,47 @@ function parseDashboardNumber(value) {
   return Number(String(value).replace(/[^0-9.-]/g, "")) || 0;
 }
 
+function getDashboardAssetDesktopViewBox() {
+  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1440;
+
+  if (viewportWidth > 1180 && viewportWidth <= 1380) {
+    return {
+      width: 420,
+      height: 270,
+      left: 52,
+      right: 76,
+      top: 20,
+      bottom: 36,
+      primaryBadgeWidth: 72,
+      secondaryBadgeWidth: 68,
+      tertiaryBadgeWidth: 68
+    };
+  }
+
+  if (viewportWidth > 1380 && viewportWidth <= 1680) {
+    return {
+      width: 560,
+      height: 270,
+      left: 58,
+      right: 76,
+      top: 20,
+      bottom: 36,
+      primaryBadgeWidth: 72,
+      secondaryBadgeWidth: 68,
+      tertiaryBadgeWidth: 68
+    };
+  }
+
+  return {
+    width: 760,
+    height: 270,
+    left: 72,
+    right: 64,
+    top: 22,
+    bottom: 36
+  };
+}
+
 function renderDashboardHoldingRows() {
   const sortIndex = dashboardHoldingsView === "rate" ? 4 : 2;
   return holdings
@@ -89,10 +130,11 @@ function renderDashboard() {
             tertiaryColor: "#2aa7a1",
             tooltipLabels: ["01/02", "01/12", "01/22", "02/01", "02/11", "02/21", "03/01", "03/11", "03/21", "04/01", "04/11", "04/21", "05/02", "05/12", "05/22", "06/01"],
             className: "dashboard-asset-chart",
+            desktopViewBox: getDashboardAssetDesktopViewBox(),
             compactViewBox: {
-              width: 340,
+              width: 352,
               height: 246,
-              left: 48,
+              left: 40,
               right: 66,
               top: 14,
               bottom: 32,

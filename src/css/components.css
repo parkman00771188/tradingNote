@@ -292,6 +292,10 @@
   gap: 16px;
 }
 
+.dashboard-asset-panel {
+  align-self: start;
+}
+
 .bottom-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
