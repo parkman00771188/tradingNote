@@ -459,7 +459,8 @@ document.addEventListener("click", (event) => {
 
       assetCashBalance = assetCashMode === "withdraw" ? assetCashBalance - amount : assetCashBalance + amount;
       assetCashError = "";
-      assetCashMessage = `${assetCashMode === "withdraw" ? "출금" : "입금"} ${formatKRW(amount)}이 반영되었습니다.`;
+      assetCashMessage = "";
+      activeModal = null;
       render();
       return;
     }

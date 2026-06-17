@@ -1814,28 +1814,26 @@ body.modal-open {
 .journal-date-presets {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 6px;
-  padding: 4px;
-  background: var(--surface-soft);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  gap: 9px;
 }
 
 .journal-date-presets button {
   min-width: 0;
-  min-height: 38px;
+  min-height: 42px;
   color: #475569;
-  background: transparent;
-  border: 0;
-  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 850;
   white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.035);
 }
 
 .journal-date-presets button.active {
   color: white;
   background: var(--blue);
+  border-color: transparent;
   box-shadow: 0 6px 14px rgba(36, 116, 242, 0.18);
 }
 
