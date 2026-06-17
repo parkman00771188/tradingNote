@@ -1767,6 +1767,59 @@
     margin-top: 4px;
   }
 
+  body[data-route="assets"] .asset-trend-panel {
+    overflow: hidden;
+  }
+
+  body[data-route="assets"] .asset-trend-panel .panel-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 38px;
+    align-items: center;
+    gap: 10px 12px;
+    margin-bottom: 14px;
+  }
+
+  body[data-route="assets"] .asset-trend-panel .panel-title {
+    grid-column: 1 / 2;
+    grid-row: 1;
+    min-width: 0;
+    font-size: 20px;
+    line-height: 1.18;
+    white-space: normal;
+  }
+
+  body[data-route="assets"] .asset-trend-panel .asset-trend-actions {
+    display: contents;
+  }
+
+  body[data-route="assets"] .asset-trend-panel .asset-trend-actions .segmented {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    max-width: 100%;
+    justify-content: space-between;
+    overflow: visible;
+  }
+
+  body[data-route="assets"] .asset-trend-panel .asset-trend-actions .segmented button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 4px;
+  }
+
+  body[data-route="assets"] .asset-trend-panel .asset-trend-actions .mini-action {
+    grid-column: 2 / 3;
+    grid-row: 1;
+    justify-self: end;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+
+  body[data-route="assets"] .asset-trend-chart {
+    height: clamp(258px, 72vw, 292px);
+  }
+
   body[data-route="dashboard"] .asset-trend-panel .legend,
   body[data-route="assets"] .asset-trend-panel .legend {
     gap: 10px 12px;
