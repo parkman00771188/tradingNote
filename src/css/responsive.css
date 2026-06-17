@@ -286,7 +286,8 @@
   .journal-write-modal {
     width: min(540px, calc(100vw - 24px));
     height: auto;
-    max-height: calc(100vh - 40px);
+    max-height: calc(100vh - 72px);
+    max-height: calc(100dvh - 72px);
     overflow: hidden;
     background: white;
     border: 1px solid var(--line);
@@ -360,7 +361,7 @@
   }
 
   .journal-entry-content {
-    padding: 24px 18px 110px;
+    padding: 22px 18px 92px;
   }
 
   .journal-entry-title {
@@ -414,7 +415,12 @@
 
   .journal-entry-actions {
     grid-template-columns: 1fr 1fr;
-    padding: 14px 18px;
+    gap: 12px;
+    padding: 12px 18px;
+  }
+
+  .journal-entry-actions .btn {
+    min-height: 48px;
   }
 
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
