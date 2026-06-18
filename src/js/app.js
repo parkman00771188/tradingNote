@@ -1,4 +1,5 @@
 const renderers = {
+  landing: renderLanding,
   dashboard: renderDashboard,
   journal: renderJournal,
   journalWrite: renderJournalWrite,
@@ -723,6 +724,7 @@ function cancelActiveModalDraft(modalName = activeModal) {
 
 function getRoute() {
   const route = window.location.hash.replace("#", "");
+  if (!route) return "landing";
   return renderers[route] ? route : "dashboard";
 }
 
@@ -852,7 +854,7 @@ function renderMobileSheet() {
 
 function render() {
   const route = getRoute();
-  const meta = pageMeta[route];
+  const meta = pageMeta[route] || { title: "Trading Note", description: "" };
   document.body.dataset.route = route;
   document.querySelector("#pageTitle").textContent = meta.title;
   document.querySelector("#pageDescription").textContent = meta.description;
@@ -863,6 +865,9 @@ function render() {
   renderModal();
   renderMobileSheet();
   hydrateIcons(document);
+  if (route === "landing" && typeof setupLandingReveal === "function") {
+    setupLandingReveal();
+  }
   scheduleFitValueText();
 }
 
@@ -1254,6 +1259,13 @@ document.addEventListener("click", (event) => {
   if (mobileSheetClose) {
     mobileSheetOpen = false;
     renderMobileSheet();
+    return;
+  }
+
+  const landingScrollButton = event.target.closest("[data-landing-scroll]");
+  if (landingScrollButton && getRoute() === "landing") {
+    const target = document.getElementById(landingScrollButton.dataset.landingScroll);
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
 
