@@ -352,7 +352,7 @@
 .asset-summary-block,
 .asset-allocation-block {
   min-width: 0;
-  padding: 30px 34px 0;
+  padding: 28px 34px 0;
 }
 
 .asset-allocation-block {
@@ -392,16 +392,16 @@
   grid-template-columns: minmax(120px, 0.85fr) minmax(0, 1fr);
   align-items: baseline;
   gap: 14px;
-  min-height: 70px;
-  padding: 15px 0;
+  min-height: 64px;
+  padding: 13px 0;
   border-bottom: 1px solid var(--line);
 }
 
 .asset-summary-metric > span {
   min-width: 0;
   color: #64748b;
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 720;
 }
 
 .asset-summary-metric p {
@@ -416,17 +416,17 @@
 
 .asset-summary-metric strong {
   min-width: 0;
-  font-size: clamp(22px, 1.65vw, 30px);
-  line-height: 1.05;
-  font-weight: 900;
+  font-size: clamp(19px, 1.2vw, 23px);
+  line-height: 1.08;
+  font-weight: 760;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .asset-summary-metric p > span {
   color: #94a3b8;
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 11px;
+  font-weight: 800;
   letter-spacing: 0.02em;
 }
 
@@ -451,20 +451,20 @@
   padding: 8px 12px;
   background: #fff1f1;
   border-radius: 8px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .asset-allocation-content {
   display: grid;
   grid-template-columns: minmax(150px, 0.62fr) minmax(260px, 1fr);
   align-items: center;
-  gap: 26px;
-  min-height: 270px;
+  gap: 24px;
+  min-height: 258px;
 }
 
 .asset-allocation-legend {
   display: grid;
-  gap: 22px;
+  gap: 12px;
 }
 
 .asset-allocation-row {
@@ -473,8 +473,8 @@
   gap: 16px;
   align-items: center;
   color: #475569;
-  font-size: 16px;
-  font-weight: 850;
+  font-size: 14px;
+  font-weight: 730;
 }
 
 .asset-allocation-row span {
@@ -486,8 +486,8 @@
 
 .asset-allocation-row strong {
   color: #334155;
-  font-size: 18px;
-  font-weight: 900;
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .asset-donut-wrap {
@@ -498,22 +498,22 @@
 }
 
 .asset-donut-wrap .donut {
-  width: clamp(238px, 17vw, 290px);
-  height: clamp(238px, 17vw, 290px);
+  width: clamp(220px, 14.5vw, 260px);
+  height: clamp(220px, 14.5vw, 260px);
 }
 
 .asset-donut-wrap .donut .donut-center {
-  inset: clamp(58px, 4.4vw, 72px);
+  inset: clamp(54px, 3.9vw, 66px);
   color: #1f2937;
-  font-size: 17px;
+  font-size: 15px;
 }
 
 .asset-donut-wrap .donut .donut-center small {
   display: block;
   margin-top: 7px;
   color: #94a3b8;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 730;
   line-height: 1.2;
 }
 
@@ -538,18 +538,18 @@
 }
 
 .asset-allocation-footer {
-  min-height: 58px;
+  min-height: 54px;
   margin: 0 -34px;
   padding: 0 34px;
   border-top: 1px solid var(--line);
   color: #64748b;
-  font-size: 14px;
-  font-weight: 850;
+  font-size: 13px;
+  font-weight: 730;
 }
 
 .asset-allocation-footer strong {
   color: #475569;
-  font-weight: 900;
+  font-weight: 800;
   white-space: nowrap;
 }
 
@@ -574,14 +574,14 @@
   min-width: 0;
   margin: 0;
   color: #94a3b8;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 720;
 }
 
 .asset-rebalance-banner strong {
   color: #1f2937;
-  font-size: 17px;
-  font-weight: 900;
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .asset-holdings-panel {
@@ -603,9 +603,9 @@
 .asset-holdings-title h2 {
   margin: 0;
   color: #1f2937;
-  font-size: 27px;
+  font-size: 24px;
   line-height: 1.15;
-  font-weight: 900;
+  font-weight: 820;
   white-space: nowrap;
 }
 
@@ -622,8 +622,8 @@
   color: #64748b;
   background: transparent;
   border: 0;
-  font-size: 15px;
-  font-weight: 900;
+  font-size: 14px;
+  font-weight: 780;
 }
 
 .asset-tabs button.active {
@@ -649,7 +649,7 @@
 .asset-holdings-actions .btn {
   min-height: 42px;
   color: #64748b;
-  font-weight: 900;
+  font-weight: 780;
 }
 
 .asset-holdings-actions .btn svg {
@@ -667,13 +667,13 @@
 
 .asset-holdings-table th,
 .asset-holdings-table td {
-  height: 74px;
-  padding: 0 22px;
+  height: 64px;
+  padding: 0 18px;
   text-align: right;
 }
 
 .asset-holdings-table th {
-  height: 56px;
+  height: 52px;
   background: #f8fafc;
 }
 
@@ -696,8 +696,8 @@
 
 .asset-holdings-table td {
   color: #334155;
-  font-size: 15px;
-  font-weight: 850;
+  font-size: 14px;
+  font-weight: 720;
 }
 
 .asset-holdings-table td > strong,
@@ -705,12 +705,16 @@
   display: block;
 }
 
+.asset-holdings-table td > strong {
+  font-weight: 760;
+}
+
 .asset-holdings-table td > em {
   margin-top: 4px;
   color: #94a3b8;
-  font-size: 12px;
+  font-size: 11px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: 730;
 }
 
 .asset-holding-name {
@@ -723,13 +727,13 @@
 .asset-symbol {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
   color: white;
   border-radius: 50%;
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 11px;
+  font-weight: 820;
 }
 
 .asset-holding-name p {
@@ -746,7 +750,8 @@
 .asset-holding-name strong {
   overflow: hidden;
   color: #1f2937;
-  font-size: 16px;
+  font-size: 15px;
+  font-weight: 760;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -754,28 +759,28 @@
 .asset-holding-name em {
   margin-top: 4px;
   color: #94a3b8;
-  font-size: 12px;
+  font-size: 11px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 720;
 }
 
 .asset-holdings-table .table-action {
-  min-height: 36px;
-  padding: 0 14px;
-  font-size: 13px;
+  min-height: 34px;
+  padding: 0 13px;
+  font-size: 12px;
 }
 
 .asset-table-footer {
   min-height: 48px;
   padding: 0 28px;
   color: #94a3b8;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 720;
 }
 
 .asset-table-footer strong {
   color: #64748b;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .performance-grid {

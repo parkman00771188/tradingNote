@@ -208,6 +208,21 @@ function renderAssetHoldingRows(holdingData) {
     .join("");
 }
 
+function getAssetHoldingSegments(holdingData) {
+  const sortedHoldings = holdingData.slice().sort((a, b) => b.amount - a.amount);
+  const totalHoldingValue = sortedHoldings.reduce((sum, item) => sum + item.amount, 0);
+
+  return sortedHoldings.map((item, index) => {
+    const meta = getAssetHoldingMeta(item, index);
+    return {
+      label: item.name,
+      value: totalHoldingValue ? Number(((item.amount / totalHoldingValue) * 100).toFixed(1)) : 0,
+      amount: formatKRW(item.amount),
+      color: meta.color
+    };
+  });
+}
+
 function renderAssets() {
   const cashBalance = getAssetCashBalance();
   const investedValue = getAssetInvestedValue();
@@ -222,10 +237,8 @@ function renderAssets() {
   const costBasis = typeof getHoldingTotalCostBasis === "function" ? getHoldingTotalCostBasis() : 0;
   const realizedProfit = 1250000;
   const allocationDiff = stockRatio - 90;
-  const allocationSegments = [
-    { label: "국내 주식", value: Number(stockRatio.toFixed(1)), amount: formatKRW(investedValue), color: "#2474f2" },
-    { label: "현금", value: Number(cashRatio.toFixed(1)), amount: formatKRW(cashBalance), color: "#f79009" }
-  ];
+  const holdingSegments = getAssetHoldingSegments(holdingData);
+  const leadingHolding = holdingSegments[0] || { label: "-", value: 0 };
 
   return `
     <div class="asset-page stack">
@@ -253,12 +266,12 @@ function renderAssets() {
 
         <div class="asset-allocation-block">
           <div class="asset-section-header">
-            <h2 class="panel-title">보유 비중</h2>
-            <button class="mini-action" type="button" aria-label="비중 새로고침">${icon("swap")}</button>
+            <h2 class="panel-title">보유 자산 구성</h2>
+            <button class="mini-action" type="button" aria-label="보유 자산 새로고침">${icon("swap")}</button>
           </div>
           <div class="asset-allocation-content">
             <div class="asset-allocation-legend">
-              ${allocationSegments.map((item) => `
+              ${holdingSegments.map((item) => `
                 <div class="asset-allocation-row">
                   <span><i class="dot" style="background:${item.color}"></i>${item.label}</span>
                   <strong>${item.value.toFixed(1)}%</strong>
@@ -266,14 +279,12 @@ function renderAssets() {
               `).join("")}
             </div>
             <div class="asset-donut-wrap">
-              ${donutChart(allocationSegments, `보유 비중<br><small>현재 평가금액 기준</small>`)}
-              <span class="asset-donut-label asset-donut-label-stock">${stockRatio.toFixed(1)}</span>
-              <span class="asset-donut-label asset-donut-label-cash">${cashRatio.toFixed(1)}</span>
+              ${donutChart(holdingSegments, `보유 자산<br><small>주식 평가금액 기준</small>`)}
             </div>
           </div>
           <div class="asset-allocation-footer">
-            <span>목표 배분 주식 90% · 현금 10%</span>
-            <strong>편차 ${allocationDiff >= 0 ? "+" : ""}${allocationDiff.toFixed(1)}%p</strong>
+            <span>기준: 보유 종목 평가금액</span>
+            <strong>최대 비중 ${leadingHolding.label} ${leadingHolding.value.toFixed(1)}%</strong>
           </div>
         </div>
       </section>
