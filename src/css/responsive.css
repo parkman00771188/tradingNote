@@ -86,6 +86,19 @@
     order: -1;
   }
 
+  .asset-overview-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-allocation-block {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .asset-allocation-content {
+    grid-template-columns: minmax(0, 0.8fr) minmax(260px, 1fr);
+  }
+
   .dashboard-portfolio {
     --dashboard-donut-size: clamp(240px, 24vw, 270px);
     --dashboard-donut-center-inset: clamp(52px, 5.4vw, 60px);
@@ -452,6 +465,45 @@
 @media (max-width: 560px) {
   body {
     font-size: 13px;
+  }
+
+  .asset-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-summary-metric {
+    min-height: 58px;
+    padding: 11px 0;
+  }
+
+  .asset-summary-metric strong {
+    font-size: clamp(19px, 5vw, 24px);
+  }
+
+  .asset-section-header,
+  .asset-daily-change,
+  .asset-allocation-footer,
+  .asset-table-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .asset-allocation-legend {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-donut-wrap .donut {
+    width: min(230px, 68vw);
+    height: min(230px, 68vw);
+  }
+
+  .asset-rebalance-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-holdings-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .topbar-actions {
@@ -915,6 +967,78 @@
   body[data-route="assets"] .asset-compact-donut {
     grid-template-columns: 1fr;
     justify-items: center;
+  }
+
+  .asset-summary-block,
+  .asset-allocation-block {
+    padding: 24px 24px 0;
+  }
+
+  .asset-summary-grid {
+    column-gap: 24px;
+  }
+
+  .asset-summary-metric {
+    grid-template-columns: minmax(98px, 0.7fr) minmax(0, 1fr);
+  }
+
+  .asset-summary-metric > span {
+    font-size: 15px;
+  }
+
+  .asset-daily-change,
+  .asset-allocation-footer {
+    margin: 0 -24px;
+    padding: 0 24px;
+  }
+
+  .asset-allocation-content {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    min-height: 0;
+  }
+
+  .asset-allocation-legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .asset-donut-wrap {
+    order: -1;
+  }
+
+  .asset-rebalance-banner {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .asset-rebalance-banner .btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .asset-holdings-header {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 24px 22px 16px;
+  }
+
+  .asset-holdings-title {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 14px 22px;
+  }
+
+  .asset-holdings-title h2 {
+    font-size: 23px;
+  }
+
+  .asset-tabs button.active::after {
+    bottom: -17px;
+  }
+
+  .asset-holdings-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .mobile-calendar-page {

@@ -32,7 +32,7 @@ const pageMeta = {
   },
   assets: {
     title: "자산 현황",
-    description: "계좌, 자산군, 섹터 비중과 리밸런싱 알림을 관리하세요."
+    description: "보유 자산과 손익, 비중을 한 화면에서 확인하세요."
   },
   memo: {
     title: "메모",

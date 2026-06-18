@@ -96,7 +96,7 @@ function renderPageActions(route) {
     memo: `<button class="btn primary" type="button">${icon("plus")}새 메모 작성</button>`,
     stock: "",
     performance: `<button class="btn" type="button">${icon("calendar")}전체 기간</button>`,
-    assets: `<button class="btn primary asset-cash-action" type="button" data-modal="assetCash">${icon("wallet")}입/출금</button>`,
+    assets: `<button class="btn ghost" type="button">${icon("upload")}내보내기</button><button class="btn primary asset-cash-action" type="button" data-modal="assetCash">${icon("wallet")}입/출금</button>`,
     calendar: "",
     settings: ""
   };
