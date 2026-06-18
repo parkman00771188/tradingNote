@@ -299,6 +299,19 @@
   align-self: start;
 }
 
+@media (min-width: 1181px) {
+  body[data-route="dashboard"] .dashboard-asset-panel {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+  }
+
+  body[data-route="dashboard"] .dashboard-asset-panel .asset-trend-chart {
+    flex: 1 1 auto;
+    min-height: 260px;
+  }
+}
+
 .bottom-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
