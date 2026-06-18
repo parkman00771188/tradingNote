@@ -2901,73 +2901,193 @@ body.modal-open {
   font-weight: 700;
 }
 
-.asset-settings-list {
+.asset-settings-cards {
   display: grid;
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  align-items: stretch;
 }
 
-.asset-settings-row {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
+.asset-settings-card,
+.asset-settings-add-card {
+  min-width: 0;
+  min-height: 360px;
   background: #ffffff;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.035);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
 }
 
-.asset-settings-row-head {
+.asset-settings-card {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) 34px;
-  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  padding: 18px;
+}
+
+.asset-settings-card-head {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 34px;
+  gap: 12px;
   align-items: center;
 }
 
-.asset-settings-row-head > span {
+.asset-settings-card-head > span {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 42px;
+  height: 42px;
   color: var(--blue);
   background: var(--blue-soft);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
 }
 
-.asset-settings-row-head strong {
+.asset-settings-card-head strong,
+.asset-settings-card-head em {
+  display: block;
   overflow: hidden;
-  color: #0f172a;
-  font-size: 15px;
-  line-height: 1.25;
-  font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.asset-settings-card-head strong {
+  color: #0f172a;
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.asset-settings-card-head em {
+  margin-top: 4px;
+  color: #7b8797;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .asset-settings-remove {
   color: var(--red);
 }
 
-.asset-settings-fields {
+.asset-settings-card-body {
   display: grid;
-  grid-template-columns: minmax(140px, 1.2fr) minmax(86px, 0.7fr) repeat(3, minmax(120px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   min-width: 0;
+  align-content: start;
 }
 
-.asset-settings-fields .journal-input-shell {
+.asset-settings-name-field {
+  grid-column: 1 / -1;
+}
+
+.asset-settings-card-body .journal-input-shell {
   min-height: 42px;
 }
 
-.asset-settings-fields .journal-input-shell input {
+.asset-settings-card-body .journal-input-shell input {
   height: 40px;
+}
+
+.asset-settings-preview {
+  display: grid;
+  gap: 8px;
+  padding: 13px 14px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.asset-settings-preview p {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+}
+
+.asset-settings-preview span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.asset-settings-preview strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-settings-add-card {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 18px;
+  color: var(--blue);
+  background: linear-gradient(180deg, #f7fbff, #ffffff);
+  border: 1px dashed #9dc3ff;
+  text-align: center;
+}
+
+.asset-settings-add-card span {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  color: white;
+  background: var(--blue);
+  border-radius: 50%;
+  box-shadow: 0 12px 26px rgba(36, 116, 242, 0.2);
+}
+
+.asset-settings-add-card.is-empty span {
+  width: 72px;
+  height: 72px;
+}
+
+.asset-settings-add-card svg {
+  width: 28px;
+  height: 28px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.asset-settings-add-card strong,
+.asset-settings-add-card em {
+  display: block;
+}
+
+.asset-settings-add-card strong {
+  color: #0f172a;
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.asset-settings-add-card em {
+  max-width: 210px;
+  color: #64748b;
+  font-style: normal;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 750;
 }
 
 .asset-settings-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
 }
 
@@ -2992,6 +3112,17 @@ body.modal-open {
 
 .asset-settings-feedback.error {
   color: var(--red);
+}
+
+.asset-settings-modal .asset-cash-actions {
+  position: sticky;
+  bottom: -20px;
+  z-index: 2;
+  margin: 0 -20px -20px;
+  padding: 14px 20px 20px;
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid var(--line);
+  backdrop-filter: blur(10px);
 }
 
 .journal-entry-form {

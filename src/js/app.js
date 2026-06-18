@@ -231,9 +231,7 @@ function createAssetSettingsDraft(item = {}) {
 
 function beginAssetSettingsEdit() {
   const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
-  assetSettingsDrafts = holdingData.length
-    ? holdingData.map((item) => createAssetSettingsDraft(item))
-    : [createAssetSettingsDraft()];
+  assetSettingsDrafts = holdingData.map((item) => createAssetSettingsDraft(item));
   assetSettingsError = "";
 }
 
@@ -250,9 +248,6 @@ function addAssetSettingsDraft() {
 
 function removeAssetSettingsDraft(rowId) {
   assetSettingsDrafts = assetSettingsDrafts.filter((item) => item.id !== rowId);
-  if (!assetSettingsDrafts.length) {
-    assetSettingsDrafts.push(createAssetSettingsDraft());
-  }
   assetSettingsError = "";
 }
 
@@ -350,7 +345,8 @@ function applyAssetSettingsEdit() {
 }
 
 function renderAssetSettingsModal() {
-  const drafts = assetSettingsDrafts.length ? assetSettingsDrafts : [createAssetSettingsDraft()];
+  const drafts = assetSettingsDrafts;
+  const canAdd = drafts.length < 12;
 
   return `
     <div class="modal-backdrop">
@@ -367,52 +363,77 @@ function renderAssetSettingsModal() {
             <strong>보유 자산을 수정하거나 새 자산을 추가하세요.</strong>
             <span>저장하면 자산 요약, 보유자산 구성, 보유 자산 목록이 함께 갱신됩니다.</span>
           </div>
-          <div class="asset-settings-list">
+          <div class="asset-settings-cards" aria-label="자산 설정 카드 목록">
             ${drafts
-              .map((item, index) => `
-                <div class="asset-settings-row" data-asset-setting-row="${item.id}">
-                  <div class="asset-settings-row-head">
-                    <span>${index + 1}</span>
-                    <strong>${item.name ? escapeChartText(item.name) : "새 자산"}</strong>
-                    <button class="mini-action asset-settings-remove" type="button" data-asset-settings-remove="${item.id}" aria-label="자산 삭제">${icon("trash")}</button>
-                  </div>
-                  <div class="asset-settings-fields">
-                    <div class="field">
-                      <label for="assetSettingName${index}">종목명</label>
-                      <input id="assetSettingName${index}" class="input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="예: 삼성전자" data-asset-setting-field="name" data-asset-setting-id="${item.id}">
+              .map((item, index) => {
+                const amount = Math.round((Number(item.quantity) || 0) * (Number(item.currentPrice) || 0));
+                const costBasis = Math.round((Number(item.quantity) || 0) * (Number(item.averagePrice) || 0));
+                const profit = amount - costBasis;
+                const rate = costBasis ? (profit / costBasis) * 100 : 0;
+                const profitClass = profit >= 0 ? "text-red" : "text-blue";
+                const displayName = String(item.name || "").trim() || "새 자산";
+                const displayCode = String(item.code || "").trim() || "코드 미입력";
+
+                return `
+                  <article class="asset-settings-card" data-asset-setting-card="${item.id}">
+                    <div class="asset-settings-card-head">
+                      <span>${index + 1}</span>
+                      <div>
+                        <strong>${escapeChartText(displayName)}</strong>
+                        <em>${escapeChartText(displayCode)}</em>
+                      </div>
+                      <button class="mini-action asset-settings-remove" type="button" data-asset-settings-remove="${item.id}" aria-label="자산 삭제">${icon("trash")}</button>
                     </div>
-                    <div class="field">
-                      <label for="assetSettingCode${index}">종목코드</label>
-                      <input id="assetSettingCode${index}" class="input" type="text" value="${escapeChartText(item.code)}" autocomplete="off" placeholder="005930" data-asset-setting-field="code" data-asset-setting-id="${item.id}">
-                    </div>
-                    <div class="field">
-                      <label for="assetSettingQuantity${index}">수량</label>
-                      <div class="journal-input-shell">
-                        <input id="assetSettingQuantity${index}" type="text" value="${item.quantity ? formatMarketNumber(item.quantity) : ""}" inputmode="numeric" autocomplete="off" placeholder="수량" data-number-input data-asset-setting-field="quantity" data-asset-setting-id="${item.id}">
-                        <span>주</span>
+                    <div class="asset-settings-card-body">
+                      <div class="field asset-settings-name-field">
+                        <label for="assetSettingName${index}">종목명</label>
+                        <input id="assetSettingName${index}" class="input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="예: 삼성전자" data-asset-setting-field="name" data-asset-setting-id="${item.id}">
+                      </div>
+                      <div class="field">
+                        <label for="assetSettingCode${index}">종목코드</label>
+                        <input id="assetSettingCode${index}" class="input" type="text" value="${escapeChartText(item.code)}" autocomplete="off" placeholder="005930" data-asset-setting-field="code" data-asset-setting-id="${item.id}">
+                      </div>
+                      <div class="field">
+                        <label for="assetSettingQuantity${index}">수량</label>
+                        <div class="journal-input-shell">
+                          <input id="assetSettingQuantity${index}" type="text" value="${item.quantity ? formatMarketNumber(item.quantity) : ""}" inputmode="numeric" autocomplete="off" placeholder="수량" data-number-input data-asset-setting-field="quantity" data-asset-setting-id="${item.id}">
+                          <span>주</span>
+                        </div>
+                      </div>
+                      <div class="field">
+                        <label for="assetSettingAverage${index}">매수평균가</label>
+                        <div class="journal-input-shell">
+                          <input id="assetSettingAverage${index}" type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="평단" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}">
+                          <span>원</span>
+                        </div>
+                      </div>
+                      <div class="field">
+                        <label for="assetSettingCurrent${index}">현재가</label>
+                        <div class="journal-input-shell">
+                          <input id="assetSettingCurrent${index}" type="text" value="${item.currentPrice ? formatMarketNumber(item.currentPrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="현재가" data-number-input data-asset-setting-field="currentPrice" data-asset-setting-id="${item.id}">
+                          <span>원</span>
+                        </div>
                       </div>
                     </div>
-                    <div class="field">
-                      <label for="assetSettingAverage${index}">매수평균가</label>
-                      <div class="journal-input-shell">
-                        <input id="assetSettingAverage${index}" type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="매수평균가" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}">
-                        <span>원</span>
-                      </div>
+                    <div class="asset-settings-preview">
+                      <p><span>평가금액</span><strong>${formatMarketNumber(amount)}원</strong></p>
+                      <p><span>평가손익</span><strong class="${profitClass}">${formatSignedMarketNumber(profit)}원</strong></p>
+                      <p><span>수익률</span><strong class="${profitClass}">${formatSignedRate(rate)}</strong></p>
                     </div>
-                    <div class="field">
-                      <label for="assetSettingCurrent${index}">현재가</label>
-                      <div class="journal-input-shell">
-                        <input id="assetSettingCurrent${index}" type="text" value="${item.currentPrice ? formatMarketNumber(item.currentPrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="현재가" data-number-input data-asset-setting-field="currentPrice" data-asset-setting-id="${item.id}">
-                        <span>원</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              `)
+                  </article>
+                `;
+              })
               .join("")}
+            ${
+              canAdd
+                ? `<button class="asset-settings-add-card ${drafts.length ? "" : "is-empty"}" type="button" data-asset-settings-add aria-label="자산 추가">
+                    <span>${icon("plus")}</span>
+                    ${drafts.length ? "<strong>자산 추가</strong><em>새 보유 자산을 카드로 추가합니다.</em>" : ""}
+                  </button>`
+                : ""
+            }
           </div>
           <div class="asset-settings-footer">
-            <button class="btn ghost" type="button" data-asset-settings-add ${drafts.length >= 12 ? "disabled" : ""}>${icon("plus")}자산 추가</button>
             <span>${drafts.length}/12</span>
           </div>
           <p class="asset-settings-feedback error">${assetSettingsError}</p>
