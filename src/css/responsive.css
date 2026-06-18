@@ -496,6 +496,7 @@
   }
 
   .asset-settings-modal .asset-settings-body {
+    position: relative;
     display: grid;
     grid-template-rows: auto auto;
     align-content: start;
@@ -504,6 +505,7 @@
     overflow: hidden;
     padding: 0;
     background: var(--asset-settings-stage-bg);
+    background-clip: padding-box;
   }
 
   .asset-settings-hero-row {
@@ -574,7 +576,7 @@
     overflow-x: auto;
     overflow-y: hidden;
     padding: 18px 18px 6px;
-    background: var(--asset-settings-stage-bg);
+    background: transparent;
     scroll-padding: 18px;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
@@ -747,8 +749,9 @@
     grid-row: 2 / 3;
     gap: 10px;
     min-height: 28px;
-    padding: 0 0 8px;
-    background: var(--asset-settings-stage-bg);
+    margin-top: -1px;
+    padding: 1px 0 8px;
+    background: transparent;
   }
 
   .asset-settings-slide-dots span {

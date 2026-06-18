@@ -3132,11 +3132,12 @@ body.modal-open {
 }
 
 .asset-settings-modal {
+  --asset-settings-stage-bg: #e8edf2;
   grid-template-rows: auto minmax(0, 1fr);
   width: min(880px, calc(100vw - 56px));
   height: min(860px, calc(100vh - 56px));
   max-height: calc(100vh - 56px);
-  background: #ffffff;
+  background: var(--asset-settings-stage-bg);
   border: 1px solid #dce4ee;
   border-radius: 18px;
   box-shadow: 0 28px 90px rgba(15, 23, 42, 0.22);
@@ -3201,13 +3202,15 @@ body.modal-open {
 }
 
 .asset-settings-modal .asset-settings-body {
+  position: relative;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 0;
   min-height: 0;
   overflow: hidden;
   padding: 0;
-  background: #e8edf2;
+  background: var(--asset-settings-stage-bg);
+  background-clip: padding-box;
 }
 
 .asset-settings-hero-row {
@@ -3296,6 +3299,7 @@ body.modal-open {
   overflow-x: auto;
   overflow-y: hidden;
   padding: 52px 28px 28px;
+  background: transparent;
   overscroll-behavior-x: contain;
   scroll-padding: 28px;
   scroll-snap-type: x mandatory;
@@ -3721,7 +3725,9 @@ body.modal-open {
   grid-row: 2 / 3;
   gap: 10px;
   min-height: 52px;
-  padding: 0 0 24px;
+  margin-top: -1px;
+  padding: 1px 0 24px;
+  background: transparent;
 }
 
 .asset-settings-slide-dots span {
