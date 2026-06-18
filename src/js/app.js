@@ -858,7 +858,7 @@ function renderMobileSheet() {
             </button>
           `).join("")}
         </div>
-        <button class="mobile-logout" type="button">${icon("logout")}로그아웃</button>
+        <button class="mobile-logout" type="button" data-route="landing">${icon("logout")}로그아웃</button>
       </section>
     </div>
   `;
