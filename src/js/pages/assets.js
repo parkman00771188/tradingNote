@@ -223,6 +223,117 @@ function getAssetHoldingSegments(holdingData) {
   });
 }
 
+function renderMobileAssetHoldingCards(holdingData) {
+  return holdingData
+    .slice()
+    .map((item, index) => {
+      const meta = getAssetHoldingMeta(item, index);
+      const profitClass = item.profit >= 0 ? "text-red" : "text-blue";
+
+      return `
+        <article class="asset-mobile-holding-card">
+          <div class="asset-mobile-holding-head">
+            <h3>${item.name} <span>(${meta.code})</span></h3>
+            <div>
+              <span>평가손익</span>
+              <strong class="${profitClass}">${formatSignedMarketNumber(item.profit)}</strong>
+              <span>수익률</span>
+              <strong class="${profitClass}">${formatSignedRate(item.rate)}</strong>
+            </div>
+          </div>
+          <div class="asset-mobile-holding-stats">
+            <p><strong>${formatMarketNumber(item.quantity)}주</strong><span>보유수량</span></p>
+            <p><strong>${formatKRW(item.averagePrice)}</strong><span>매수평균가</span></p>
+            <p><strong>${formatKRW(item.amount)}</strong><span>평가금액</span></p>
+            <p><strong>${formatKRW(item.costBasis)}</strong><span>매수금액</span></p>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderMobileAssets({
+  cashBalance,
+  totalAssets,
+  costBasis,
+  investedValue,
+  holdingProfit,
+  holdingReturn,
+  holdingData,
+  holdingSegments
+}) {
+  const profitClass = holdingProfit >= 0 ? "text-red" : "text-blue";
+  const visibleSegments = holdingSegments.slice(0, 7);
+  const otherWeight = Math.max(0, 100 - visibleSegments.reduce((sum, item) => sum + item.value, 0));
+  const mobileSegments = otherWeight > 0.05
+    ? [...visibleSegments, { label: "기타", value: Number(otherWeight.toFixed(1)), color: "#cbd5e1", amount: "" }]
+    : visibleSegments;
+
+  return `
+    <div class="asset-mobile-page">
+      <section class="asset-mobile-summary">
+        <h2>내 보유자산 <span>${icon("info")}</span></h2>
+        <div class="asset-mobile-summary-hero">
+          <div>
+            <span>보유 KRW</span>
+            <strong>${formatMarketNumber(cashBalance)}</strong>
+          </div>
+          <div>
+            <span>총 보유자산</span>
+            <strong>${formatMarketNumber(totalAssets)}</strong>
+          </div>
+        </div>
+        <div class="asset-mobile-summary-grid">
+          <span>총 매수</span><strong>${formatMarketNumber(costBasis)}</strong>
+          <span>평가손익</span><strong class="${profitClass}">${formatSignedMarketNumber(holdingProfit)}</strong>
+          <span>총 평가</span><strong>${formatMarketNumber(investedValue)}</strong>
+          <span>수익률</span><strong class="${profitClass}">${formatSignedRate(holdingReturn)}</strong>
+          <span>주문가능</span><strong>${formatMarketNumber(cashBalance)}</strong>
+        </div>
+      </section>
+
+      <section class="asset-mobile-portfolio">
+        <div class="asset-mobile-section-head">
+          <h2>보유자산 포트폴리오</h2>
+          <span>${icon("chevronRight")}</span>
+        </div>
+        <div class="asset-mobile-portfolio-body">
+          <div class="asset-mobile-donut">
+            ${donutChart(mobileSegments, `보유비중<br><strong>(%)</strong>`)}
+          </div>
+          <div class="asset-mobile-legend">
+            ${mobileSegments.map((item) => `
+              <div>
+                <span><i class="dot" style="background:${item.color}"></i>${item.label}</span>
+                <strong>${item.value.toFixed(1)}%</strong>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      </section>
+
+      <section class="asset-mobile-benefit">
+        <div>
+          <span>넣어두면 매일 쌓이는 혜택 ${icon("info")}</span>
+          <strong>연 2.1% 예치금 이용료 받아요.</strong>
+        </div>
+        <button class="btn primary" type="button" data-modal="assetCash">+ KRW입금</button>
+      </section>
+
+      <label class="asset-mobile-hide-toggle">
+        <span></span>
+        거래미지원/소액 자산 숨기기
+        <i>${icon("info")}</i>
+      </label>
+
+      <section class="asset-mobile-holdings">
+        ${renderMobileAssetHoldingCards(holdingData)}
+      </section>
+    </div>
+  `;
+}
+
 function renderAssets() {
   const cashBalance = getAssetCashBalance();
   const investedValue = getAssetInvestedValue();
@@ -241,7 +352,8 @@ function renderAssets() {
   const leadingHolding = holdingSegments[0] || { label: "-", value: 0 };
 
   return `
-    <div class="asset-page stack">
+    ${renderMobileAssets({ cashBalance, totalAssets, costBasis, investedValue, holdingProfit, holdingReturn, holdingData, holdingSegments })}
+    <div class="asset-page asset-desktop-page stack">
       <section class="panel asset-overview-panel">
         <div class="asset-summary-block">
           <div class="asset-section-header">
