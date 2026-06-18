@@ -12,6 +12,18 @@ function createAssetTrendTargetDraft(index = assetTrendTargetDrafts.length) {
   };
 }
 
+function formatAssetTrendTargetAmount(amount) {
+  const value = Math.max(0, Math.round(Number(amount) || 0));
+  if (value >= 100000000) {
+    const eok = Number((value / 100000000).toFixed(2));
+    return `${eok.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}억`;
+  }
+  if (value >= 10000) {
+    return `${Math.round(value / 10000).toLocaleString("ko-KR")}만원`;
+  }
+  return `${value.toLocaleString("ko-KR")}원`;
+}
+
 function beginAssetTrendTargetEdit() {
   assetTrendTargetDrafts = assetTrendTargets.length
     ? assetTrendTargets.map((target) => ({ ...target }))
@@ -55,11 +67,15 @@ function getVisibleAssetTrendTargetLines() {
   return assetTrendTargets
     .filter((target) => target.visible && target.amount > 0)
     .slice(0, 5)
-    .map((target, index) => ({
-      label: target.label || `목표 ${index + 1}`,
-      value: target.amount / 10000,
-      amount: formatKRW(target.amount)
-    }));
+    .map((target) => {
+      const amount = formatAssetTrendTargetAmount(target.amount);
+      return {
+        label: `목표가 : ${amount}`,
+        value: target.amount / 10000,
+        amount,
+        tooltip: `목표가: ${amount}`
+      };
+    });
 }
 
 function renderAssetTrendTargetsModal() {

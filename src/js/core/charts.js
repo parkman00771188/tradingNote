@@ -96,16 +96,20 @@ function lineChart({
       const y = scaleY(value);
       const label = line.label || `목표 ${index + 1}`;
       const amount = line.amount || formatTooltipValue(value);
-      const labelWidth = compact ? 54 : 64;
+      const targetLabelFontSize = compact ? 10 : 11;
+      const labelWidth = Math.min(
+        innerW - 16,
+        Math.max(compact ? 88 : 96, Math.ceil(label.length * targetLabelFontSize * 0.86) + 18)
+      );
       const labelX = left + 8;
       const labelY = Math.min(Math.max(top + 2, y - 11), height - bottom - 22);
-      const tooltip = `${label}\n목표가: ${amount}`;
+      const tooltip = line.tooltip || `${label}\n목표가: ${amount}`;
 
       return `
         <g class="chart-target-line" data-chart-tooltip="${escapeChartText(tooltip)}">
           <line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="#e03137" stroke-width="${compact ? 1.6 : 1.8}" stroke-dasharray="6 6"/>
           <rect x="${labelX}" y="${labelY}" width="${labelWidth}" height="22" rx="6" fill="#fff1f1" stroke="#fecaca"/>
-          <text x="${labelX + labelWidth / 2}" y="${labelY + 15}" fill="#e03137" font-size="${compact ? 10 : 11}" font-weight="850" text-anchor="middle">${escapeChartText(label)}</text>
+          <text x="${labelX + labelWidth / 2}" y="${labelY + 15}" fill="#e03137" font-size="${targetLabelFontSize}" font-weight="850" text-anchor="middle">${escapeChartText(label)}</text>
         </g>
       `;
     })
