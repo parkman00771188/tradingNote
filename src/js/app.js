@@ -521,15 +521,11 @@ function renderAssetSettingsCardView(item, index) {
           <em>보유 수량 기준</em>
         </div>
       </div>
-      ${
-        isEditing
-          ? `<div class="asset-settings-card-actions">
-              <button class="btn" type="button" data-asset-settings-cancel>취소</button>
-              <button class="btn primary" type="button" data-asset-settings-apply>변경사항 저장</button>
-            </div>
-            <p class="asset-settings-feedback error">${assetSettingsError}</p>`
-          : ""
-      }
+      <div class="asset-settings-card-actions ${isEditing ? "" : "is-placeholder"}" ${isEditing ? "" : `aria-hidden="true"`}>
+        <button class="btn" type="button" data-asset-settings-cancel>취소</button>
+        <button class="btn primary" type="button" data-asset-settings-apply>변경사항 저장</button>
+      </div>
+      ${isEditing ? `<p class="asset-settings-feedback error">${assetSettingsError}</p>` : ""}
     </article>
   `;
 }

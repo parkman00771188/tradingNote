@@ -3744,6 +3744,11 @@ body.modal-open {
   padding-top: 42px;
 }
 
+.asset-settings-card-actions.is-placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .asset-settings-card-actions .btn {
   min-height: 58px;
   border-radius: 16px;
