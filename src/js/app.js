@@ -29,6 +29,7 @@ var assetSettingsDrafts = [];
 var assetSettingsError = "";
 var assetSettingsNextId = 1;
 var assetSettingsOpenMenuId = null;
+var assetSettingsEditingId = null;
 
 const fallbackAssetInvestedBalance = 42750000;
 
@@ -236,25 +237,39 @@ function beginAssetSettingsEdit() {
   assetSettingsDrafts = holdingData.map((item) => createAssetSettingsDraft(item));
   assetSettingsError = "";
   assetSettingsOpenMenuId = null;
+  assetSettingsEditingId = null;
 }
 
 function cancelAssetSettingsEdit() {
   assetSettingsDrafts = [];
   assetSettingsError = "";
   assetSettingsOpenMenuId = null;
+  assetSettingsEditingId = null;
 }
 
 function addAssetSettingsDraft() {
   if (assetSettingsDrafts.length >= 12) return;
-  assetSettingsDrafts.push(createAssetSettingsDraft());
+  const draft = createAssetSettingsDraft();
+  assetSettingsDrafts.push(draft);
   assetSettingsError = "";
   assetSettingsOpenMenuId = null;
+  assetSettingsEditingId = draft.id;
 }
 
 function removeAssetSettingsDraft(rowId) {
+  const wasEditing = assetSettingsEditingId === rowId;
   assetSettingsDrafts = assetSettingsDrafts.filter((item) => item.id !== rowId);
   assetSettingsError = "";
   assetSettingsOpenMenuId = null;
+  if (!assetSettingsDrafts.length) {
+    const draft = createAssetSettingsDraft();
+    assetSettingsDrafts.push(draft);
+    assetSettingsEditingId = draft.id;
+    return;
+  }
+  if (wasEditing || !assetSettingsEditingId) {
+    assetSettingsEditingId = assetSettingsDrafts[0]?.id || null;
+  }
 }
 
 function updateAssetSettingsDraft(rowId, field, value) {
@@ -456,12 +471,14 @@ function renderAssetSettingsModal() {
 function renderAssetSettingsCardView(item, index) {
   const meta = typeof getAssetHoldingMeta === "function" ? getAssetHoldingMeta(item, index) : { sector: "국내 주식" };
   const amount = Math.round((Number(item.quantity) || 0) * (Number(item.currentPrice) || 0));
-  const displayName = String(item.name || "").trim() || "새 자산";
   const displayCode = String(item.code || "").trim() || "코드 미입력";
   const codeMeta = displayCode === "코드 미입력" ? displayCode : `${displayCode} · ${meta.sector || "국내 주식"}`;
+  const isEditing = assetSettingsEditingId === item.id;
+  const readOnlyAttr = isEditing ? "" : `readonly aria-readonly="true" tabindex="-1"`;
+  const categoryLabel = "국내 주식";
 
   return `
-    <article class="asset-settings-card asset-settings-display-card" data-asset-setting-card="${item.id}">
+    <article class="asset-settings-card asset-settings-display-card ${isEditing ? "is-editing" : ""}" data-asset-setting-card="${item.id}">
       <button class="mini-action asset-settings-menu" type="button" data-asset-settings-menu="${item.id}" aria-label="자산 메뉴" aria-expanded="${assetSettingsOpenMenuId === item.id ? "true" : "false"}">${icon("more")}</button>
       ${
         assetSettingsOpenMenuId === item.id
@@ -473,10 +490,10 @@ function renderAssetSettingsCardView(item, index) {
       }
       <div class="asset-settings-chip-row">
         <span class="asset-settings-chip">ASSET ${String(index + 1).padStart(2, "0")}</span>
-        <span class="asset-settings-sector-chip">업무</span>
+        <span class="asset-settings-sector-chip domestic">${categoryLabel}</span>
       </div>
       <div class="asset-settings-title-wrap">
-        <input class="asset-settings-title-input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="새 자산" data-asset-setting-field="name" data-asset-setting-id="${item.id}">
+        <input class="asset-settings-title-input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="새 자산" data-asset-setting-field="name" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
         <p>${escapeChartText(codeMeta)}</p>
       </div>
 
@@ -484,14 +501,14 @@ function renderAssetSettingsCardView(item, index) {
         <label class="asset-settings-tile">
           <span>보유 수량</span>
           <div class="asset-settings-tile-input">
-            <input type="text" value="${item.quantity ? formatMarketNumber(item.quantity) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="quantity" data-asset-setting-id="${item.id}">
+            <input type="text" value="${item.quantity ? formatMarketNumber(item.quantity) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="quantity" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
             <em>주</em>
           </div>
         </label>
         <label class="asset-settings-tile">
           <span>매수평균가</span>
           <div class="asset-settings-tile-input">
-            <input type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}">
+            <input type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
             <em>원</em>
           </div>
         </label>
@@ -504,6 +521,15 @@ function renderAssetSettingsCardView(item, index) {
           <em>보유 수량 기준</em>
         </div>
       </div>
+      ${
+        isEditing
+          ? `<div class="asset-settings-card-actions">
+              <button class="btn" type="button" data-asset-settings-cancel>취소</button>
+              <button class="btn primary" type="button" data-asset-settings-apply>변경사항 저장</button>
+            </div>
+            <p class="asset-settings-feedback error">${assetSettingsError}</p>`
+          : ""
+      }
     </article>
   `;
 }
@@ -561,18 +587,6 @@ function renderAssetSettingsModalCardView() {
           </div>
           <div class="asset-settings-slide-dots" aria-hidden="true">
             ${drafts.map((_, index) => `<span class="${index === 0 ? "active" : ""}"></span>`).join("")}
-          </div>
-        </div>
-
-        <div class="asset-settings-savebar">
-          <div class="asset-settings-savebar-copy">
-            <strong>보유 자산 ${drafts.length}개 · 변경사항 없음</strong>
-            <span>자산 정보를 수정하거나 새 자산을 추가할 수 있습니다.</span>
-            <p class="asset-settings-feedback error">${assetSettingsError}</p>
-          </div>
-          <div class="asset-settings-actions">
-            <button class="btn" type="button" data-modal-close>취소</button>
-            <button class="btn primary" type="button" data-asset-settings-apply>변경사항 저장</button>
           </div>
         </div>
       </section>
@@ -1132,13 +1146,21 @@ document.addEventListener("click", (event) => {
 
     const assetSettingsEdit = event.target.closest("[data-asset-settings-edit]");
     if (assetSettingsEdit && activeModal === "assetSettings") {
+      assetSettingsEditingId = assetSettingsEdit.dataset.assetSettingsEdit;
       assetSettingsOpenMenuId = null;
       renderModal();
       hydrateIcons(document);
       const card = document.querySelector(`[data-asset-setting-card="${assetSettingsEdit.dataset.assetSettingsEdit}"]`);
       const input = card?.querySelector("[data-asset-setting-field]");
       input?.focus();
-      input?.select?.();
+      return;
+    }
+
+    const assetSettingsCancel = event.target.closest("[data-asset-settings-cancel]");
+    if (assetSettingsCancel && activeModal === "assetSettings") {
+      beginAssetSettingsEdit();
+      renderModal();
+      hydrateIcons(document);
       return;
     }
 

@@ -3126,18 +3126,19 @@ body.modal-open {
 }
 
 .asset-settings-backdrop {
-  padding: 20px;
-  background: rgba(15, 23, 42, 0.08);
+  padding: 28px;
+  background: rgba(248, 250, 252, 0.68);
+  backdrop-filter: blur(8px);
 }
 
 .asset-settings-modal {
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  width: min(1500px, calc(100vw - 40px));
-  height: min(940px, calc(100vh - 40px));
-  max-height: calc(100vh - 40px);
-  background: #f3f6fa;
-  border: 0;
-  border-radius: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(880px, calc(100vw - 56px));
+  height: min(860px, calc(100vh - 56px));
+  max-height: calc(100vh - 56px);
+  background: #ffffff;
+  border: 1px solid #dce4ee;
+  border-radius: 18px;
   box-shadow: 0 28px 90px rgba(15, 23, 42, 0.22);
 }
 
@@ -3169,11 +3170,7 @@ body.modal-open {
 }
 
 .asset-settings-header-add {
-  min-height: 48px;
-  padding: 0 20px;
-  border-radius: 999px;
-  font-size: 15px;
-  font-weight: 850;
+  display: none;
 }
 
 .asset-settings-nav-button {
@@ -3205,18 +3202,16 @@ body.modal-open {
 
 .asset-settings-modal .asset-settings-body {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 18px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0;
   min-height: 0;
-  overflow: auto;
-  padding: 36px 48px 28px;
+  overflow: hidden;
+  padding: 0;
+  background: #e8edf2;
 }
 
 .asset-settings-hero-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 24px;
+  display: none;
 }
 
 .asset-settings-hero-copy h3 {
@@ -3293,17 +3288,17 @@ body.modal-open {
 }
 
 .asset-settings-cards {
-  grid-auto-columns: calc((100% - 44px) / 3);
-  grid-auto-flow: column;
-  grid-template-columns: none;
-  gap: 22px;
+  display: flex;
+  grid-row: 1 / 2;
+  gap: 28px;
   align-items: start;
   min-height: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 8px;
+  padding: 52px 28px 28px;
   overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
+  scroll-padding: 28px;
+  scroll-snap-type: x mandatory;
   scrollbar-width: none;
 }
 
@@ -3315,8 +3310,9 @@ body.modal-open {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 510px;
-  padding: 26px 28px;
+  flex: 0 0 min(660px, calc(100% - 116px));
+  min-height: 600px;
+  padding: 42px 48px 38px;
   background: #ffffff;
   border: 0;
   border-radius: 28px;
@@ -3404,6 +3400,8 @@ body.modal-open {
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .asset-settings-chip-row {
@@ -3427,6 +3425,14 @@ body.modal-open {
   font-size: 13px;
   font-weight: 900;
   letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.asset-settings-sector-chip.domestic {
+  color: var(--blue);
+  background: #f4f8ff;
+  border-color: #b8d2ff;
 }
 
 .asset-settings-title-wrap {
@@ -3651,14 +3657,15 @@ body.modal-open {
 }
 
 .asset-settings-add-card {
-  min-height: 510px;
+  flex: 0 0 min(660px, calc(100% - 116px));
+  min-height: 600px;
   border-radius: 28px;
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.06);
   scroll-snap-align: start;
 }
 
 .asset-settings-savebar {
-  display: grid;
+  display: none;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 20px;
   align-items: center;
@@ -3709,7 +3716,48 @@ body.modal-open {
 }
 
 .asset-settings-slide-dots {
-  display: none;
+  display: flex;
+  justify-content: center;
+  grid-row: 2 / 3;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 0 24px;
+}
+
+.asset-settings-slide-dots span {
+  width: 10px;
+  height: 10px;
+  background: #cbd3de;
+  border-radius: 999px;
+}
+
+.asset-settings-slide-dots span.active {
+  width: 34px;
+  background: var(--blue);
+}
+
+.asset-settings-card-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 42px;
+}
+
+.asset-settings-card-actions .btn {
+  min-height: 58px;
+  border-radius: 16px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.asset-settings-display-card .asset-settings-feedback {
+  margin-top: 10px;
+}
+
+.asset-settings-title-input[readonly],
+.asset-settings-tile-input input[readonly] {
+  cursor: default;
 }
 
 .journal-entry-form {

@@ -416,11 +416,12 @@
     display: grid;
     place-items: center;
     padding: 14px;
-    background: rgba(0, 0, 0, 0.88);
+    background: rgba(248, 250, 252, 0.68);
+    backdrop-filter: blur(8px);
   }
 
   .asset-settings-modal {
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
     width: min(480px, calc(100vw - 28px));
     height: min(880px, calc(100vh - 28px));
     height: min(880px, calc(100dvh - 28px));
@@ -590,6 +591,10 @@
     box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
   }
 
+  .asset-settings-display-card.is-editing {
+    min-height: 650px;
+  }
+
   .asset-settings-menu {
     top: 30px;
     right: 24px;
@@ -613,19 +618,19 @@
 
   .asset-settings-chip {
     min-height: 34px;
-    padding: 0 14px;
-    font-size: 12px;
+    padding: 0 11px;
+    font-size: 11px;
   }
 
   .asset-settings-chip-row {
-    gap: 10px;
-    padding-right: 58px;
+    gap: 8px;
+    padding-right: 54px;
   }
 
   .asset-settings-sector-chip {
     min-height: 34px;
-    padding: 0 18px;
-    font-size: 14px;
+    padding: 0 12px;
+    font-size: 12px;
   }
 
   .asset-settings-title-wrap {
@@ -714,6 +719,17 @@
     height: 20px;
   }
 
+  .asset-settings-card-actions {
+    gap: 10px;
+    padding-top: 34px;
+  }
+
+  .asset-settings-card-actions .btn {
+    min-height: 54px;
+    border-radius: 12px;
+    font-size: 13px;
+  }
+
   .asset-settings-add-card {
     min-height: 520px;
     border-radius: 26px;
@@ -741,16 +757,7 @@
   }
 
   .asset-settings-savebar {
-    position: static;
-    z-index: 4;
-    grid-template-columns: 1fr;
-    gap: 10px;
-    margin: 0;
-    padding: 20px 36px 34px;
-    background: #ffffff;
-    border-width: 1px 0 0;
-    border-radius: 0;
-    box-shadow: none;
+    display: none;
   }
 
   .asset-settings-savebar-copy {
