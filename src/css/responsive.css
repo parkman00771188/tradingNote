@@ -421,6 +421,7 @@
   }
 
   .asset-settings-modal {
+    --asset-settings-stage-bg: #e8edf2;
     grid-template-rows: auto minmax(0, 1fr);
     width: min(480px, calc(100vw - 28px));
     height: min(670px, calc(100vh - 28px));
@@ -428,7 +429,7 @@
     max-height: calc(100vh - 28px);
     max-height: calc(100dvh - 28px);
     overflow: hidden;
-    background: #ffffff;
+    background: var(--asset-settings-stage-bg);
     border: 1px solid #dce4ee;
     border-radius: 14px;
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
@@ -502,7 +503,7 @@
     min-height: 0;
     overflow: hidden;
     padding: 0;
-    background: #e8edf2;
+    background: var(--asset-settings-stage-bg);
   }
 
   .asset-settings-hero-row {
@@ -573,7 +574,7 @@
     overflow-x: auto;
     overflow-y: hidden;
     padding: 18px 18px 6px;
-    background: #e8edf2;
+    background: var(--asset-settings-stage-bg);
     scroll-padding: 18px;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
@@ -747,7 +748,7 @@
     gap: 10px;
     min-height: 28px;
     padding: 0 0 8px;
-    background: #e8edf2;
+    background: var(--asset-settings-stage-bg);
   }
 
   .asset-settings-slide-dots span {
@@ -755,6 +756,7 @@
     height: 10px;
     background: #cbd3de;
     border-radius: 999px;
+    transition: width 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
   }
 
   .asset-settings-slide-dots span.active {

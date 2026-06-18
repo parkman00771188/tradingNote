@@ -30,6 +30,8 @@ var assetSettingsError = "";
 var assetSettingsNextId = 1;
 var assetSettingsOpenMenuId = null;
 var assetSettingsEditingId = null;
+var assetSettingsActiveIndex = 0;
+var assetSettingsSlideFrame = null;
 
 const fallbackAssetInvestedBalance = 42750000;
 
@@ -238,6 +240,7 @@ function beginAssetSettingsEdit() {
   assetSettingsError = "";
   assetSettingsOpenMenuId = null;
   assetSettingsEditingId = null;
+  assetSettingsActiveIndex = 0;
 }
 
 function cancelAssetSettingsEdit() {
@@ -245,6 +248,7 @@ function cancelAssetSettingsEdit() {
   assetSettingsError = "";
   assetSettingsOpenMenuId = null;
   assetSettingsEditingId = null;
+  assetSettingsActiveIndex = 0;
 }
 
 function addAssetSettingsDraft() {
@@ -254,9 +258,11 @@ function addAssetSettingsDraft() {
   assetSettingsError = "";
   assetSettingsOpenMenuId = null;
   assetSettingsEditingId = draft.id;
+  assetSettingsActiveIndex = assetSettingsDrafts.length - 1;
 }
 
 function removeAssetSettingsDraft(rowId) {
+  const removedIndex = assetSettingsDrafts.findIndex((item) => item.id === rowId);
   const wasEditing = assetSettingsEditingId === rowId;
   assetSettingsDrafts = assetSettingsDrafts.filter((item) => item.id !== rowId);
   assetSettingsError = "";
@@ -265,8 +271,13 @@ function removeAssetSettingsDraft(rowId) {
     const draft = createAssetSettingsDraft();
     assetSettingsDrafts.push(draft);
     assetSettingsEditingId = draft.id;
+    assetSettingsActiveIndex = 0;
     return;
   }
+  if (removedIndex >= 0 && removedIndex < assetSettingsActiveIndex) {
+    assetSettingsActiveIndex -= 1;
+  }
+  assetSettingsActiveIndex = Math.min(assetSettingsActiveIndex, assetSettingsDrafts.length - 1);
   if (wasEditing || !assetSettingsEditingId) {
     assetSettingsEditingId = assetSettingsDrafts[0]?.id || null;
   }
@@ -533,6 +544,7 @@ function renderAssetSettingsCardView(item, index) {
 function renderAssetSettingsModalCardView() {
   const drafts = assetSettingsDrafts;
   const canAdd = drafts.length < 12;
+  const activeDotIndex = Math.min(Math.max(assetSettingsActiveIndex, 0), Math.max(drafts.length - 1, 0));
   const tabs = [
     ["모든 자산", drafts.length, true, ""],
     ["국내 주식", "", false, ""],
@@ -582,12 +594,67 @@ function renderAssetSettingsModalCardView() {
             }
           </div>
           <div class="asset-settings-slide-dots" aria-hidden="true">
-            ${drafts.map((_, index) => `<span class="${index === 0 ? "active" : ""}"></span>`).join("")}
+            ${drafts.map((_, index) => `<span class="${index === activeDotIndex ? "active" : ""}"></span>`).join("")}
           </div>
         </div>
       </section>
     </div>
   `;
+}
+
+function getAssetSettingsSlideCards(cards) {
+  return Array.from(cards?.querySelectorAll(".asset-settings-display-card") || []);
+}
+
+function getAssetSettingsClosestSlideIndex(cards) {
+  const slideCards = getAssetSettingsSlideCards(cards);
+  if (!slideCards.length) return 0;
+  const cardsRect = cards.getBoundingClientRect();
+  const centerX = cardsRect.left + cardsRect.width / 2;
+  return slideCards.reduce((closestIndex, card, index) => {
+    const rect = card.getBoundingClientRect();
+    const distance = Math.abs(rect.left + rect.width / 2 - centerX);
+    const closestRect = slideCards[closestIndex].getBoundingClientRect();
+    const closestDistance = Math.abs(closestRect.left + closestRect.width / 2 - centerX);
+    return distance < closestDistance ? index : closestIndex;
+  }, 0);
+}
+
+function updateAssetSettingsSlideDots(cards) {
+  const slideCards = getAssetSettingsSlideCards(cards);
+  if (!slideCards.length) {
+    assetSettingsActiveIndex = 0;
+    return;
+  }
+  assetSettingsActiveIndex = Math.min(getAssetSettingsClosestSlideIndex(cards), slideCards.length - 1);
+  document.querySelectorAll(".asset-settings-slide-dots span").forEach((dot, index) => {
+    dot.classList.toggle("active", index === assetSettingsActiveIndex);
+  });
+}
+
+function syncAssetSettingsActiveIndexFromDom() {
+  const cards = document.querySelector(".asset-settings-cards");
+  if (!cards) return;
+  updateAssetSettingsSlideDots(cards);
+}
+
+function hydrateAssetSettingsSlider() {
+  const cards = document.querySelector(".asset-settings-cards");
+  if (!cards) return;
+  const slideCards = getAssetSettingsSlideCards(cards);
+  if (!slideCards.length) return;
+  assetSettingsActiveIndex = Math.min(Math.max(assetSettingsActiveIndex, 0), slideCards.length - 1);
+  window.requestAnimationFrame(() => {
+    slideCards[assetSettingsActiveIndex]?.scrollIntoView({ behavior: "auto", block: "nearest", inline: "start" });
+    updateAssetSettingsSlideDots(cards);
+  });
+  cards.addEventListener("scroll", () => {
+    if (assetSettingsSlideFrame) window.cancelAnimationFrame(assetSettingsSlideFrame);
+    assetSettingsSlideFrame = window.requestAnimationFrame(() => {
+      assetSettingsSlideFrame = null;
+      updateAssetSettingsSlideDots(cards);
+    });
+  }, { passive: true });
 }
 
 function renderAssetCashModal() {
@@ -779,6 +846,7 @@ function renderModal() {
 
   if (activeModal === "assetSettings") {
     modalRoot.innerHTML = renderAssetSettingsModalCardView();
+    hydrateAssetSettingsSlider();
     return;
   }
 
@@ -1125,6 +1193,7 @@ document.addEventListener("click", (event) => {
 
     const assetSettingsMenu = event.target.closest("[data-asset-settings-menu]");
     if (assetSettingsMenu && activeModal === "assetSettings") {
+      syncAssetSettingsActiveIndexFromDom();
       const menuId = assetSettingsMenu.dataset.assetSettingsMenu;
       assetSettingsOpenMenuId = assetSettingsOpenMenuId === menuId ? null : menuId;
       renderModal();
@@ -1134,6 +1203,7 @@ document.addEventListener("click", (event) => {
 
     const assetSettingsRemove = event.target.closest("[data-asset-settings-remove]");
     if (assetSettingsRemove && activeModal === "assetSettings") {
+      syncAssetSettingsActiveIndexFromDom();
       removeAssetSettingsDraft(assetSettingsRemove.dataset.assetSettingsRemove);
       renderModal();
       hydrateIcons(document);
@@ -1142,6 +1212,7 @@ document.addEventListener("click", (event) => {
 
     const assetSettingsEdit = event.target.closest("[data-asset-settings-edit]");
     if (assetSettingsEdit && activeModal === "assetSettings") {
+      syncAssetSettingsActiveIndexFromDom();
       assetSettingsEditingId = assetSettingsEdit.dataset.assetSettingsEdit;
       assetSettingsOpenMenuId = null;
       renderModal();
