@@ -2293,6 +2293,11 @@ body.modal-open {
   background: white;
 }
 
+.asset-settings-modal {
+  width: min(920px, calc(100vw - 40px));
+  background: white;
+}
+
 .journal-date-modal {
   width: min(620px, calc(100vw - 32px));
   background: white;
@@ -2859,6 +2864,134 @@ body.modal-open {
   color: #64748b;
   font-size: 13px;
   font-weight: 800;
+}
+
+.asset-settings-modal .modal-body {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.asset-settings-help {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 16px 18px;
+  color: #475569;
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.asset-settings-help strong,
+.asset-settings-help span {
+  display: block;
+}
+
+.asset-settings-help strong {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.asset-settings-help span {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.asset-settings-list {
+  display: grid;
+  gap: 12px;
+}
+
+.asset-settings-row {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.035);
+}
+
+.asset-settings-row-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 34px;
+  gap: 10px;
+  align-items: center;
+}
+
+.asset-settings-row-head > span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.asset-settings-row-head strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-settings-remove {
+  color: var(--red);
+}
+
+.asset-settings-fields {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.2fr) minmax(86px, 0.7fr) repeat(3, minmax(120px, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.asset-settings-fields .journal-input-shell {
+  min-height: 42px;
+}
+
+.asset-settings-fields .journal-input-shell input {
+  height: 40px;
+}
+
+.asset-settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.asset-settings-footer span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.asset-settings-feedback {
+  min-height: 18px;
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+
+.asset-settings-feedback:empty {
+  display: none;
+}
+
+.asset-settings-feedback.error {
+  color: var(--red);
 }
 
 .journal-entry-form {

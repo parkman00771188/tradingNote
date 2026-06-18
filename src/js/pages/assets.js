@@ -273,7 +273,10 @@ function renderMobileAssets({
   return `
     <div class="asset-mobile-page">
       <section class="asset-mobile-summary">
-        <h2>내 보유자산 <span>${icon("info")}</span></h2>
+        <div class="asset-mobile-summary-head">
+          <h2>내 보유자산 <span>${icon("info")}</span></h2>
+          <button class="asset-mobile-settings-button" type="button" data-modal="assetSettings">${icon("settings")}자산 설정</button>
+        </div>
         <div class="asset-mobile-summary-hero">
           <div>
             <span>보유 KRW</span>

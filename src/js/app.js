@@ -24,6 +24,9 @@ var assetCashMessage = "";
 var assetCashDraftAmount = "";
 var assetCashPendingAmount = 0;
 var assetCashPendingMode = "deposit";
+var assetSettingsDrafts = [];
+var assetSettingsError = "";
+var assetSettingsNextId = 1;
 
 const fallbackAssetInvestedBalance = 42750000;
 
@@ -215,6 +218,214 @@ function togglePinnedChartTooltip(target, event) {
   positionPinnedChartTooltip();
 }
 
+function createAssetSettingsDraft(item = {}) {
+  return {
+    id: `asset-setting-${assetSettingsNextId++}`,
+    name: item.name || "",
+    code: item.code || "",
+    quantity: Math.max(0, Number(item.quantity) || 0),
+    averagePrice: Math.max(0, Number(item.averagePrice) || 0),
+    currentPrice: Math.max(0, Number(item.currentPrice) || 0)
+  };
+}
+
+function beginAssetSettingsEdit() {
+  const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
+  assetSettingsDrafts = holdingData.length
+    ? holdingData.map((item) => createAssetSettingsDraft(item))
+    : [createAssetSettingsDraft()];
+  assetSettingsError = "";
+}
+
+function cancelAssetSettingsEdit() {
+  assetSettingsDrafts = [];
+  assetSettingsError = "";
+}
+
+function addAssetSettingsDraft() {
+  if (assetSettingsDrafts.length >= 12) return;
+  assetSettingsDrafts.push(createAssetSettingsDraft());
+  assetSettingsError = "";
+}
+
+function removeAssetSettingsDraft(rowId) {
+  assetSettingsDrafts = assetSettingsDrafts.filter((item) => item.id !== rowId);
+  if (!assetSettingsDrafts.length) {
+    assetSettingsDrafts.push(createAssetSettingsDraft());
+  }
+  assetSettingsError = "";
+}
+
+function updateAssetSettingsDraft(rowId, field, value) {
+  assetSettingsDrafts = assetSettingsDrafts.map((item) => {
+    if (item.id !== rowId) return item;
+    if (field === "name" || field === "code") {
+      return { ...item, [field]: value };
+    }
+    return { ...item, [field]: parseKRWInput(value) };
+  });
+  assetSettingsError = "";
+}
+
+function isEmptyAssetSettingsDraft(item) {
+  return !String(item.name || "").trim() &&
+    !String(item.code || "").trim() &&
+    !item.quantity &&
+    !item.averagePrice &&
+    !item.currentPrice;
+}
+
+function applyAssetSettingsEdit() {
+  const rows = assetSettingsDrafts
+    .filter((item) => !isEmptyAssetSettingsDraft(item))
+    .map((item) => ({
+      name: String(item.name || "").trim(),
+      code: String(item.code || "").trim(),
+      quantity: Math.max(0, Number(item.quantity) || 0),
+      averagePrice: Math.max(0, Number(item.averagePrice) || 0),
+      currentPrice: Math.max(0, Number(item.currentPrice) || 0)
+    }));
+
+  if (!rows.length) {
+    assetSettingsError = "최소 1개 이상의 자산을 입력하세요.";
+    return false;
+  }
+
+  const duplicateKeys = new Set();
+  for (const row of rows) {
+    if (!row.name) {
+      assetSettingsError = "종목명을 입력하세요.";
+      return false;
+    }
+    if (!row.quantity || !row.averagePrice || !row.currentPrice) {
+      assetSettingsError = "수량, 매수평균가, 현재가는 1 이상으로 입력하세요.";
+      return false;
+    }
+
+    const key = normalizeStockKey(`${row.name}-${row.code || row.name}`);
+    if (duplicateKeys.has(key)) {
+      assetSettingsError = "같은 자산이 중복되어 있습니다.";
+      return false;
+    }
+    duplicateKeys.add(key);
+  }
+
+  holdings.splice(
+    0,
+    holdings.length,
+    ...rows.map((row) => {
+      const amount = Math.round(row.quantity * row.currentPrice);
+      const costBasis = Math.round(row.quantity * row.averagePrice);
+      const profit = amount - costBasis;
+      const rate = costBasis ? (profit / costBasis) * 100 : 0;
+      return [
+        row.name,
+        formatMarketNumber(row.quantity),
+        formatMarketNumber(amount),
+        formatSignedMarketNumber(profit),
+        formatSignedRate(rate),
+        "0%"
+      ];
+    })
+  );
+
+  rows.forEach((row) => {
+    const watchRow = typeof findWatchListRow === "function" ? findWatchListRow(row.name, row.code) : null;
+    if (watchRow) {
+      watchRow[0] = row.name;
+      watchRow[1] = row.code;
+      watchRow[2] = formatMarketNumber(row.currentPrice);
+      watchRow[3] = watchRow[3] || "+0.00%";
+      watchRow[4] = watchRow[4] || "0";
+      return;
+    }
+
+    if (typeof watchList !== "undefined") {
+      watchList.push([row.name, row.code, formatMarketNumber(row.currentPrice), "+0.00%", "0"]);
+    }
+  });
+
+  cancelAssetSettingsEdit();
+  return true;
+}
+
+function renderAssetSettingsModal() {
+  const drafts = assetSettingsDrafts.length ? assetSettingsDrafts : [createAssetSettingsDraft()];
+
+  return `
+    <div class="modal-backdrop">
+      <section class="modal-panel asset-settings-modal" role="dialog" aria-modal="true" aria-labelledby="assetSettingsModalTitle">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Asset Settings</p>
+            <h2 class="modal-title" id="assetSettingsModalTitle">자산 설정</h2>
+          </div>
+          <button class="icon-button" type="button" data-modal-close aria-label="닫기">X</button>
+        </div>
+        <div class="modal-body">
+          <div class="asset-settings-help">
+            <strong>보유 자산을 수정하거나 새 자산을 추가하세요.</strong>
+            <span>저장하면 자산 요약, 보유자산 구성, 보유 자산 목록이 함께 갱신됩니다.</span>
+          </div>
+          <div class="asset-settings-list">
+            ${drafts
+              .map((item, index) => `
+                <div class="asset-settings-row" data-asset-setting-row="${item.id}">
+                  <div class="asset-settings-row-head">
+                    <span>${index + 1}</span>
+                    <strong>${item.name ? escapeChartText(item.name) : "새 자산"}</strong>
+                    <button class="mini-action asset-settings-remove" type="button" data-asset-settings-remove="${item.id}" aria-label="자산 삭제">${icon("trash")}</button>
+                  </div>
+                  <div class="asset-settings-fields">
+                    <div class="field">
+                      <label for="assetSettingName${index}">종목명</label>
+                      <input id="assetSettingName${index}" class="input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="예: 삼성전자" data-asset-setting-field="name" data-asset-setting-id="${item.id}">
+                    </div>
+                    <div class="field">
+                      <label for="assetSettingCode${index}">종목코드</label>
+                      <input id="assetSettingCode${index}" class="input" type="text" value="${escapeChartText(item.code)}" autocomplete="off" placeholder="005930" data-asset-setting-field="code" data-asset-setting-id="${item.id}">
+                    </div>
+                    <div class="field">
+                      <label for="assetSettingQuantity${index}">수량</label>
+                      <div class="journal-input-shell">
+                        <input id="assetSettingQuantity${index}" type="text" value="${item.quantity ? formatMarketNumber(item.quantity) : ""}" inputmode="numeric" autocomplete="off" placeholder="수량" data-number-input data-asset-setting-field="quantity" data-asset-setting-id="${item.id}">
+                        <span>주</span>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label for="assetSettingAverage${index}">매수평균가</label>
+                      <div class="journal-input-shell">
+                        <input id="assetSettingAverage${index}" type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="매수평균가" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}">
+                        <span>원</span>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label for="assetSettingCurrent${index}">현재가</label>
+                      <div class="journal-input-shell">
+                        <input id="assetSettingCurrent${index}" type="text" value="${item.currentPrice ? formatMarketNumber(item.currentPrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="현재가" data-number-input data-asset-setting-field="currentPrice" data-asset-setting-id="${item.id}">
+                        <span>원</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `)
+              .join("")}
+          </div>
+          <div class="asset-settings-footer">
+            <button class="btn ghost" type="button" data-asset-settings-add ${drafts.length >= 12 ? "disabled" : ""}>${icon("plus")}자산 추가</button>
+            <span>${drafts.length}/12</span>
+          </div>
+          <p class="asset-settings-feedback error">${assetSettingsError}</p>
+          <div class="asset-cash-actions">
+            <button class="btn" type="button" data-modal-close>취소</button>
+            <button class="btn primary" type="button" data-asset-settings-apply>저장</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function renderAssetCashModal() {
   const isWithdraw = assetCashMode === "withdraw";
   const actionLabel = isWithdraw ? "출금" : "입금";
@@ -352,6 +563,7 @@ function cancelActiveModalDraft(modalName = activeModal) {
   if (modalName === "journalStockFilter") cancelJournalStockFilterEdit();
   if (modalName === "journalTradeTypeFilter") cancelJournalTradeTypeFilterEdit();
   if (modalName === "assetTrendTargets") cancelAssetTrendTargetEdit();
+  if (modalName === "assetSettings") cancelAssetSettingsEdit();
 }
 
 function getRoute() {
@@ -363,7 +575,7 @@ function renderModal() {
   const modalRoot = document.querySelector("#modalRoot");
   if (!modalRoot) return;
 
-  if (!["journalWrite", "assetCash", "assetCashConfirm", "assetTrendTargets", "journalDateRange", "journalStockFilter", "journalTradeTypeFilter"].includes(activeModal)) {
+  if (!["journalWrite", "assetCash", "assetCashConfirm", "assetTrendTargets", "assetSettings", "journalDateRange", "journalStockFilter", "journalTradeTypeFilter"].includes(activeModal)) {
     modalRoot.innerHTML = "";
     if (document.body) document.body.classList.remove("modal-open");
     return;
@@ -397,6 +609,11 @@ function renderModal() {
 
   if (activeModal === "assetTrendTargets") {
     modalRoot.innerHTML = renderAssetTrendTargetsModal();
+    return;
+  }
+
+  if (activeModal === "assetSettings") {
+    modalRoot.innerHTML = renderAssetSettingsModal();
     return;
   }
 
@@ -552,6 +769,9 @@ document.addEventListener("click", (event) => {
     }
     if (activeModal === "assetTrendTargets") {
       beginAssetTrendTargetEdit();
+    }
+    if (activeModal === "assetSettings") {
+      beginAssetSettingsEdit();
     }
     renderModal();
     hydrateIcons(document);
@@ -722,6 +942,34 @@ document.addEventListener("click", (event) => {
     const assetTargetApply = event.target.closest("[data-asset-target-apply]");
     if (assetTargetApply && activeModal === "assetTrendTargets") {
       applyAssetTrendTargetEdit();
+      activeModal = null;
+      render();
+      return;
+    }
+
+    const assetSettingsAdd = event.target.closest("[data-asset-settings-add]");
+    if (assetSettingsAdd && activeModal === "assetSettings") {
+      addAssetSettingsDraft();
+      renderModal();
+      hydrateIcons(document);
+      return;
+    }
+
+    const assetSettingsRemove = event.target.closest("[data-asset-settings-remove]");
+    if (assetSettingsRemove && activeModal === "assetSettings") {
+      removeAssetSettingsDraft(assetSettingsRemove.dataset.assetSettingsRemove);
+      renderModal();
+      hydrateIcons(document);
+      return;
+    }
+
+    const assetSettingsApply = event.target.closest("[data-asset-settings-apply]");
+    if (assetSettingsApply && activeModal === "assetSettings") {
+      if (!applyAssetSettingsEdit()) {
+        renderModal();
+        hydrateIcons(document);
+        return;
+      }
       activeModal = null;
       render();
       return;
@@ -915,6 +1163,16 @@ document.addEventListener("input", (event) => {
   const assetTargetLabel = event.target.closest("[data-asset-target-label]");
   if (assetTargetLabel && activeModal === "assetTrendTargets") {
     updateAssetTrendTargetDraft(assetTargetLabel.dataset.assetTargetId, { label: assetTargetLabel.value });
+    return;
+  }
+
+  const assetSettingField = event.target.closest("[data-asset-setting-field]");
+  if (assetSettingField && activeModal === "assetSettings") {
+    updateAssetSettingsDraft(
+      assetSettingField.dataset.assetSettingId,
+      assetSettingField.dataset.assetSettingField,
+      assetSettingField.value
+    );
     return;
   }
 

@@ -317,7 +317,8 @@
 
   .asset-cash-modal,
   .asset-cash-confirm-modal,
-  .asset-target-modal {
+  .asset-target-modal,
+  .asset-settings-modal {
     width: min(420px, calc(100vw - 24px));
     height: auto;
     max-height: calc(100vh - 40px);
@@ -360,6 +361,16 @@
   .asset-target-fields {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
+  }
+
+  .asset-settings-modal .modal-body {
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .asset-settings-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
   }
 
   .journal-date-modal .modal-body {
@@ -996,6 +1007,13 @@
     border-bottom: 1px solid #dfe3ea;
   }
 
+  .asset-mobile-summary-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+  }
+
   .asset-mobile-summary h2,
   .asset-mobile-section-head h2 {
     display: flex;
@@ -1008,6 +1026,25 @@
     font-weight: 780;
   }
 
+  .asset-mobile-settings-button {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 36px;
+    padding: 0 12px;
+    color: var(--blue);
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid #c8dcff;
+    border-radius: 999px;
+    font-size: 13px;
+    line-height: 1;
+    font-weight: 800;
+    white-space: nowrap;
+    box-shadow: 0 6px 18px rgba(36, 116, 242, 0.08);
+  }
+
   .asset-mobile-summary h2 span,
   .asset-mobile-section-head span,
   .asset-mobile-benefit svg,
@@ -1018,6 +1055,7 @@
   }
 
   .asset-mobile-summary h2 svg,
+  .asset-mobile-settings-button svg,
   .asset-mobile-section-head svg,
   .asset-mobile-benefit svg,
   .asset-mobile-hide-toggle svg {
@@ -1026,6 +1064,12 @@
     stroke: currentColor;
     stroke-width: 1.8;
     fill: none;
+  }
+
+  .asset-mobile-settings-button svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
   }
 
   .asset-mobile-summary-hero {
