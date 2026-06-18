@@ -413,54 +413,65 @@
   }
 
   .asset-settings-backdrop {
-    padding: 0;
-    background: #eef2f7;
+    display: grid;
+    place-items: center;
+    padding: 14px;
+    background: rgba(0, 0, 0, 0.88);
   }
 
   .asset-settings-modal {
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    max-height: 100vh;
-    max-height: 100dvh;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: min(480px, calc(100vw - 28px));
+    height: min(880px, calc(100vh - 28px));
+    height: min(880px, calc(100dvh - 28px));
+    max-height: calc(100vh - 28px);
+    max-height: calc(100dvh - 28px);
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #dce4ee;
+    border-radius: 14px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
   }
 
   .asset-settings-header {
-    position: sticky;
-    top: 0;
+    position: static;
     z-index: 3;
-    grid-template-columns: 64px minmax(0, 1fr) 64px;
-    min-height: 74px;
-    padding: 10px 22px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 98px;
+    padding: 24px 36px 20px;
     background: #ffffff;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 0;
   }
 
   .asset-settings-back {
-    display: grid;
-    grid-column: 1 / 2;
+    display: none;
   }
 
   .asset-settings-heading {
-    grid-column: 2 / 3;
-    justify-self: center;
-    text-align: center;
+    grid-column: 1 / 2;
+    justify-self: start;
+    text-align: left;
   }
 
   .asset-settings-heading .eyebrow {
-    display: none;
+    display: block;
+    margin: 0 0 5px;
+    color: var(--blue);
+    font-size: 12px;
+    line-height: 1.1;
+    font-weight: 950;
+    letter-spacing: 0.02em;
   }
 
   .asset-settings-heading .modal-title {
     font-size: 24px;
-    line-height: 1;
+    line-height: 1.1;
+    font-weight: 950;
   }
 
   .asset-settings-header-actions {
-    grid-column: 3 / 4;
+    grid-column: 2 / 3;
     justify-content: end;
   }
 
@@ -469,47 +480,35 @@
   }
 
   .asset-settings-nav-button {
-    width: 54px;
-    height: 54px;
+    width: 48px;
+    height: 48px;
     border-color: #dbe3ee;
-    border-radius: 18px;
-    font-size: 20px;
+    border-radius: 10px;
+    font-size: 17px;
   }
 
   .asset-settings-nav-button svg {
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
     stroke-width: 2.5;
   }
 
   .asset-settings-modal .asset-settings-body {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
     gap: 0;
-    overflow-x: hidden;
-    overflow-y: auto;
+    min-height: 0;
+    overflow: hidden;
     padding: 0;
-    background: #eef2f7;
+    background: #e8edf2;
   }
 
   .asset-settings-hero-row {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
+    display: contents;
   }
 
   .asset-settings-tabs {
-    order: -1;
-    display: grid;
-    grid-template-columns: repeat(4, max-content);
-    gap: 30px;
-    min-height: 64px;
-    padding: 0 30px;
-    overflow-x: auto;
-    background: #ffffff;
-    border-bottom: 1px solid #e2e8f0;
-    scrollbar-width: none;
+    display: none;
   }
 
   .asset-settings-tabs::-webkit-scrollbar {
@@ -563,12 +562,13 @@
 
   .asset-settings-cards {
     display: flex;
-    flex: 0 0 auto;
-    gap: 24px;
+    grid-row: 1 / 2;
+    gap: 22px;
+    min-height: 0;
     overflow-x: auto;
-    overflow-y: visible;
-    padding: 18px 30px 16px;
-    scroll-padding: 30px;
+    overflow-y: hidden;
+    padding: 46px 18px 24px;
+    scroll-padding: 18px;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
   }
@@ -579,18 +579,19 @@
 
   .asset-settings-card,
   .asset-settings-add-card {
-    flex: 0 0 min(83vw, 640px);
+    flex: 0 0 calc(100% - 52px);
     scroll-snap-align: start;
   }
 
   .asset-settings-display-card {
     min-height: 0;
-    padding: 28px 24px;
-    border-radius: 26px;
+    padding: 28px 24px 22px;
+    border-radius: 22px;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
   }
 
   .asset-settings-menu {
-    top: 28px;
+    top: 30px;
     right: 24px;
     width: 46px;
     height: 46px;
@@ -598,7 +599,7 @@
   }
 
   .asset-settings-floating-menu {
-    top: 80px;
+    top: 82px;
     right: 24px;
     width: 132px;
     padding: 8px;
@@ -611,30 +612,30 @@
   }
 
   .asset-settings-chip {
-    min-height: 42px;
-    padding: 0 18px;
-    font-size: 15px;
+    min-height: 40px;
+    padding: 0 17px;
+    font-size: 14px;
   }
 
   .asset-settings-title-wrap {
-    margin-top: 6px;
+    margin-top: 8px;
   }
 
   .asset-settings-title-input {
-    height: 54px;
-    font-size: clamp(35px, 9.6vw, 40px);
+    height: 48px;
+    font-size: clamp(30px, 8.6vw, 36px);
   }
 
   .asset-settings-title-wrap p {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .asset-settings-value-panel {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
-    margin-top: 24px;
-    padding: 18px 16px;
-    border-radius: 22px;
+    margin-top: 40px;
+    padding: 16px 18px;
+    border-radius: 18px;
   }
 
   .asset-settings-value-panel span,
@@ -656,14 +657,14 @@
   }
 
   .asset-settings-tile-grid {
-    gap: 14px;
+    gap: 10px;
     margin-top: 22px;
   }
 
   .asset-settings-tile {
-    min-height: 92px;
-    padding: 16px 18px;
-    border-radius: 18px;
+    min-height: 84px;
+    padding: 15px 16px;
+    border-radius: 16px;
   }
 
   .asset-settings-tile > span {
@@ -673,7 +674,7 @@
   .asset-settings-tile strong,
   .asset-settings-tile-input,
   .asset-settings-code-input {
-    font-size: 19px;
+    font-size: 18px;
   }
 
   .asset-settings-tile-input em,
@@ -710,9 +711,10 @@
   .asset-settings-slide-dots {
     display: flex;
     justify-content: center;
+    grid-row: 2 / 3;
     gap: 10px;
-    min-height: 30px;
-    padding-bottom: 10px;
+    min-height: 36px;
+    padding: 0 0 18px;
   }
 
   .asset-settings-slide-dots span {
@@ -728,15 +730,16 @@
   }
 
   .asset-settings-savebar {
-    position: sticky;
-    bottom: 0;
+    position: static;
     z-index: 4;
     grid-template-columns: 1fr;
     gap: 10px;
     margin: 0;
-    padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
+    padding: 20px 36px 34px;
+    background: #ffffff;
     border-width: 1px 0 0;
     border-radius: 0;
+    box-shadow: none;
   }
 
   .asset-settings-savebar-copy {
@@ -746,11 +749,12 @@
   .asset-settings-actions {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 10px;
   }
 
   .asset-settings-actions .btn {
-    min-height: 54px;
-    border-radius: 16px;
+    min-height: 52px;
+    border-radius: 10px;
   }
 
   .journal-date-modal .modal-body {
@@ -3102,7 +3106,7 @@
 
 @media (max-width: 768px) {
   .asset-settings-modal .asset-settings-display-card .asset-settings-title-wrap input.asset-settings-title-input {
-    font-size: clamp(35px, 9.6vw, 40px);
+    font-size: clamp(30px, 8.6vw, 36px);
   }
 
   .asset-settings-modal .asset-settings-display-card .asset-settings-value-panel .asset-settings-current-input input,
@@ -3112,6 +3116,8 @@
 
   .asset-settings-modal .asset-settings-display-card .asset-settings-tile-input input,
   .asset-settings-modal .asset-settings-display-card input.asset-settings-code-input {
+    flex: 1 1 auto;
+    width: 0;
     font-size: inherit;
   }
 }
