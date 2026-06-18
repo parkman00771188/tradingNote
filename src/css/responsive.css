@@ -1067,10 +1067,14 @@
 
   .asset-mobile-summary-grid {
     display: grid;
-    grid-template-columns: minmax(50px, 0.62fr) minmax(0, 1fr) minmax(48px, 0.62fr) minmax(0, 1fr);
+    grid-template-columns: minmax(50px, 0.58fr) minmax(0, 0.95fr) minmax(64px, 0.72fr) minmax(0, 1fr);
     gap: 10px 8px;
     align-items: baseline;
     margin-top: 34px;
+  }
+
+  .asset-mobile-summary-grid span:nth-of-type(even) {
+    padding-left: 14px;
   }
 
   .asset-mobile-summary-grid strong {
