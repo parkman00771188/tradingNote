@@ -447,6 +447,144 @@ function renderAssetSettingsModal() {
   `;
 }
 
+function renderAssetSettingsCardView(item, index) {
+  const meta = typeof getAssetHoldingMeta === "function" ? getAssetHoldingMeta(item, index) : { sector: "국내 주식" };
+  const amount = Math.round((Number(item.quantity) || 0) * (Number(item.currentPrice) || 0));
+  const costBasis = Math.round((Number(item.quantity) || 0) * (Number(item.averagePrice) || 0));
+  const displayName = String(item.name || "").trim() || "새 자산";
+  const displayCode = String(item.code || "").trim() || "코드 미입력";
+  const codeMeta = displayCode === "코드 미입력" ? displayCode : `${displayCode} · ${meta.sector || "국내 주식"}`;
+
+  return `
+    <article class="asset-settings-card asset-settings-display-card" data-asset-setting-card="${item.id}">
+      <button class="mini-action asset-settings-menu" type="button" data-asset-settings-remove="${item.id}" aria-label="자산 삭제">${icon("more")}</button>
+      <span class="asset-settings-chip">ASSET ${String(index + 1).padStart(2, "0")}</span>
+      <div class="asset-settings-title-wrap">
+        <input class="asset-settings-title-input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="새 자산" data-asset-setting-field="name" data-asset-setting-id="${item.id}">
+        <p>${escapeChartText(codeMeta)}</p>
+      </div>
+
+      <div class="asset-settings-value-panel">
+        <div>
+          <span>평가금액</span>
+          <strong>${formatMarketNumber(amount)}<small>원</small></strong>
+          <em>보유 수량 기준</em>
+        </div>
+        <div>
+          <span>현재가</span>
+          <div class="asset-settings-current-input">
+            <input type="text" value="${item.currentPrice ? formatMarketNumber(item.currentPrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="currentPrice" data-asset-setting-id="${item.id}">
+            <strong>원</strong>
+          </div>
+          <em>${formatMarketNumber(item.quantity)}주 × ${formatMarketNumber(item.currentPrice)}원</em>
+        </div>
+      </div>
+
+      <div class="asset-settings-tile-grid">
+        <label class="asset-settings-tile">
+          <span>보유 수량</span>
+          <div class="asset-settings-tile-input">
+            <input type="text" value="${item.quantity ? formatMarketNumber(item.quantity) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="quantity" data-asset-setting-id="${item.id}">
+            <em>주</em>
+          </div>
+        </label>
+        <label class="asset-settings-tile">
+          <span>매수평균가</span>
+          <div class="asset-settings-tile-input">
+            <input type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}">
+            <em>원</em>
+          </div>
+        </label>
+        <label class="asset-settings-tile">
+          <span>총 매수금액</span>
+          <strong>${formatMarketNumber(costBasis)}<em>원</em></strong>
+        </label>
+        <label class="asset-settings-tile">
+          <span>종목코드</span>
+          <input class="asset-settings-code-input" type="text" value="${escapeChartText(item.code)}" autocomplete="off" placeholder="005930" data-asset-setting-field="code" data-asset-setting-id="${item.id}">
+        </label>
+      </div>
+
+      <div class="asset-settings-card-foot">
+        <p><span>총 매수금액</span><strong>${formatMarketNumber(costBasis)}원</strong></p>
+        <button class="btn primary" type="button" data-asset-settings-edit="${item.id}">자산 정보 수정 ${icon("chevronRight")}</button>
+      </div>
+    </article>
+  `;
+}
+
+function renderAssetSettingsModalCardView() {
+  const drafts = assetSettingsDrafts;
+  const canAdd = drafts.length < 12;
+  const tabs = [
+    ["모든 자산", drafts.length, true, ""],
+    ["국내 주식", "", false, ""],
+    ["최근 수정", "", false, ""],
+    ["즐겨찾기", "", false, "asset-settings-tab-favorite"]
+  ];
+
+  return `
+    <div class="modal-backdrop asset-settings-backdrop">
+      <section class="modal-panel asset-settings-modal" role="dialog" aria-modal="true" aria-labelledby="assetSettingsModalTitle">
+        <div class="modal-header asset-settings-header">
+          <button class="asset-settings-nav-button asset-settings-back" type="button" data-modal-close aria-label="뒤로">${icon("chevronLeft")}</button>
+          <div class="asset-settings-heading">
+            <p class="eyebrow">Asset Settings</p>
+            <h2 class="modal-title" id="assetSettingsModalTitle">자산 설정</h2>
+          </div>
+          <div class="asset-settings-header-actions">
+            <button class="btn ghost asset-settings-header-add" type="button" data-asset-settings-add ${canAdd ? "" : "disabled"}>${icon("plus")}자산 추가</button>
+            <button class="asset-settings-nav-button" type="button" data-modal-close aria-label="닫기">X</button>
+          </div>
+        </div>
+
+        <div class="modal-body asset-settings-body">
+          <div class="asset-settings-hero-row">
+            <div class="asset-settings-hero-copy">
+              <h3><span>보유 자산.</span> <b class="asset-settings-desktop-copy">필요한 정보만 한눈에.</b><b class="asset-settings-mobile-copy">한눈에 확인하세요.</b></h3>
+              <p>큰 그래픽을 덜어내고 평가금액과 핵심 입력값 중심으로 재구성했습니다.</p>
+            </div>
+            <div class="asset-settings-tabs" role="tablist" aria-label="자산 설정 보기">
+              ${tabs.map(([label, count, active, className]) => `
+                <button class="${active ? "active" : ""} ${className}" type="button" role="tab" aria-selected="${active}">
+                  ${label}${count !== "" ? `<span>${count}</span>` : ""}
+                </button>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="asset-settings-cards" aria-label="자산 설정 카드 목록">
+            ${drafts.map((item, index) => renderAssetSettingsCardView(item, index)).join("")}
+            ${
+              canAdd
+                ? `<button class="asset-settings-add-card ${drafts.length ? "" : "is-empty"}" type="button" data-asset-settings-add aria-label="자산 추가">
+                    <span>${icon("plus")}</span>
+                    ${drafts.length ? "<strong>자산 추가</strong><em>새 보유 자산을 카드로 추가합니다.</em>" : ""}
+                  </button>`
+                : ""
+            }
+          </div>
+          <div class="asset-settings-slide-dots" aria-hidden="true">
+            ${drafts.map((_, index) => `<span class="${index === 0 ? "active" : ""}"></span>`).join("")}
+          </div>
+        </div>
+
+        <div class="asset-settings-savebar">
+          <div class="asset-settings-savebar-copy">
+            <strong>보유 자산 ${drafts.length}개 · 변경사항 없음</strong>
+            <span>자산 정보를 수정하거나 새 자산을 추가할 수 있습니다.</span>
+            <p class="asset-settings-feedback error">${assetSettingsError}</p>
+          </div>
+          <div class="asset-settings-actions">
+            <button class="btn" type="button" data-modal-close>취소</button>
+            <button class="btn primary" type="button" data-asset-settings-apply>변경사항 저장</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function renderAssetCashModal() {
   const isWithdraw = assetCashMode === "withdraw";
   const actionLabel = isWithdraw ? "출금" : "입금";
@@ -634,7 +772,7 @@ function renderModal() {
   }
 
   if (activeModal === "assetSettings") {
-    modalRoot.innerHTML = renderAssetSettingsModal();
+    modalRoot.innerHTML = renderAssetSettingsModalCardView();
     return;
   }
 
@@ -981,6 +1119,15 @@ document.addEventListener("click", (event) => {
       removeAssetSettingsDraft(assetSettingsRemove.dataset.assetSettingsRemove);
       renderModal();
       hydrateIcons(document);
+      return;
+    }
+
+    const assetSettingsEdit = event.target.closest("[data-asset-settings-edit]");
+    if (assetSettingsEdit && activeModal === "assetSettings") {
+      const card = document.querySelector(`[data-asset-setting-card="${assetSettingsEdit.dataset.assetSettingsEdit}"]`);
+      const input = card?.querySelector("[data-asset-setting-field]");
+      input?.focus();
+      input?.select?.();
       return;
     }
 
