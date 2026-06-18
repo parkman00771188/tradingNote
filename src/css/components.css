@@ -3336,6 +3336,61 @@ body.modal-open {
   border-radius: 12px;
 }
 
+.asset-settings-menu[aria-expanded="true"] {
+  color: var(--blue);
+  border-color: #b8d2ff;
+  background: #f4f8ff;
+}
+
+.asset-settings-floating-menu {
+  position: absolute;
+  top: 68px;
+  right: 28px;
+  z-index: 3;
+  display: grid;
+  gap: 4px;
+  width: 136px;
+  padding: 8px;
+  background: #ffffff;
+  border: 1px solid #dce3ec;
+  border-radius: 14px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+}
+
+.asset-settings-floating-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 10px;
+  color: #172033;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 850;
+  text-align: left;
+}
+
+.asset-settings-floating-menu button:hover {
+  background: #f4f7fb;
+}
+
+.asset-settings-floating-menu button[data-asset-settings-remove] {
+  color: var(--red);
+}
+
+.asset-settings-floating-menu svg {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
 .asset-settings-chip {
   display: inline-flex;
   align-items: center;
@@ -3385,8 +3440,8 @@ body.modal-open {
 
 .asset-settings-value-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(120px, 0.75fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
   margin-top: 16px;
   padding: 17px 18px;
   background: #f4f6f9;
@@ -3403,6 +3458,11 @@ body.modal-open {
 .asset-settings-value-panel > div:last-child {
   justify-items: end;
   text-align: right;
+}
+
+.asset-settings-value-panel > div:only-child {
+  justify-items: start;
+  text-align: left;
 }
 
 .asset-settings-value-panel span,
@@ -3456,6 +3516,10 @@ body.modal-open {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 14px;
+}
+
+.asset-settings-tile-wide {
+  grid-column: 1 / -1;
 }
 
 .asset-settings-tile {
