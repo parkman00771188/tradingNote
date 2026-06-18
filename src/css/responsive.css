@@ -612,29 +612,40 @@
   }
 
   .asset-settings-chip {
-    min-height: 40px;
-    padding: 0 17px;
+    min-height: 34px;
+    padding: 0 14px;
+    font-size: 12px;
+  }
+
+  .asset-settings-chip-row {
+    gap: 10px;
+    padding-right: 58px;
+  }
+
+  .asset-settings-sector-chip {
+    min-height: 34px;
+    padding: 0 18px;
     font-size: 14px;
   }
 
   .asset-settings-title-wrap {
-    margin-top: 8px;
+    margin-top: 42px;
   }
 
   .asset-settings-title-input {
-    height: 48px;
-    font-size: clamp(30px, 8.6vw, 36px);
+    height: 52px;
+    font-size: clamp(34px, 9.3vw, 40px);
   }
 
   .asset-settings-title-wrap p {
-    font-size: 14px;
+    font-size: 15px;
   }
 
   .asset-settings-value-panel {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
-    margin-top: 40px;
-    padding: 16px 18px;
+    margin-top: 32px;
+    padding: 20px 18px;
     border-radius: 18px;
   }
 
@@ -644,7 +655,7 @@
   }
 
   .asset-settings-value-panel strong {
-    font-size: clamp(20px, 5.5vw, 22px);
+    font-size: clamp(22px, 6vw, 24px);
   }
 
   .asset-settings-value-panel strong small {
@@ -658,12 +669,12 @@
 
   .asset-settings-tile-grid {
     gap: 10px;
-    margin-top: 22px;
+    margin-top: 58px;
   }
 
   .asset-settings-tile {
-    min-height: 84px;
-    padding: 15px 16px;
+    min-height: 92px;
+    padding: 17px 14px;
     border-radius: 16px;
   }
 
@@ -3106,7 +3117,7 @@
 
 @media (max-width: 768px) {
   .asset-settings-modal .asset-settings-display-card .asset-settings-title-wrap input.asset-settings-title-input {
-    font-size: clamp(30px, 8.6vw, 36px);
+    font-size: clamp(34px, 9.3vw, 40px);
   }
 
   .asset-settings-modal .asset-settings-display-card .asset-settings-value-panel .asset-settings-current-input input,

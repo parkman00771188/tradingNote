@@ -456,7 +456,6 @@ function renderAssetSettingsModal() {
 function renderAssetSettingsCardView(item, index) {
   const meta = typeof getAssetHoldingMeta === "function" ? getAssetHoldingMeta(item, index) : { sector: "국내 주식" };
   const amount = Math.round((Number(item.quantity) || 0) * (Number(item.currentPrice) || 0));
-  const costBasis = Math.round((Number(item.quantity) || 0) * (Number(item.averagePrice) || 0));
   const displayName = String(item.name || "").trim() || "새 자산";
   const displayCode = String(item.code || "").trim() || "코드 미입력";
   const codeMeta = displayCode === "코드 미입력" ? displayCode : `${displayCode} · ${meta.sector || "국내 주식"}`;
@@ -472,18 +471,13 @@ function renderAssetSettingsCardView(item, index) {
             </div>`
           : ""
       }
-      <span class="asset-settings-chip">ASSET ${String(index + 1).padStart(2, "0")}</span>
+      <div class="asset-settings-chip-row">
+        <span class="asset-settings-chip">ASSET ${String(index + 1).padStart(2, "0")}</span>
+        <span class="asset-settings-sector-chip">업무</span>
+      </div>
       <div class="asset-settings-title-wrap">
         <input class="asset-settings-title-input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="새 자산" data-asset-setting-field="name" data-asset-setting-id="${item.id}">
         <p>${escapeChartText(codeMeta)}</p>
-      </div>
-
-      <div class="asset-settings-value-panel">
-        <div>
-          <span>평가금액</span>
-          <strong>${formatMarketNumber(amount)}<small>원</small></strong>
-          <em>보유 수량 기준</em>
-        </div>
       </div>
 
       <div class="asset-settings-tile-grid">
@@ -501,10 +495,14 @@ function renderAssetSettingsCardView(item, index) {
             <em>원</em>
           </div>
         </label>
-        <label class="asset-settings-tile asset-settings-tile-wide">
-          <span>총 매수금액</span>
-          <strong>${formatMarketNumber(costBasis)}<em>원</em></strong>
-        </label>
+      </div>
+
+      <div class="asset-settings-value-panel">
+        <div>
+          <span>평가금액</span>
+          <strong>${formatMarketNumber(amount)}<small>원</small></strong>
+          <em>보유 수량 기준</em>
+        </div>
       </div>
     </article>
   `;

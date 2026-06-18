@@ -3406,6 +3406,29 @@ body.modal-open {
   letter-spacing: 0;
 }
 
+.asset-settings-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 46px;
+}
+
+.asset-settings-sector-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  min-height: 30px;
+  padding: 0 18px;
+  color: var(--blue);
+  background: #f4f8ff;
+  border: 1px solid #b8d2ff;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
 .asset-settings-title-wrap {
   display: grid;
   gap: 5px;
