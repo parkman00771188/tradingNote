@@ -1,6 +1,6 @@
 body[data-route="landing"] {
   overflow-x: hidden;
-  background: #ffffff;
+  background: #081224;
 }
 
 body[data-route="landing"] .app-shell {
@@ -16,6 +16,7 @@ body[data-route="landing"] .topbar {
 body[data-route="landing"] .main {
   min-width: 0;
   padding: 0;
+  background: #081224;
 }
 
 body[data-route="landing"] .page-content {
@@ -1109,6 +1110,8 @@ body[data-route="landing"] .page-content {
   .landing-footer {
     display: grid;
     justify-items: start;
-    padding: 38px 24px;
+    min-height: 260px;
+    padding: 38px 24px max(104px, calc(38px + env(safe-area-inset-bottom)));
+    align-content: start;
   }
 }
