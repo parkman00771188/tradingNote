@@ -1,0 +1,52 @@
+:root {
+  --tn-icon-size: 32px;
+}
+.tn-icon {
+  display: inline-block;
+  width: var(--tn-icon-size);
+  height: var(--tn-icon-size);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  vertical-align: middle;
+}
+.tn-icon-dashboard_home { background-image: url('../svg/default/dashboard_home.svg'); }
+.tn-icon-dashboard_home:hover, .tn-icon-dashboard_home.is-hover { background-image: url('../svg/hover/dashboard_home.svg'); }
+.tn-icon-trading_journal { background-image: url('../svg/default/trading_journal.svg'); }
+.tn-icon-trading_journal:hover, .tn-icon-trading_journal.is-hover { background-image: url('../svg/hover/trading_journal.svg'); }
+.tn-icon-stock_analysis { background-image: url('../svg/default/stock_analysis.svg'); }
+.tn-icon-stock_analysis:hover, .tn-icon-stock_analysis.is-hover { background-image: url('../svg/hover/stock_analysis.svg'); }
+.tn-icon-asset_status { background-image: url('../svg/default/asset_status.svg'); }
+.tn-icon-asset_status:hover, .tn-icon-asset_status.is-hover { background-image: url('../svg/hover/asset_status.svg'); }
+.tn-icon-memo { background-image: url('../svg/default/memo.svg'); }
+.tn-icon-memo:hover, .tn-icon-memo.is-hover { background-image: url('../svg/hover/memo.svg'); }
+.tn-icon-calendar { background-image: url('../svg/default/calendar.svg'); }
+.tn-icon-calendar:hover, .tn-icon-calendar.is-hover { background-image: url('../svg/hover/calendar.svg'); }
+.tn-icon-settings { background-image: url('../svg/default/settings.svg'); }
+.tn-icon-settings:hover, .tn-icon-settings.is-hover { background-image: url('../svg/hover/settings.svg'); }
+.tn-icon-report_chart { background-image: url('../svg/default/report_chart.svg'); }
+.tn-icon-report_chart:hover, .tn-icon-report_chart.is-hover { background-image: url('../svg/hover/report_chart.svg'); }
+.tn-icon-tag_management { background-image: url('../svg/default/tag_management.svg'); }
+.tn-icon-tag_management:hover, .tn-icon-tag_management.is-hover { background-image: url('../svg/hover/tag_management.svg'); }
+.tn-icon-data_backup { background-image: url('../svg/default/data_backup.svg'); }
+.tn-icon-data_backup:hover, .tn-icon-data_backup.is-hover { background-image: url('../svg/hover/data_backup.svg'); }
+.tn-icon-report_document { background-image: url('../svg/default/report_document.svg'); }
+.tn-icon-report_document:hover, .tn-icon-report_document.is-hover { background-image: url('../svg/hover/report_document.svg'); }
+.tn-icon-customer_center { background-image: url('../svg/default/customer_center.svg'); }
+.tn-icon-customer_center:hover, .tn-icon-customer_center.is-hover { background-image: url('../svg/hover/customer_center.svg'); }
+.tn-icon-profile_avatar { background-image: url('../svg/default/profile_avatar.svg'); }
+.tn-icon-profile_avatar:hover, .tn-icon-profile_avatar.is-hover { background-image: url('../svg/hover/profile_avatar.svg'); }
+.tn-icon-my_info { background-image: url('../svg/default/my_info.svg'); }
+.tn-icon-my_info:hover, .tn-icon-my_info.is-hover { background-image: url('../svg/hover/my_info.svg'); }
+.tn-icon-close { background-image: url('../svg/default/close.svg'); }
+.tn-icon-close:hover, .tn-icon-close.is-hover { background-image: url('../svg/hover/close.svg'); }
+.tn-icon-logout { background-image: url('../svg/default/logout.svg'); }
+.tn-icon-logout:hover, .tn-icon-logout.is-hover { background-image: url('../svg/hover/logout.svg'); }
+.tn-icon-notification_bell { background-image: url('../svg/default/notification_bell.svg'); }
+.tn-icon-notification_bell:hover, .tn-icon-notification_bell.is-hover { background-image: url('../svg/hover/notification_bell.svg'); }
+.tn-icon-top_profile { background-image: url('../svg/default/top_profile.svg'); }
+.tn-icon-top_profile:hover, .tn-icon-top_profile.is-hover { background-image: url('../svg/hover/top_profile.svg'); }
+.tn-icon-right_chevron { background-image: url('../svg/default/right_chevron.svg'); }
+.tn-icon-right_chevron:hover, .tn-icon-right_chevron.is-hover { background-image: url('../svg/hover/right_chevron.svg'); }
+.tn-icon-drag_handle { background-image: url('../svg/default/drag_handle.svg'); }
+.tn-icon-drag_handle:hover, .tn-icon-drag_handle.is-hover { background-image: url('../svg/hover/drag_handle.svg'); }

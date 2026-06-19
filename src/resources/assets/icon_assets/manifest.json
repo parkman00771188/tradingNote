@@ -1,0 +1,222 @@
+[
+  {
+    "slug": "dashboard_home",
+    "label_ko": "대시보드",
+    "description": "Dashboard / home",
+    "svg_default": "svg/default/dashboard_home.svg",
+    "svg_hover": "svg/hover/dashboard_home.svg",
+    "png_default_128": "png/default/128/dashboard_home.png",
+    "png_hover_128": "png/hover/128/dashboard_home.png",
+    "png_default_256": "png/default/256/dashboard_home.png",
+    "png_hover_256": "png/hover/256/dashboard_home.png"
+  },
+  {
+    "slug": "trading_journal",
+    "label_ko": "매매일지",
+    "description": "Trading journal / notebook",
+    "svg_default": "svg/default/trading_journal.svg",
+    "svg_hover": "svg/hover/trading_journal.svg",
+    "png_default_128": "png/default/128/trading_journal.png",
+    "png_hover_128": "png/hover/128/trading_journal.png",
+    "png_default_256": "png/default/256/trading_journal.png",
+    "png_hover_256": "png/hover/256/trading_journal.png"
+  },
+  {
+    "slug": "stock_analysis",
+    "label_ko": "종목 분석",
+    "description": "Stock analysis / rising chart",
+    "svg_default": "svg/default/stock_analysis.svg",
+    "svg_hover": "svg/hover/stock_analysis.svg",
+    "png_default_128": "png/default/128/stock_analysis.png",
+    "png_hover_128": "png/hover/128/stock_analysis.png",
+    "png_default_256": "png/default/256/stock_analysis.png",
+    "png_hover_256": "png/hover/256/stock_analysis.png"
+  },
+  {
+    "slug": "asset_status",
+    "label_ko": "자산 현황",
+    "description": "Asset status / pie chart",
+    "svg_default": "svg/default/asset_status.svg",
+    "svg_hover": "svg/hover/asset_status.svg",
+    "png_default_128": "png/default/128/asset_status.png",
+    "png_hover_128": "png/hover/128/asset_status.png",
+    "png_default_256": "png/default/256/asset_status.png",
+    "png_hover_256": "png/hover/256/asset_status.png"
+  },
+  {
+    "slug": "memo",
+    "label_ko": "메모",
+    "description": "Memo / speech note",
+    "svg_default": "svg/default/memo.svg",
+    "svg_hover": "svg/hover/memo.svg",
+    "png_default_128": "png/default/128/memo.png",
+    "png_hover_128": "png/hover/128/memo.png",
+    "png_default_256": "png/default/256/memo.png",
+    "png_hover_256": "png/hover/256/memo.png"
+  },
+  {
+    "slug": "calendar",
+    "label_ko": "캘린더",
+    "description": "Calendar",
+    "svg_default": "svg/default/calendar.svg",
+    "svg_hover": "svg/hover/calendar.svg",
+    "png_default_128": "png/default/128/calendar.png",
+    "png_hover_128": "png/hover/128/calendar.png",
+    "png_default_256": "png/default/256/calendar.png",
+    "png_hover_256": "png/hover/256/calendar.png"
+  },
+  {
+    "slug": "settings",
+    "label_ko": "설정",
+    "description": "Settings / gear",
+    "svg_default": "svg/default/settings.svg",
+    "svg_hover": "svg/hover/settings.svg",
+    "png_default_128": "png/default/128/settings.png",
+    "png_hover_128": "png/hover/128/settings.png",
+    "png_default_256": "png/default/256/settings.png",
+    "png_hover_256": "png/hover/256/settings.png"
+  },
+  {
+    "slug": "report_chart",
+    "label_ko": "리포트",
+    "description": "Report / bar chart",
+    "svg_default": "svg/default/report_chart.svg",
+    "svg_hover": "svg/hover/report_chart.svg",
+    "png_default_128": "png/default/128/report_chart.png",
+    "png_hover_128": "png/hover/128/report_chart.png",
+    "png_default_256": "png/default/256/report_chart.png",
+    "png_hover_256": "png/hover/256/report_chart.png"
+  },
+  {
+    "slug": "tag_management",
+    "label_ko": "태그 관리",
+    "description": "Tag management / tag",
+    "svg_default": "svg/default/tag_management.svg",
+    "svg_hover": "svg/hover/tag_management.svg",
+    "png_default_128": "png/default/128/tag_management.png",
+    "png_hover_128": "png/hover/128/tag_management.png",
+    "png_default_256": "png/default/256/tag_management.png",
+    "png_hover_256": "png/hover/256/tag_management.png"
+  },
+  {
+    "slug": "data_backup",
+    "label_ko": "데이터 백업",
+    "description": "Data backup / cloud upload",
+    "svg_default": "svg/default/data_backup.svg",
+    "svg_hover": "svg/hover/data_backup.svg",
+    "png_default_128": "png/default/128/data_backup.png",
+    "png_hover_128": "png/hover/128/data_backup.png",
+    "png_default_256": "png/default/256/data_backup.png",
+    "png_hover_256": "png/hover/256/data_backup.png"
+  },
+  {
+    "slug": "report_document",
+    "label_ko": "리포트",
+    "description": "Report document / page document",
+    "svg_default": "svg/default/report_document.svg",
+    "svg_hover": "svg/hover/report_document.svg",
+    "png_default_128": "png/default/128/report_document.png",
+    "png_hover_128": "png/hover/128/report_document.png",
+    "png_default_256": "png/default/256/report_document.png",
+    "png_hover_256": "png/hover/256/report_document.png"
+  },
+  {
+    "slug": "customer_center",
+    "label_ko": "고객센터",
+    "description": "Customer center / headset support",
+    "svg_default": "svg/default/customer_center.svg",
+    "svg_hover": "svg/hover/customer_center.svg",
+    "png_default_128": "png/default/128/customer_center.png",
+    "png_hover_128": "png/hover/128/customer_center.png",
+    "png_default_256": "png/default/256/customer_center.png",
+    "png_hover_256": "png/hover/256/customer_center.png"
+  },
+  {
+    "slug": "profile_avatar",
+    "label_ko": "프로필 아바타",
+    "description": "Profile avatar placeholder / user",
+    "svg_default": "svg/default/profile_avatar.svg",
+    "svg_hover": "svg/hover/profile_avatar.svg",
+    "png_default_128": "png/default/128/profile_avatar.png",
+    "png_hover_128": "png/hover/128/profile_avatar.png",
+    "png_default_256": "png/default/256/profile_avatar.png",
+    "png_hover_256": "png/hover/256/profile_avatar.png"
+  },
+  {
+    "slug": "my_info",
+    "label_ko": "내 정보",
+    "description": "My info / user outline",
+    "svg_default": "svg/default/my_info.svg",
+    "svg_hover": "svg/hover/my_info.svg",
+    "png_default_128": "png/default/128/my_info.png",
+    "png_hover_128": "png/hover/128/my_info.png",
+    "png_default_256": "png/default/256/my_info.png",
+    "png_hover_256": "png/hover/256/my_info.png"
+  },
+  {
+    "slug": "close",
+    "label_ko": "닫기",
+    "description": "Close / X button",
+    "svg_default": "svg/default/close.svg",
+    "svg_hover": "svg/hover/close.svg",
+    "png_default_128": "png/default/128/close.png",
+    "png_hover_128": "png/hover/128/close.png",
+    "png_default_256": "png/default/256/close.png",
+    "png_hover_256": "png/hover/256/close.png"
+  },
+  {
+    "slug": "logout",
+    "label_ko": "로그아웃",
+    "description": "Logout / exit arrow",
+    "svg_default": "svg/default/logout.svg",
+    "svg_hover": "svg/hover/logout.svg",
+    "png_default_128": "png/default/128/logout.png",
+    "png_hover_128": "png/hover/128/logout.png",
+    "png_default_256": "png/default/256/logout.png",
+    "png_hover_256": "png/hover/256/logout.png"
+  },
+  {
+    "slug": "notification_bell",
+    "label_ko": "알림",
+    "description": "Notification bell",
+    "svg_default": "svg/default/notification_bell.svg",
+    "svg_hover": "svg/hover/notification_bell.svg",
+    "png_default_128": "png/default/128/notification_bell.png",
+    "png_hover_128": "png/hover/128/notification_bell.png",
+    "png_default_256": "png/default/256/notification_bell.png",
+    "png_hover_256": "png/hover/256/notification_bell.png"
+  },
+  {
+    "slug": "top_profile",
+    "label_ko": "상단 프로필",
+    "description": "Top profile",
+    "svg_default": "svg/default/top_profile.svg",
+    "svg_hover": "svg/hover/top_profile.svg",
+    "png_default_128": "png/default/128/top_profile.png",
+    "png_hover_128": "png/hover/128/top_profile.png",
+    "png_default_256": "png/default/256/top_profile.png",
+    "png_hover_256": "png/hover/256/top_profile.png"
+  },
+  {
+    "slug": "right_chevron",
+    "label_ko": "오른쪽 화살표",
+    "description": "Right chevron",
+    "svg_default": "svg/default/right_chevron.svg",
+    "svg_hover": "svg/hover/right_chevron.svg",
+    "png_default_128": "png/default/128/right_chevron.png",
+    "png_hover_128": "png/hover/128/right_chevron.png",
+    "png_default_256": "png/default/256/right_chevron.png",
+    "png_hover_256": "png/hover/256/right_chevron.png"
+  },
+  {
+    "slug": "drag_handle",
+    "label_ko": "바텀시트 핸들",
+    "description": "Bottom-sheet drag handle / grip",
+    "svg_default": "svg/default/drag_handle.svg",
+    "svg_hover": "svg/hover/drag_handle.svg",
+    "png_default_128": "png/default/128/drag_handle.png",
+    "png_hover_128": "png/hover/128/drag_handle.png",
+    "png_default_256": "png/default/256/drag_handle.png",
+    "png_hover_256": "png/hover/256/drag_handle.png"
+  }
+]

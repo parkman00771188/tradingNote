@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<defs>
+  <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#2B7BFF" flood-opacity="0.16"/>
+  </filter>
+</defs>
+  <rect x="24" y="43" width="80" height="42" rx="21" fill="#EEF5FF" stroke="#FFFFFF" stroke-width="1.5" filter="url(#softShadow)"/>
+  <rect x="40" y="59" width="48" height="10" rx="5" fill="#1F6EEF" stroke="#1F6EEF" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

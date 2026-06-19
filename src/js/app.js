@@ -1023,7 +1023,7 @@ function renderModal() {
   `;
 }
 
-function renderMobileSheet() {
+function renderMobileSheetLegacy() {
   const sheetRoot = document.querySelector("#mobileSheetRoot");
   if (!sheetRoot) return;
 
@@ -1078,6 +1078,78 @@ function renderMobileSheet() {
           `).join("")}
         </div>
         <button class="mobile-logout" type="button" data-route="landing">${icon("logout")}로그아웃</button>
+      </section>
+    </div>
+  `;
+}
+
+const mobileMoreIconBase = "src/resources/assets/icon_assets/svg/default";
+
+function mobileMoreIcon(slug, className = "") {
+  return `<img class="${className}" src="${mobileMoreIconBase}/${slug}.svg" alt="" aria-hidden="true" loading="lazy">`;
+}
+
+function renderMobileSheet() {
+  const sheetRoot = document.querySelector("#mobileSheetRoot");
+  if (!sheetRoot) return;
+
+  if (!mobileSheetOpen) {
+    sheetRoot.innerHTML = "";
+    if (!activeModal && document.body) document.body.classList.remove("modal-open");
+    return;
+  }
+
+  if (document.body) document.body.classList.add("modal-open");
+
+  const quickItems = [
+    ["dashboard", "dashboard_home", "대시보드"],
+    ["journal", "trading_journal", "매매일지"],
+    ["stock", "stock_analysis", "종목 분석"],
+    ["assets", "asset_status", "자산 현황"],
+    ["memo", "memo", "메모"],
+    ["calendar", "calendar", "캘린더"],
+    ["settings", "settings", "설정"],
+    ["performance", "report_chart", "리포트"]
+  ];
+  const supportItems = [
+    ["tag_management", "태그 관리"],
+    ["data_backup", "데이터 백업"],
+    ["report_document", "리포트"],
+    ["customer_center", "고객센터"]
+  ];
+
+  sheetRoot.innerHTML = `
+    <div class="mobile-sheet-backdrop" data-mobile-sheet-close>
+      <section class="mobile-more-sheet" role="dialog" aria-modal="true" aria-label="더보기 메뉴">
+        <span class="mobile-sheet-handle" aria-hidden="true">${mobileMoreIcon("drag_handle")}</span>
+        <button class="mobile-sheet-close" type="button" data-mobile-sheet-close aria-label="닫기">${mobileMoreIcon("close")}</button>
+        <div class="mobile-profile-row">
+          <span class="mobile-profile-avatar">${mobileMoreIcon("profile_avatar")}</span>
+          <div>
+            <strong>투자자</strong>
+            <p>investor@example.com</p>
+          </div>
+          <button class="mobile-my-info" type="button">내 정보</button>
+        </div>
+        <div class="mobile-more-grid">
+          ${quickItems.map(([route, iconSlug, label]) => `
+            <button type="button" data-route="${route}">
+              <span>${mobileMoreIcon(iconSlug)}</span>
+              <strong>${label}</strong>
+            </button>
+          `).join("")}
+          ${supportItems.map(([iconSlug, label]) => `
+            <button type="button">
+              <span>${mobileMoreIcon(iconSlug)}</span>
+              <strong>${label}</strong>
+            </button>
+          `).join("")}
+        </div>
+        <button class="mobile-logout" type="button" data-route="landing">
+          ${mobileMoreIcon("logout")}
+          <strong>로그아웃</strong>
+        </button>
+        <span class="mobile-sheet-home-indicator" aria-hidden="true"></span>
       </section>
     </div>
   `;

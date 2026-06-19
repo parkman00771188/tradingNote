@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<defs>
+  <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#2B7BFF" flood-opacity="0.16"/>
+  </filter>
+</defs>
+  <rect x="12" y="12" width="104" height="104" rx="28" fill="#EEF5FF" stroke="#FFFFFF" stroke-width="1.5" filter="url(#softShadow)"/>
+  <path d="M43 78 H85 C80 70 82 58 82 53 C82 43 74 34 64 34 C54 34 46 43 46 53 C46 58 48 70 43 78 Z" fill="none" stroke="#1F6EEF" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M55 82 C58 91 70 91 73 82" fill="none" stroke="#1F6EEF" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M59 34 C60 29 68 29 69 34" fill="none" stroke="#1F6EEF" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
