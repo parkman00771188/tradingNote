@@ -1259,14 +1259,8 @@ function renderMobileSheetLegacy() {
     ["assets", "wallet", "자산 현황"],
     ["memo", "memo", "메모"],
     ["calendar", "calendar", "캘린더"],
-    ["settings", "settings", "설정"],
-    ["performance", "performance", "리포트"]
-  ];
-  const supportItems = [
-    ["tag", "태그 관리"],
-    ["cloud", "데이터 백업"],
-    ["report", "리포트"],
-    ["headset", "고객센터"]
+    ["performance", "performance", "리포트"],
+    ["settings", "settings", "설정"]
   ];
 
   sheetRoot.innerHTML = `
@@ -1284,12 +1278,6 @@ function renderMobileSheetLegacy() {
         <div class="mobile-more-grid">
           ${quickItems.map(([route, iconName, label]) => `
             <button type="button" data-route="${route}">
-              <span>${icon(iconName)}</span>
-              <strong>${label}</strong>
-            </button>
-          `).join("")}
-          ${supportItems.map(([iconName, label]) => `
-            <button type="button">
               <span>${icon(iconName)}</span>
               <strong>${label}</strong>
             </button>
@@ -1326,14 +1314,8 @@ function renderMobileSheet() {
     ["assets", "asset_status", "자산 현황"],
     ["memo", "memo", "메모"],
     ["calendar", "calendar", "캘린더"],
-    ["settings", "settings", "설정"],
-    ["performance", "report_chart", "리포트"]
-  ];
-  const supportItems = [
-    ["tag_management", "태그 관리"],
-    ["data_backup", "데이터 백업"],
-    ["report_document", "리포트"],
-    ["customer_center", "고객센터"]
+    ["performance", "report_chart", "리포트"],
+    ["settings", "settings", "설정"]
   ];
 
   sheetRoot.innerHTML = `
@@ -1352,12 +1334,6 @@ function renderMobileSheet() {
         <div class="mobile-more-grid">
           ${quickItems.map(([route, iconSlug, label]) => `
             <button type="button" data-route="${route}">
-              <span>${mobileMoreIcon(iconSlug)}</span>
-              <strong>${label}</strong>
-            </button>
-          `).join("")}
-          ${supportItems.map(([iconSlug, label]) => `
-            <button type="button">
               <span>${mobileMoreIcon(iconSlug)}</span>
               <strong>${label}</strong>
             </button>
