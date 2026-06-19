@@ -761,6 +761,7 @@
     width: var(--asset-settings-dot-track-width, 130px);
   }
 
+  .asset-settings-dot-track,
   .asset-settings-dot-active {
     transition-duration: 0.1s;
   }

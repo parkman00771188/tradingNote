@@ -557,13 +557,26 @@ function getAssetSettingsDotTrackWidth(visibleCount) {
   return assetSettingsDotActiveWidth + Math.max(visibleCount - 1, 0) * getAssetSettingsDotStep();
 }
 
+function getAssetSettingsDotFullTrackWidth(total) {
+  if (!total) return 0;
+  return assetSettingsDotActiveWidth + Math.max(total - 1, 0) * getAssetSettingsDotStep();
+}
+
+function getAssetSettingsDotTrackX(total, activeIndex) {
+  const visibleCount = getAssetSettingsVisibleDotCount(total);
+  if (total <= visibleCount || total <= 1) return 0;
+
+  const safeIndex = Math.min(Math.max(activeIndex, 0), total - 1);
+  const maxTrackX = (total - visibleCount) * getAssetSettingsDotStep();
+  return (safeIndex / (total - 1)) * maxTrackX;
+}
+
 function getAssetSettingsDotActiveX(total, activeIndex) {
   const visibleCount = getAssetSettingsVisibleDotCount(total);
   if (total <= 1 || visibleCount <= 1) return 0;
 
   const safeIndex = Math.min(Math.max(activeIndex, 0), total - 1);
-  const progress = safeIndex / (total - 1);
-  return progress * (visibleCount - 1) * getAssetSettingsDotStep();
+  return safeIndex * getAssetSettingsDotStep() - getAssetSettingsDotTrackX(total, safeIndex);
 }
 
 function getAssetSettingsScrollIndex(cards, slideCards) {
@@ -596,11 +609,15 @@ function getAssetSettingsScrollIndex(cards, slideCards) {
 function updateAssetSettingsDotElement(dots, total, activeIndex) {
   const visibleCount = getAssetSettingsVisibleDotCount(total);
   const activeX = getAssetSettingsDotActiveX(total, activeIndex);
+  const trackX = getAssetSettingsDotTrackX(total, activeIndex);
+  const maxTrackX = Math.max(0, (total - visibleCount) * getAssetSettingsDotStep());
 
   dots.style.setProperty("--asset-settings-dot-track-width", `${getAssetSettingsDotTrackWidth(visibleCount)}px`);
+  dots.style.setProperty("--asset-settings-dot-full-width", `${getAssetSettingsDotFullTrackWidth(total)}px`);
+  dots.style.setProperty("--asset-settings-dot-track-x", `${(-trackX).toFixed(2)}px`);
   dots.style.setProperty("--asset-settings-dot-active-x", `${activeX.toFixed(2)}px`);
-  dots.classList.toggle("has-left-overflow", total > visibleCount && activeIndex > 0.04);
-  dots.classList.toggle("has-right-overflow", total > visibleCount && activeIndex < total - 1.04);
+  dots.classList.toggle("has-left-overflow", total > visibleCount && trackX > 0.4);
+  dots.classList.toggle("has-right-overflow", total > visibleCount && trackX < maxTrackX - 0.4);
 }
 
 function renderAssetSettingsSlideDots(total, activeIndex) {
@@ -617,13 +634,15 @@ function renderAssetSettingsSlideDots(total, activeIndex) {
     safeTotal > visibleCount && safeActiveIndex < safeTotal - 1 ? "has-right-overflow" : ""
   ].filter(Boolean).join(" ");
   const trackWidth = getAssetSettingsDotTrackWidth(visibleCount);
+  const fullTrackWidth = getAssetSettingsDotFullTrackWidth(safeTotal);
+  const trackX = getAssetSettingsDotTrackX(safeTotal, safeActiveIndex);
   const activeX = getAssetSettingsDotActiveX(safeTotal, safeActiveIndex);
 
   return `
-    <div class="${classes}" style="--asset-settings-dot-track-width: ${trackWidth}px; --asset-settings-dot-active-x: ${activeX.toFixed(2)}px;" aria-hidden="true">
+    <div class="${classes}" style="--asset-settings-dot-track-width: ${trackWidth}px; --asset-settings-dot-full-width: ${fullTrackWidth}px; --asset-settings-dot-track-x: ${(-trackX).toFixed(2)}px; --asset-settings-dot-active-x: ${activeX.toFixed(2)}px;" aria-hidden="true">
       <div class="asset-settings-dot-window">
         <div class="asset-settings-dot-track">
-          ${Array.from({ length: visibleCount }, () => "<span></span>").join("")}
+          ${Array.from({ length: safeTotal }, () => "<span></span>").join("")}
         </div>
         <span class="asset-settings-dot-active"></span>
       </div>

@@ -3752,7 +3752,11 @@ body.modal-open {
   display: flex;
   align-items: center;
   gap: var(--asset-settings-dot-gap);
+  width: var(--asset-settings-dot-full-width, var(--asset-settings-dot-track-width, 130px));
   padding-inline: var(--asset-settings-dot-offset);
+  transform: translate3d(var(--asset-settings-dot-track-x, 0px), 0, 0);
+  transition: transform 0.12s ease-out;
+  will-change: transform;
 }
 
 .asset-settings-slide-dots.has-left-overflow .asset-settings-dot-window {
@@ -3794,6 +3798,7 @@ body.modal-open {
   position: absolute;
   top: 50%;
   left: 0;
+  z-index: 1;
   width: var(--asset-settings-dot-active-width);
   height: var(--asset-settings-dot-size);
   background: var(--blue);
