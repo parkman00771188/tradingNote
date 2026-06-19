@@ -4,7 +4,7 @@ body[data-route="landing"] {
   overflow-x: hidden;
   overflow-x: clip;
   overscroll-behavior-x: none;
-  background: #ffffff;
+  background: #07152e;
 }
 
 body[data-route="landing"] .app-shell {
@@ -28,7 +28,7 @@ body[data-route="landing"] .main {
   padding: 0;
   overflow-x: hidden;
   overflow-x: clip;
-  background: #ffffff;
+  background: #07152e;
 }
 
 body[data-route="landing"] .page-content {
@@ -37,6 +37,7 @@ body[data-route="landing"] .page-content {
   margin: 0;
   overflow-x: hidden;
   overflow-x: clip;
+  background: #07152e;
 }
 
 .landing-page {
@@ -610,15 +611,6 @@ body[data-route="landing"] .page-content {
   height: auto;
 }
 
-.landing-footer p {
-  max-width: 430px;
-  margin: 28px 0 0;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 18px;
-  line-height: 1.45;
-  font-weight: 850;
-}
-
 .landing-footer nav {
   display: flex;
   flex-wrap: wrap;
@@ -629,6 +621,7 @@ body[data-route="landing"] .page-content {
 
 .landing-footer button {
   color: rgba(255, 255, 255, 0.62);
+  font-weight: 650;
 }
 
 .landing-reveal {

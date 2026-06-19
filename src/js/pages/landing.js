@@ -190,7 +190,6 @@ function renderLanding() {
         <div class="landing-footer-inner">
           <div>
             <img src="${landingAssets.logoWhite}" alt="Trading Note">
-            <p>Record better. Review clearer. Invest with your own rules.</p>
           </div>
           <nav aria-label="하단 메뉴">
             <button type="button" data-landing-scroll="landing-record">투자 기록</button>
