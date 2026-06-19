@@ -745,6 +745,7 @@
   }
 
   .asset-settings-slide-dots {
+    --asset-settings-dot-fade: 25px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -759,21 +760,6 @@
   .asset-settings-dot-window {
     gap: 10px;
     max-width: 154px;
-  }
-
-  .asset-settings-slide-dots.has-left-overflow::before,
-  .asset-settings-slide-dots.has-right-overflow::after {
-    top: 10px;
-    bottom: 8px;
-    width: 30px;
-  }
-
-  .asset-settings-slide-dots.has-left-overflow::before {
-    left: calc(50% - 90px);
-  }
-
-  .asset-settings-slide-dots.has-right-overflow::after {
-    right: calc(50% - 90px);
   }
 
   .asset-settings-dot-window span {
@@ -942,6 +928,7 @@
     }
 
     .asset-settings-slide-dots {
+      --asset-settings-dot-fade: 22px;
       min-height: 34px;
       padding: 9px 0 7px;
     }
@@ -949,21 +936,6 @@
     .asset-settings-dot-window {
       gap: 9px;
       max-width: 137px;
-    }
-
-    .asset-settings-slide-dots.has-left-overflow::before,
-    .asset-settings-slide-dots.has-right-overflow::after {
-      top: 7px;
-      bottom: 5px;
-      width: 26px;
-    }
-
-    .asset-settings-slide-dots.has-left-overflow::before {
-      left: calc(50% - 80px);
-    }
-
-    .asset-settings-slide-dots.has-right-overflow::after {
-      right: calc(50% - 80px);
     }
 
     .asset-settings-dot-window span {
