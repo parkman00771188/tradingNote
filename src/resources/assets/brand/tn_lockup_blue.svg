@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="430" height="112" viewBox="0 0 430 112">
+  <g fill="none" stroke="#2B80FC" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" transform="translate(4 5) scale(.12)">
+    <path d="M145 40 V680 M35 150 H300"/>
+    <path d="M395 680 V325 C395 205 475 145 575 145 C675 145 755 205 755 325 V680"/>
+  </g>
+  <g fill="#2B80FC" font-family="Arial, sans-serif" font-weight="700" letter-spacing="5">
+    <text x="128" y="43" font-size="22">TRADING</text>
+    <text x="128" y="75" font-size="22">NOTE</text>
+  </g>
+</svg>
