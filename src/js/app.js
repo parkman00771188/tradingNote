@@ -885,9 +885,21 @@ function getAssetSettingsSlideCards(cards) {
   return Array.from(cards?.querySelectorAll(".asset-settings-display-card") || []);
 }
 
+function getAssetSettingsCardLayoutLeft(cards, card) {
+  if (card.offsetParent === cards) return card.offsetLeft;
+  if (card.offsetParent && card.offsetParent === cards.offsetParent) {
+    return card.offsetLeft - cards.offsetLeft;
+  }
+
+  const cardsRect = cards.getBoundingClientRect();
+  const cardRect = card.getBoundingClientRect();
+  return cards.scrollLeft + cardRect.left - cardsRect.left;
+}
+
 function centerAssetSettingsCard(cards, card, behavior = "auto") {
   if (!cards || !card) return;
-  const targetLeft = card.offsetLeft - (cards.clientWidth - card.offsetWidth) / 2;
+  const cardLeft = getAssetSettingsCardLayoutLeft(cards, card);
+  const targetLeft = cardLeft - (cards.clientWidth - card.offsetWidth) / 2;
   const maxLeft = Math.max(0, cards.scrollWidth - cards.clientWidth);
   cards.scrollTo({
     left: Math.min(Math.max(targetLeft, 0), maxLeft),
