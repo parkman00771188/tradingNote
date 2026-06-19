@@ -32,6 +32,9 @@ var assetSettingsOpenMenuId = null;
 var assetSettingsEditingId = null;
 var assetSettingsActiveIndex = 0;
 var assetSettingsSlideFrame = null;
+var assetSettingsMotion = null;
+var assetSettingsMotionTimer = 0;
+var assetSettingsPendingRemoveId = null;
 const assetSettingsVisibleDotLimit = 5;
 const assetSettingsDotSize = 10;
 const assetSettingsDotGap = 14;
@@ -312,6 +315,8 @@ function beginAssetSettingsEdit() {
   assetSettingsOpenMenuId = null;
   assetSettingsEditingId = null;
   assetSettingsActiveIndex = 0;
+  assetSettingsMotion = null;
+  assetSettingsPendingRemoveId = null;
 }
 
 function cancelAssetSettingsEdit() {
@@ -320,6 +325,10 @@ function cancelAssetSettingsEdit() {
   assetSettingsOpenMenuId = null;
   assetSettingsEditingId = null;
   assetSettingsActiveIndex = 0;
+  assetSettingsMotion = null;
+  assetSettingsPendingRemoveId = null;
+  if (assetSettingsMotionTimer) window.clearTimeout(assetSettingsMotionTimer);
+  assetSettingsMotionTimer = 0;
 }
 
 function addAssetSettingsDraft() {
@@ -329,6 +338,11 @@ function addAssetSettingsDraft() {
   assetSettingsOpenMenuId = null;
   assetSettingsEditingId = draft.id;
   assetSettingsActiveIndex = assetSettingsDrafts.length - 1;
+  assetSettingsMotion = {
+    type: "add",
+    id: draft.id,
+    adjacentIndex: Math.max(assetSettingsDrafts.length - 2, 0)
+  };
 }
 
 function removeAssetSettingsDraft(rowId) {
@@ -342,6 +356,7 @@ function removeAssetSettingsDraft(rowId) {
     assetSettingsDrafts.push(draft);
     assetSettingsEditingId = draft.id;
     assetSettingsActiveIndex = 0;
+    assetSettingsMotion = { type: "add", id: draft.id, adjacentIndex: 0 };
     return;
   }
   if (removedIndex >= 0 && removedIndex < assetSettingsActiveIndex) {
@@ -349,8 +364,12 @@ function removeAssetSettingsDraft(rowId) {
   }
   assetSettingsActiveIndex = Math.min(assetSettingsActiveIndex, assetSettingsDrafts.length - 1);
   if (wasEditing || !assetSettingsEditingId) {
-    assetSettingsEditingId = assetSettingsDrafts[0]?.id || null;
+    assetSettingsEditingId = assetSettingsDrafts[Math.min(Math.max(removedIndex, 0), assetSettingsDrafts.length - 1)]?.id || null;
   }
+  assetSettingsMotion = {
+    type: "remove",
+    settleIndex: Math.min(Math.max(removedIndex, 0), assetSettingsDrafts.length - 1)
+  };
 }
 
 function updateAssetSettingsDraft(rowId, field, value) {
@@ -399,6 +418,40 @@ function normalizeAssetSettingsRow(item) {
     currentPrice,
     priceInputMode: mode
   };
+}
+
+function getAssetSettingsCardMotionClass(item, index) {
+  if (!assetSettingsMotion) return "";
+  const classes = [];
+
+  if (assetSettingsMotion.type === "add") {
+    if (assetSettingsMotion.id === item.id) classes.push("is-entering");
+    if (index === assetSettingsMotion.adjacentIndex) classes.push("is-pushed");
+  }
+
+  if (assetSettingsMotion.type === "remove" && index >= assetSettingsMotion.settleIndex) {
+    classes.push("is-settling");
+  }
+
+  return classes.join(" ");
+}
+
+function clearAssetSettingsMotionClasses(root = document) {
+  const cards = root.querySelector(".asset-settings-cards");
+  cards?.removeAttribute("data-motion");
+  root.querySelectorAll(".asset-settings-display-card").forEach((card) => {
+    card.classList.remove("is-entering", "is-pushed", "is-removing", "is-settling", "is-remove-neighbor");
+  });
+}
+
+function scheduleAssetSettingsMotionClear() {
+  if (!assetSettingsMotion) return;
+  if (assetSettingsMotionTimer) window.clearTimeout(assetSettingsMotionTimer);
+  assetSettingsMotionTimer = window.setTimeout(() => {
+    assetSettingsMotion = null;
+    assetSettingsMotionTimer = 0;
+    clearAssetSettingsMotionClasses();
+  }, shouldReduceMotion() ? 0 : 620);
 }
 
 function applyAssetSettingsEdit() {
@@ -591,9 +644,10 @@ function renderAssetSettingsCardView(item, index) {
   const isEditing = assetSettingsEditingId === item.id;
   const readOnlyAttr = isEditing ? "" : `readonly aria-readonly="true" tabindex="-1"`;
   const categoryLabel = "국내 주식";
+  const motionClass = getAssetSettingsCardMotionClass(item, index);
 
   return `
-    <article class="asset-settings-card asset-settings-display-card ${isEditing ? "is-editing" : ""}" data-asset-setting-card="${item.id}">
+    <article class="asset-settings-card asset-settings-display-card ${isEditing ? "is-editing" : ""} ${motionClass}" data-asset-setting-card="${item.id}">
       <button class="mini-action asset-settings-menu" type="button" data-asset-settings-menu="${item.id}" aria-label="자산 메뉴" aria-expanded="${assetSettingsOpenMenuId === item.id ? "true" : "false"}">${icon("more")}</button>
       ${
         assetSettingsOpenMenuId === item.id
@@ -763,6 +817,8 @@ function renderAssetSettingsModalCardView() {
   const drafts = assetSettingsDrafts;
   const canAdd = true;
   const activeDotIndex = Math.min(Math.max(assetSettingsActiveIndex, 0), Math.max(drafts.length - 1, 0));
+  const hasMultipleCards = drafts.length > 1;
+  const motionAttr = assetSettingsMotion ? ` data-motion="${assetSettingsMotion.type}"` : "";
   const tabs = [
     ["모든 자산", drafts.length, true, ""],
     ["국내 주식", "", false, ""],
@@ -800,7 +856,7 @@ function renderAssetSettingsModalCardView() {
             </div>
           </div>
 
-          <div class="asset-settings-cards" aria-label="자산 설정 카드 목록">
+          <div class="asset-settings-cards" aria-label="자산 설정 카드 목록"${motionAttr}>
             ${drafts.map((item, index) => renderAssetSettingsCardView(item, index)).join("")}
             ${
               canAdd
@@ -811,6 +867,12 @@ function renderAssetSettingsModalCardView() {
                 : ""
             }
           </div>
+          ${
+            hasMultipleCards
+              ? `<button class="asset-settings-slide-nav prev" type="button" data-asset-settings-slide="prev" aria-label="이전 자산" ${activeDotIndex <= 0 ? "disabled" : ""}>${icon("chevronLeft")}</button>
+                <button class="asset-settings-slide-nav next" type="button" data-asset-settings-slide="next" aria-label="다음 자산" ${activeDotIndex >= drafts.length - 1 ? "disabled" : ""}>${icon("chevronRight")}</button>`
+              : ""
+          }
           ${renderAssetSettingsSlideDots(drafts.length, activeDotIndex)}
         </div>
       </section>
@@ -822,17 +884,31 @@ function getAssetSettingsSlideCards(cards) {
   return Array.from(cards?.querySelectorAll(".asset-settings-display-card") || []);
 }
 
+function updateAssetSettingsSlideNavButtons(cards, activeIndex = assetSettingsActiveIndex) {
+  const slideCards = getAssetSettingsSlideCards(cards);
+  const total = slideCards.length;
+  document.querySelectorAll("[data-asset-settings-slide]").forEach((button) => {
+    const direction = button.dataset.assetSettingsSlide;
+    const disabled = total <= 1 ||
+      (direction === "prev" && activeIndex <= 0.2) ||
+      (direction === "next" && activeIndex >= total - 1.2);
+    button.disabled = disabled;
+    button.setAttribute("aria-disabled", disabled ? "true" : "false");
+  });
+}
+
 function updateAssetSettingsSlideDots(cards) {
   const slideCards = getAssetSettingsSlideCards(cards);
   if (!slideCards.length) {
     assetSettingsActiveIndex = 0;
+    updateAssetSettingsSlideNavButtons(cards, 0);
     return;
   }
   const scrollIndex = getAssetSettingsScrollIndex(cards, slideCards);
   assetSettingsActiveIndex = Math.min(Math.max(Math.round(scrollIndex), 0), slideCards.length - 1);
   const dots = document.querySelector(".asset-settings-slide-dots");
-  if (!dots) return;
-  updateAssetSettingsDotElement(dots, slideCards.length, scrollIndex);
+  if (dots) updateAssetSettingsDotElement(dots, slideCards.length, scrollIndex);
+  updateAssetSettingsSlideNavButtons(cards, scrollIndex);
 }
 
 function syncAssetSettingsActiveIndexFromDom() {
@@ -848,8 +924,10 @@ function hydrateAssetSettingsSlider() {
   if (!slideCards.length) return;
   assetSettingsActiveIndex = Math.min(Math.max(assetSettingsActiveIndex, 0), slideCards.length - 1);
   window.requestAnimationFrame(() => {
-    slideCards[assetSettingsActiveIndex]?.scrollIntoView({ behavior: "auto", block: "nearest", inline: "start" });
+    const behavior = assetSettingsMotion?.type === "add" && !shouldReduceMotion() ? "smooth" : "auto";
+    slideCards[assetSettingsActiveIndex]?.scrollIntoView({ behavior, block: "nearest", inline: "start" });
     updateAssetSettingsSlideDots(cards);
+    scheduleAssetSettingsMotionClear();
   });
   cards.addEventListener("scroll", () => {
     if (assetSettingsSlideFrame) window.cancelAnimationFrame(assetSettingsSlideFrame);
@@ -858,6 +936,51 @@ function hydrateAssetSettingsSlider() {
       updateAssetSettingsSlideDots(cards);
     });
   }, { passive: true });
+}
+
+function scrollAssetSettingsCards(direction) {
+  const cards = document.querySelector(".asset-settings-cards");
+  const slideCards = getAssetSettingsSlideCards(cards);
+  if (!cards || slideCards.length <= 1) return;
+
+  const currentIndex = Math.min(Math.max(Math.round(getAssetSettingsScrollIndex(cards, slideCards)), 0), slideCards.length - 1);
+  const nextIndex = Math.min(Math.max(currentIndex + (direction === "prev" ? -1 : 1), 0), slideCards.length - 1);
+  assetSettingsActiveIndex = nextIndex;
+  slideCards[nextIndex]?.scrollIntoView({
+    behavior: shouldReduceMotion() ? "auto" : "smooth",
+    block: "nearest",
+    inline: "start"
+  });
+  updateAssetSettingsSlideDots(cards);
+}
+
+function animateAssetSettingsRemoval(rowId) {
+  if (assetSettingsPendingRemoveId) return;
+
+  const card = document.querySelector(`[data-asset-setting-card="${rowId}"]`);
+  const cards = card?.closest(".asset-settings-cards");
+
+  if (!card || shouldReduceMotion()) {
+    removeAssetSettingsDraft(rowId);
+    renderModal();
+    hydrateIcons(document);
+    return;
+  }
+
+  assetSettingsPendingRemoveId = rowId;
+  cards?.setAttribute("data-motion", "remove");
+  card.classList.add("is-removing");
+  cards?.querySelectorAll(".asset-settings-display-card:not(.is-removing)").forEach((item) => {
+    item.classList.add("is-remove-neighbor");
+  });
+
+  window.setTimeout(() => {
+    if (assetSettingsPendingRemoveId !== rowId) return;
+    assetSettingsPendingRemoveId = null;
+    removeAssetSettingsDraft(rowId);
+    renderModal();
+    hydrateIcons(document);
+  }, 240);
 }
 
 function renderAssetCashModal() {
@@ -1459,6 +1582,12 @@ document.addEventListener("click", (event) => {
       return;
     }
 
+    const assetSettingsSlide = event.target.closest("[data-asset-settings-slide]");
+    if (assetSettingsSlide && activeModal === "assetSettings") {
+      scrollAssetSettingsCards(assetSettingsSlide.dataset.assetSettingsSlide);
+      return;
+    }
+
     const assetSettingsAdd = event.target.closest("[data-asset-settings-add]");
     if (assetSettingsAdd && activeModal === "assetSettings") {
       addAssetSettingsDraft();
@@ -1493,9 +1622,7 @@ document.addEventListener("click", (event) => {
     const assetSettingsRemove = event.target.closest("[data-asset-settings-remove]");
     if (assetSettingsRemove && activeModal === "assetSettings") {
       syncAssetSettingsActiveIndexFromDom();
-      removeAssetSettingsDraft(assetSettingsRemove.dataset.assetSettingsRemove);
-      renderModal();
-      hydrateIcons(document);
+      animateAssetSettingsRemoval(assetSettingsRemove.dataset.assetSettingsRemove);
       return;
     }
 

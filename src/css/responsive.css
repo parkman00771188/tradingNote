@@ -604,6 +604,10 @@
     min-height: 0;
   }
 
+  .asset-settings-slide-nav {
+    display: none;
+  }
+
   .asset-settings-menu {
     top: 24px;
     right: 24px;
