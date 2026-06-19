@@ -975,8 +975,8 @@ function hydrateAssetSettingsSlider() {
   const slideCards = getAssetSettingsSlideCards(cards);
   if (!slideCards.length) return;
   assetSettingsActiveIndex = Math.min(Math.max(assetSettingsActiveIndex, 0), slideCards.length - 1);
+  centerAssetSettingsCard(cards, slideCards[assetSettingsActiveIndex], "auto");
   window.requestAnimationFrame(() => {
-    centerAssetSettingsCard(cards, slideCards[assetSettingsActiveIndex], assetSettingsMotion ? "smooth" : "auto");
     updateAssetSettingsSlideDots(cards);
     scheduleAssetSettingsMotionClear();
   });

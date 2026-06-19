@@ -4129,58 +4129,58 @@ body.modal-open {
 @keyframes assetSettingsCardEnter {
   0% {
     opacity: 0;
-    transform: translate3d(42px, 0, 0) scale(0.982);
+    transform: scale(0.982);
     box-shadow: 0 16px 36px rgba(15, 23, 42, 0);
   }
   46% {
     opacity: 0.9;
-    transform: translate3d(12px, 0, 0) scale(0.994);
+    transform: scale(0.994);
     box-shadow: 0 20px 46px rgba(36, 116, 242, 0.08);
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: scale(1);
     box-shadow: none;
   }
 }
 
 @keyframes assetSettingsCardPush {
   0% {
-    transform: translate3d(24px, 0, 0) scale(0.992);
+    transform: scale(0.996);
   }
   100% {
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: scale(1);
   }
 }
 
 @keyframes assetSettingsCardExit {
   0% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: scale(1);
   }
   100% {
     opacity: 0;
-    transform: translate3d(-44px, 0, 0) scale(0.965);
+    transform: scale(0.982);
   }
 }
 
 @keyframes assetSettingsCardHold {
   0% {
-    transform: translate3d(0, 0, 0);
+    transform: scale(1);
   }
   100% {
-    transform: translate3d(24px, 0, 0);
+    transform: scale(0.998);
   }
 }
 
 @keyframes assetSettingsCardSettle {
   0% {
     opacity: 0.92;
-    transform: translate3d(24px, 0, 0) scale(0.992);
+    transform: scale(0.992);
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: scale(1);
   }
 }
 
