@@ -18,6 +18,7 @@ var pinnedChartTooltipTarget = null;
 var chartTooltipPointerTapTarget = null;
 var chartTooltipPositionFrame = 0;
 var fitMetricValueFrame = 0;
+var mobileViewportInsetFrame = 0;
 var assetCashBalance = 8480000;
 var assetCashMode = "deposit";
 var assetCashError = "";
@@ -89,6 +90,22 @@ function scheduleFitValueText(root = document) {
   fitMetricValueFrame = requestAnimationFrame(() => {
     fitMetricValueFrame = 0;
     fitValueText(root);
+  });
+}
+
+function updateMobileViewportInset() {
+  const viewport = window.visualViewport;
+  const bottomInset = viewport
+    ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+    : 0;
+  document.documentElement.style.setProperty("--mobile-browser-bottom-offset", `${Math.min(Math.round(bottomInset), 120)}px`);
+}
+
+function scheduleMobileViewportInset() {
+  if (mobileViewportInsetFrame) cancelAnimationFrame(mobileViewportInsetFrame);
+  mobileViewportInsetFrame = requestAnimationFrame(() => {
+    mobileViewportInsetFrame = 0;
+    updateMobileViewportInset();
   });
 }
 
@@ -2013,5 +2030,9 @@ document.addEventListener("scroll", schedulePinnedChartTooltipPosition, { captur
 window.addEventListener("resize", () => {
   scheduleFitValueText();
   schedulePinnedChartTooltipPosition();
+  scheduleMobileViewportInset();
 });
+window.visualViewport?.addEventListener("resize", scheduleMobileViewportInset, { passive: true });
+window.visualViewport?.addEventListener("scroll", scheduleMobileViewportInset, { passive: true });
+updateMobileViewportInset();
 render();
