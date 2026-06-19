@@ -3461,6 +3461,8 @@ body.modal-open {
 }
 
 .asset-settings-cards {
+  --asset-settings-card-width: min(660px, calc(100% - 116px));
+  --asset-settings-card-edge: max(28px, calc((100% - var(--asset-settings-card-width)) / 2));
   display: flex;
   grid-row: 1 / 2;
   gap: 28px;
@@ -3468,10 +3470,10 @@ body.modal-open {
   min-height: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 52px 28px 28px;
+  padding: 52px var(--asset-settings-card-edge) 28px;
   background: transparent;
   overscroll-behavior-x: contain;
-  scroll-padding: 28px;
+  scroll-padding: 0 var(--asset-settings-card-edge);
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
 }
@@ -3484,14 +3486,14 @@ body.modal-open {
   position: relative;
   display: flex;
   flex-direction: column;
-  flex: 0 0 min(660px, calc(100% - 116px));
+  flex: 0 0 var(--asset-settings-card-width);
   min-height: 600px;
   padding: 42px 48px 38px;
   background: #ffffff;
   border: 1px solid #edf1f6;
   border-radius: 28px;
   box-shadow: none;
-  scroll-snap-align: start;
+  scroll-snap-align: center;
 }
 
 .asset-settings-cards[data-motion="add"] .asset-settings-display-card.is-entering {
@@ -3949,11 +3951,11 @@ body.modal-open {
 }
 
 .asset-settings-add-card {
-  flex: 0 0 min(660px, calc(100% - 116px));
+  flex: 0 0 var(--asset-settings-card-width);
   min-height: 600px;
   border-radius: 28px;
   box-shadow: none;
-  scroll-snap-align: start;
+  scroll-snap-align: center;
 }
 
 .asset-settings-savebar {

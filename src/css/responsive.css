@@ -373,11 +373,13 @@
   }
 
   .asset-settings-cards {
+    --asset-settings-card-width: min(82vw, 304px);
+    --asset-settings-card-edge: max(14px, calc((100% - var(--asset-settings-card-width)) / 2));
     display: flex;
     gap: 14px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
-    scroll-padding: 2px;
+    scroll-padding: 0 var(--asset-settings-card-edge);
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
   }
@@ -388,9 +390,9 @@
 
   .asset-settings-card,
   .asset-settings-add-card {
-    flex: 0 0 min(82vw, 304px);
+    flex: 0 0 var(--asset-settings-card-width);
     min-height: 420px;
-    scroll-snap-align: start;
+    scroll-snap-align: center;
   }
 
   .asset-settings-card {
@@ -566,6 +568,8 @@
   }
 
   .asset-settings-cards {
+    --asset-settings-card-width: calc(100% - 52px);
+    --asset-settings-card-edge: 26px;
     display: flex;
     grid-row: 1 / 2;
     align-self: stretch;
@@ -575,9 +579,9 @@
     min-height: 0;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 18px 18px 6px;
+    padding: 18px var(--asset-settings-card-edge) 6px;
     background: transparent;
-    scroll-padding: 18px;
+    scroll-padding: 0 var(--asset-settings-card-edge);
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
   }
@@ -588,8 +592,8 @@
 
   .asset-settings-card,
   .asset-settings-add-card {
-    flex: 0 0 calc(100% - 52px);
-    scroll-snap-align: start;
+    flex: 0 0 var(--asset-settings-card-width);
+    scroll-snap-align: center;
   }
 
   .asset-settings-display-card {
@@ -838,14 +842,16 @@
     }
 
     .asset-settings-cards {
+      --asset-settings-card-width: calc(100% - 44px);
+      --asset-settings-card-edge: 22px;
       gap: 18px;
-      padding: 10px 14px 4px;
-      scroll-padding: 14px;
+      padding: 10px var(--asset-settings-card-edge) 4px;
+      scroll-padding: 0 var(--asset-settings-card-edge);
     }
 
     .asset-settings-card,
     .asset-settings-add-card {
-      flex-basis: calc(100% - 44px);
+      flex-basis: var(--asset-settings-card-width);
     }
 
     .asset-settings-add-card {

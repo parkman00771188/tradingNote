@@ -333,15 +333,16 @@ function cancelAssetSettingsEdit() {
 
 function addAssetSettingsDraft() {
   const draft = createAssetSettingsDraft();
-  assetSettingsDrafts.push(draft);
+  const insertIndex = Math.min(Math.max(assetSettingsActiveIndex + 1, 0), assetSettingsDrafts.length);
+  assetSettingsDrafts.splice(insertIndex, 0, draft);
   assetSettingsError = "";
   assetSettingsOpenMenuId = null;
   assetSettingsEditingId = draft.id;
-  assetSettingsActiveIndex = assetSettingsDrafts.length - 1;
+  assetSettingsActiveIndex = insertIndex;
   assetSettingsMotion = {
     type: "add",
     id: draft.id,
-    adjacentIndex: Math.max(assetSettingsDrafts.length - 2, 0)
+    adjacentIndex: Math.max(insertIndex - 1, 0)
   };
 }
 
@@ -884,6 +885,16 @@ function getAssetSettingsSlideCards(cards) {
   return Array.from(cards?.querySelectorAll(".asset-settings-display-card") || []);
 }
 
+function centerAssetSettingsCard(cards, card, behavior = "auto") {
+  if (!cards || !card) return;
+  const targetLeft = card.offsetLeft - (cards.clientWidth - card.offsetWidth) / 2;
+  const maxLeft = Math.max(0, cards.scrollWidth - cards.clientWidth);
+  cards.scrollTo({
+    left: Math.min(Math.max(targetLeft, 0), maxLeft),
+    behavior: shouldReduceMotion() ? "auto" : behavior
+  });
+}
+
 function updateAssetSettingsSlideNavButtons(cards, activeIndex = assetSettingsActiveIndex) {
   const slideCards = getAssetSettingsSlideCards(cards);
   const total = slideCards.length;
@@ -924,8 +935,7 @@ function hydrateAssetSettingsSlider() {
   if (!slideCards.length) return;
   assetSettingsActiveIndex = Math.min(Math.max(assetSettingsActiveIndex, 0), slideCards.length - 1);
   window.requestAnimationFrame(() => {
-    const behavior = assetSettingsMotion?.type === "add" && !shouldReduceMotion() ? "smooth" : "auto";
-    slideCards[assetSettingsActiveIndex]?.scrollIntoView({ behavior, block: "nearest", inline: "start" });
+    centerAssetSettingsCard(cards, slideCards[assetSettingsActiveIndex], "auto");
     updateAssetSettingsSlideDots(cards);
     scheduleAssetSettingsMotionClear();
   });
@@ -946,11 +956,7 @@ function scrollAssetSettingsCards(direction) {
   const currentIndex = Math.min(Math.max(Math.round(getAssetSettingsScrollIndex(cards, slideCards)), 0), slideCards.length - 1);
   const nextIndex = Math.min(Math.max(currentIndex + (direction === "prev" ? -1 : 1), 0), slideCards.length - 1);
   assetSettingsActiveIndex = nextIndex;
-  slideCards[nextIndex]?.scrollIntoView({
-    behavior: shouldReduceMotion() ? "auto" : "smooth",
-    block: "nearest",
-    inline: "start"
-  });
+  centerAssetSettingsCard(cards, slideCards[nextIndex], "smooth");
   updateAssetSettingsSlideDots(cards);
 }
 
@@ -1590,6 +1596,7 @@ document.addEventListener("click", (event) => {
 
     const assetSettingsAdd = event.target.closest("[data-asset-settings-add]");
     if (assetSettingsAdd && activeModal === "assetSettings") {
+      syncAssetSettingsActiveIndexFromDom();
       addAssetSettingsDraft();
       renderModal();
       hydrateIcons(document);
