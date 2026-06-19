@@ -300,7 +300,8 @@ function createAssetSettingsDraft(item = {}) {
     code: item.code || "",
     quantity: Math.max(0, Number(item.quantity) || 0),
     averagePrice: Math.max(0, Number(item.averagePrice) || 0),
-    currentPrice: Math.max(0, Number(item.currentPrice) || 0)
+    currentPrice: Math.max(0, Number(item.currentPrice) || 0),
+    priceInputMode: item.priceInputMode || (item.averagePrice || item.currentPrice ? "full" : "quantity")
   };
 }
 
@@ -355,6 +356,9 @@ function removeAssetSettingsDraft(rowId) {
 function updateAssetSettingsDraft(rowId, field, value) {
   assetSettingsDrafts = assetSettingsDrafts.map((item) => {
     if (item.id !== rowId) return item;
+    if (field === "priceInputMode") {
+      return { ...item, priceInputMode: value === "full" ? "full" : "quantity" };
+    }
     if (field === "name" || field === "code") {
       return { ...item, [field]: value };
     }
@@ -371,16 +375,36 @@ function isEmptyAssetSettingsDraft(item) {
     !item.currentPrice;
 }
 
+function getAssetSettingsWatchPrice(item) {
+  const watch = typeof getWatchStock === "function" ? getWatchStock(item.name, item.code) : null;
+  return Math.max(0, Number(watch?.price) || 0);
+}
+
+function normalizeAssetSettingsRow(item) {
+  const mode = item.priceInputMode === "quantity" ? "quantity" : "full";
+  const quantity = Math.max(0, Number(item.quantity) || 0);
+  const watchPrice = getAssetSettingsWatchPrice(item);
+  const fallbackPrice = mode === "full" ? Math.max(0, Number(item.averagePrice) || 0) : 0;
+  const currentPrice = Math.max(0, watchPrice || Number(item.currentPrice) || fallbackPrice);
+  const amount = Math.round(quantity * currentPrice);
+  const averagePrice = mode === "quantity"
+    ? quantity ? Math.round(amount / quantity) : 0
+    : Math.max(0, Number(item.averagePrice) || 0);
+
+  return {
+    name: String(item.name || "").trim(),
+    code: String(item.code || "").trim(),
+    quantity,
+    averagePrice,
+    currentPrice,
+    priceInputMode: mode
+  };
+}
+
 function applyAssetSettingsEdit() {
   const rows = assetSettingsDrafts
     .filter((item) => !isEmptyAssetSettingsDraft(item))
-    .map((item) => ({
-      name: String(item.name || "").trim(),
-      code: String(item.code || "").trim(),
-      quantity: Math.max(0, Number(item.quantity) || 0),
-      averagePrice: Math.max(0, Number(item.averagePrice) || 0),
-      currentPrice: Math.max(0, Number(item.currentPrice) || Number(item.averagePrice) || 0)
-    }));
+    .map((item) => normalizeAssetSettingsRow(item));
 
   if (!rows.length) {
     assetSettingsError = "최소 1개 이상의 자산을 입력하세요.";
@@ -393,7 +417,15 @@ function applyAssetSettingsEdit() {
       assetSettingsError = "종목명을 입력하세요.";
       return false;
     }
-    if (!row.quantity || !row.averagePrice) {
+    if (!row.quantity) {
+      assetSettingsError = "보유 수량은 1 이상으로 입력하세요.";
+      return false;
+    }
+    if (row.priceInputMode === "quantity" && !row.currentPrice) {
+      assetSettingsError = "보유수량만 입력하려면 현재가를 찾을 수 있는 종목명 또는 종목코드가 필요합니다.";
+      return false;
+    }
+    if (row.priceInputMode === "full" && !row.averagePrice) {
       assetSettingsError = "수량과 매수평균가는 1 이상으로 입력하세요.";
       return false;
     }
@@ -550,7 +582,10 @@ function renderAssetSettingsModal() {
 
 function renderAssetSettingsCardView(item, index) {
   const meta = typeof getAssetHoldingMeta === "function" ? getAssetHoldingMeta(item, index) : { sector: "국내 주식" };
-  const amount = Math.round((Number(item.quantity) || 0) * (Number(item.currentPrice) || 0));
+  const inputMode = item.priceInputMode === "quantity" ? "quantity" : "full";
+  const isQuantityOnly = inputMode === "quantity";
+  const previewPrice = Math.max(0, getAssetSettingsWatchPrice(item) || Number(item.currentPrice) || (isQuantityOnly ? 0 : Number(item.averagePrice) || 0));
+  const amount = Math.round((Number(item.quantity) || 0) * previewPrice);
   const displayCode = String(item.code || "").trim() || "코드 미입력";
   const codeMeta = displayCode === "코드 미입력" ? displayCode : `${displayCode} · ${meta.sector || "국내 주식"}`;
   const isEditing = assetSettingsEditingId === item.id;
@@ -577,7 +612,16 @@ function renderAssetSettingsCardView(item, index) {
         <p>${escapeChartText(codeMeta)}</p>
       </div>
 
-      <div class="asset-settings-tile-grid">
+      ${
+        isEditing
+          ? `<div class="asset-settings-input-mode" role="tablist" aria-label="자산 입력 방식">
+              <button class="${isQuantityOnly ? "active" : ""}" type="button" data-asset-settings-input-mode="quantity" data-asset-setting-id="${item.id}" aria-pressed="${isQuantityOnly}">보유수량만 입력</button>
+              <button class="${isQuantityOnly ? "" : "active"}" type="button" data-asset-settings-input-mode="full" data-asset-setting-id="${item.id}" aria-pressed="${isQuantityOnly ? "false" : "true"}">보유수량+매수평균가 입력</button>
+            </div>`
+          : ""
+      }
+
+      <div class="asset-settings-tile-grid ${isQuantityOnly ? "is-single" : ""}">
         <label class="asset-settings-tile">
           <span>보유 수량</span>
           <div class="asset-settings-tile-input">
@@ -585,13 +629,17 @@ function renderAssetSettingsCardView(item, index) {
             <em>주</em>
           </div>
         </label>
-        <label class="asset-settings-tile">
-          <span>매수평균가</span>
-          <div class="asset-settings-tile-input">
-            <input type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
-            <em>원</em>
-          </div>
-        </label>
+        ${
+          isQuantityOnly
+            ? ""
+            : `<label class="asset-settings-tile">
+                <span>매수평균가</span>
+                <div class="asset-settings-tile-input">
+                  <input type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
+                  <em>원</em>
+                </div>
+              </label>`
+        }
       </div>
 
       <div class="asset-settings-value-panel">
@@ -1414,6 +1462,19 @@ document.addEventListener("click", (event) => {
     const assetSettingsAdd = event.target.closest("[data-asset-settings-add]");
     if (assetSettingsAdd && activeModal === "assetSettings") {
       addAssetSettingsDraft();
+      renderModal();
+      hydrateIcons(document);
+      return;
+    }
+
+    const assetSettingsInputMode = event.target.closest("[data-asset-settings-input-mode]");
+    if (assetSettingsInputMode && activeModal === "assetSettings") {
+      syncAssetSettingsActiveIndexFromDom();
+      updateAssetSettingsDraft(
+        assetSettingsInputMode.dataset.assetSettingId,
+        "priceInputMode",
+        assetSettingsInputMode.dataset.assetSettingsInputMode
+      );
       renderModal();
       hydrateIcons(document);
       return;

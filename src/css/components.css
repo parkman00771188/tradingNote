@@ -3631,7 +3631,8 @@ body.modal-open {
 }
 
 .asset-settings-title-input::placeholder {
-  color: #111827;
+  color: #8b95a3;
+  opacity: 1;
 }
 
 .asset-settings-title-wrap p {
@@ -3714,11 +3715,52 @@ body.modal-open {
   font-size: 15px;
 }
 
+.asset-settings-input-mode {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.asset-settings-input-mode button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 12px;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e1e7f0;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-align: center;
+  white-space: normal;
+}
+
+.asset-settings-input-mode button.active {
+  color: #ffffff;
+  background: var(--blue);
+  border-color: var(--blue);
+  box-shadow: 0 8px 18px rgba(36, 116, 242, 0.16);
+}
+
 .asset-settings-tile-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 18px;
+}
+
+.asset-settings-input-mode + .asset-settings-tile-grid {
+  margin-top: 12px;
+}
+
+.asset-settings-tile-grid.is-single {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .asset-settings-tile-wide {
