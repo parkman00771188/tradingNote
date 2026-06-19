@@ -1,11 +1,19 @@
 body[data-route="landing"] {
+  width: 100%;
+  max-width: 100%;
   overflow-x: hidden;
-  background: #07152e;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+  background: #ffffff;
 }
 
 body[data-route="landing"] .app-shell {
   display: block;
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body[data-route="landing"] .sidebar,
@@ -14,14 +22,21 @@ body[data-route="landing"] .topbar {
 }
 
 body[data-route="landing"] .main {
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
   padding: 0;
+  overflow-x: hidden;
+  overflow-x: clip;
   background: #ffffff;
 }
 
 body[data-route="landing"] .page-content {
-  max-width: none;
+  width: 100%;
+  max-width: 100%;
   margin: 0;
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .landing-page {
@@ -32,6 +47,10 @@ body[data-route="landing"] .page-content {
   --landing-panel: #ffffff;
   --landing-soft: #f5f8fd;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-x: clip;
   color: var(--landing-ink);
   background: #ffffff;
 }
@@ -761,6 +780,8 @@ body[data-route="landing"] .page-content {
   .landing-hero {
     min-height: 720px;
     padding: 94px 18px 0;
+    overflow: hidden;
+    overflow-x: clip;
   }
 
   .landing-pill {
@@ -795,18 +816,19 @@ body[data-route="landing"] .page-content {
   }
 
   .landing-hero-art {
-    left: 50%;
-    width: 108vw;
+    left: auto;
+    width: min(100%, 560px);
+    max-width: 100%;
     margin-top: 28px;
-    transform: translateX(-50%);
+    transform: none;
   }
 
   .landing-hero-art.landing-reveal {
-    transform: translateX(-50%) translateY(34px);
+    transform: translateY(34px);
   }
 
   .landing-hero-art.landing-reveal.is-visible {
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
   }
 
   .landing-section {
@@ -868,12 +890,26 @@ body[data-route="landing"] .page-content {
   }
 
   .landing-dashboard-preview {
-    width: 118%;
-    margin-left: -9%;
+    width: 100%;
+    margin-left: 0;
+    overflow: hidden;
   }
 
   .landing-journal-preview {
+    width: 100%;
+    margin-left: 0;
+    overflow: hidden;
+  }
+
+  .landing-dashboard-preview img {
+    width: 118%;
+    max-width: none;
+    margin-left: -9%;
+  }
+
+  .landing-journal-preview img {
     width: 122%;
+    max-width: none;
     margin-left: -11%;
   }
 
@@ -929,7 +965,7 @@ body[data-route="landing"] .page-content {
   }
 
   .landing-hero-art {
-    width: 108vw;
+    width: 100%;
   }
 
   .landing-feature-card {
