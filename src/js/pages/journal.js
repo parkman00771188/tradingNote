@@ -478,7 +478,6 @@ function renderJournal() {
       </section>
 
       ${renderMobileJournalFilters()}
-      ${renderMobileJournalTable(6)}
 
       <section class="journal-layout desktop-journal-list">
         <article class="panel">
