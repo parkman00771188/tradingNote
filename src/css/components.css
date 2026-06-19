@@ -3497,11 +3497,11 @@ body.modal-open {
 }
 
 .asset-settings-cards[data-motion="add"] .asset-settings-display-card.is-entering {
-  animation: assetSettingsCardEnter 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: assetSettingsCardEnter 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .asset-settings-cards[data-motion="add"] .asset-settings-display-card.is-pushed {
-  animation: assetSettingsCardPush 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: assetSettingsCardPush 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .asset-settings-cards[data-motion="remove"] .asset-settings-display-card.is-removing {
@@ -4123,12 +4123,17 @@ body.modal-open {
 @keyframes assetSettingsCardEnter {
   0% {
     opacity: 0;
-    transform: translate3d(74px, 0, 0) scale(0.965);
+    transform: translate3d(52px, 0, 0) scale(0.972);
     box-shadow: 0 16px 36px rgba(15, 23, 42, 0);
   }
-  55% {
+  38% {
+    opacity: 0.82;
+    transform: translate3d(10px, 0, 0) scale(0.992);
+    box-shadow: 0 20px 46px rgba(36, 116, 242, 0.08);
+  }
+  72% {
     opacity: 1;
-    transform: translate3d(-8px, 0, 0) scale(1.006);
+    transform: translate3d(-6px, 0, 0) scale(1.004);
     box-shadow: 0 22px 54px rgba(36, 116, 242, 0.12);
   }
   100% {
@@ -4140,7 +4145,10 @@ body.modal-open {
 
 @keyframes assetSettingsCardPush {
   0% {
-    transform: translate3d(18px, 0, 0) scale(0.992);
+    transform: translate3d(22px, 0, 0) scale(0.99);
+  }
+  62% {
+    transform: translate3d(-4px, 0, 0) scale(1.002);
   }
   100% {
     transform: translate3d(0, 0, 0) scale(1);

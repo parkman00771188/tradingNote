@@ -448,11 +448,12 @@ function clearAssetSettingsMotionClasses(root = document) {
 function scheduleAssetSettingsMotionClear() {
   if (!assetSettingsMotion) return;
   if (assetSettingsMotionTimer) window.clearTimeout(assetSettingsMotionTimer);
+  const clearDelay = assetSettingsMotion.type === "add" ? 860 : 620;
   assetSettingsMotionTimer = window.setTimeout(() => {
     assetSettingsMotion = null;
     assetSettingsMotionTimer = 0;
     clearAssetSettingsMotionClasses();
-  }, shouldReduceMotion() ? 0 : 620);
+  }, shouldReduceMotion() ? 0 : clearDelay);
 }
 
 function applyAssetSettingsEdit() {
