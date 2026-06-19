@@ -477,7 +477,7 @@ function clearAssetSettingsMotionClasses(root = document) {
 function scheduleAssetSettingsMotionClear() {
   if (!assetSettingsMotion) return;
   if (assetSettingsMotionTimer) window.clearTimeout(assetSettingsMotionTimer);
-  const clearDelay = assetSettingsMotion.type === "add" ? 860 : 620;
+  const clearDelay = assetSettingsMotion.type === "add" ? 920 : 720;
   assetSettingsMotionTimer = window.setTimeout(() => {
     assetSettingsMotion = null;
     assetSettingsMotionTimer = 0;
@@ -976,7 +976,7 @@ function hydrateAssetSettingsSlider() {
   if (!slideCards.length) return;
   assetSettingsActiveIndex = Math.min(Math.max(assetSettingsActiveIndex, 0), slideCards.length - 1);
   window.requestAnimationFrame(() => {
-    centerAssetSettingsCard(cards, slideCards[assetSettingsActiveIndex], "auto");
+    centerAssetSettingsCard(cards, slideCards[assetSettingsActiveIndex], assetSettingsMotion ? "smooth" : "auto");
     updateAssetSettingsSlideDots(cards);
     scheduleAssetSettingsMotionClear();
   });
@@ -1027,7 +1027,7 @@ function animateAssetSettingsRemoval(rowId) {
     removeAssetSettingsDraft(rowId);
     renderModal();
     hydrateIcons(document);
-  }, 240);
+  }, 320);
 }
 
 function renderAssetCashModal() {

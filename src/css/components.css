@@ -3482,6 +3482,10 @@ body.modal-open {
   display: none;
 }
 
+.asset-settings-cards[data-motion] {
+  scroll-snap-type: none;
+}
+
 .asset-settings-display-card {
   position: relative;
   display: flex;
@@ -3494,27 +3498,29 @@ body.modal-open {
   border-radius: 28px;
   box-shadow: none;
   scroll-snap-align: center;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .asset-settings-cards[data-motion="add"] .asset-settings-display-card.is-entering {
-  animation: assetSettingsCardEnter 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: assetSettingsCardEnter 0.76s cubic-bezier(0.18, 1, 0.22, 1) both;
 }
 
 .asset-settings-cards[data-motion="add"] .asset-settings-display-card.is-pushed {
-  animation: assetSettingsCardPush 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: assetSettingsCardPush 0.76s cubic-bezier(0.18, 1, 0.22, 1) both;
 }
 
 .asset-settings-cards[data-motion="remove"] .asset-settings-display-card.is-removing {
-  animation: assetSettingsCardExit 0.24s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: assetSettingsCardExit 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
   pointer-events: none;
 }
 
 .asset-settings-cards[data-motion="remove"] .asset-settings-display-card.is-remove-neighbor {
-  animation: assetSettingsCardHold 0.24s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: assetSettingsCardHold 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 .asset-settings-cards[data-motion="remove"] .asset-settings-display-card.is-settling {
-  animation: assetSettingsCardSettle 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: assetSettingsCardSettle 0.48s cubic-bezier(0.18, 1, 0.22, 1) both;
 }
 
 .asset-settings-slide-nav {
@@ -4123,18 +4129,13 @@ body.modal-open {
 @keyframes assetSettingsCardEnter {
   0% {
     opacity: 0;
-    transform: translate3d(52px, 0, 0) scale(0.972);
+    transform: translate3d(42px, 0, 0) scale(0.982);
     box-shadow: 0 16px 36px rgba(15, 23, 42, 0);
   }
-  38% {
-    opacity: 0.82;
-    transform: translate3d(10px, 0, 0) scale(0.992);
+  46% {
+    opacity: 0.9;
+    transform: translate3d(12px, 0, 0) scale(0.994);
     box-shadow: 0 20px 46px rgba(36, 116, 242, 0.08);
-  }
-  72% {
-    opacity: 1;
-    transform: translate3d(-6px, 0, 0) scale(1.004);
-    box-shadow: 0 22px 54px rgba(36, 116, 242, 0.12);
   }
   100% {
     opacity: 1;
@@ -4145,10 +4146,7 @@ body.modal-open {
 
 @keyframes assetSettingsCardPush {
   0% {
-    transform: translate3d(22px, 0, 0) scale(0.99);
-  }
-  62% {
-    transform: translate3d(-4px, 0, 0) scale(1.002);
+    transform: translate3d(24px, 0, 0) scale(0.992);
   }
   100% {
     transform: translate3d(0, 0, 0) scale(1);
@@ -4171,14 +4169,14 @@ body.modal-open {
     transform: translate3d(0, 0, 0);
   }
   100% {
-    transform: translate3d(10px, 0, 0);
+    transform: translate3d(24px, 0, 0);
   }
 }
 
 @keyframes assetSettingsCardSettle {
   0% {
-    opacity: 0.86;
-    transform: translate3d(36px, 0, 0) scale(0.985);
+    opacity: 0.92;
+    transform: translate3d(24px, 0, 0) scale(0.992);
   }
   100% {
     opacity: 1;
