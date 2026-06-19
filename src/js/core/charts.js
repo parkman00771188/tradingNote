@@ -107,7 +107,7 @@ function lineChart({
 
       return `
         <g class="chart-target-line" data-chart-tooltip="${escapeChartText(tooltip)}">
-          <line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="#e03137" stroke-width="${compact ? 1.6 : 1.8}" stroke-dasharray="6 6"/>
+          <line class="chart-target-stroke" x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="#e03137" stroke-width="${compact ? 1.6 : 1.8}" stroke-dasharray="6 6"/>
           <rect x="${labelX}" y="${labelY}" width="${labelWidth}" height="22" rx="6" fill="#fff1f1" stroke="#fecaca"/>
           <text x="${labelX + labelWidth / 2}" y="${labelY + 15}" fill="#e03137" font-size="${targetLabelFontSize}" font-weight="850" text-anchor="middle">${escapeChartText(label)}</text>
         </g>
@@ -132,10 +132,10 @@ function lineChart({
             `;
           })
           .join("")}
-        <path d="${pathFor(primary)} L ${width - right} ${height - bottom} L ${left} ${height - bottom} Z" fill="url(#lineArea)"/>
-        ${tertiary ? `<path d="${pathFor(tertiary)}" fill="none" stroke="${tertiaryColor}" stroke-width="${tertiaryStrokeWidth}"/>` : ""}
-        <path d="${pathFor(secondary)}" fill="none" stroke="#b8c2d3" stroke-width="${secondaryStrokeWidth}"/>
-        <path d="${pathFor(primary)}" fill="none" stroke="#2474f2" stroke-width="${primaryStrokeWidth}"/>
+        <path class="chart-area-fill" d="${pathFor(primary)} L ${width - right} ${height - bottom} L ${left} ${height - bottom} Z" fill="url(#lineArea)"/>
+        ${tertiary ? `<path class="chart-line chart-line-tertiary" d="${pathFor(tertiary)}" fill="none" stroke="${tertiaryColor}" stroke-width="${tertiaryStrokeWidth}" pathLength="1"/>` : ""}
+        <path class="chart-line chart-line-secondary" d="${pathFor(secondary)}" fill="none" stroke="#b8c2d3" stroke-width="${secondaryStrokeWidth}" pathLength="1"/>
+        <path class="chart-line chart-line-primary" d="${pathFor(primary)}" fill="none" stroke="#2474f2" stroke-width="${primaryStrokeWidth}" pathLength="1"/>
         ${chartTargetLines}
         ${tertiary ? pointTooltips(tertiary, tertiaryName) : ""}
         ${pointTooltips(secondary, secondaryName)}
@@ -197,7 +197,7 @@ function barChart(values, labels, max = 1500, min = -1000) {
             const fill = value >= 0 ? "#2474f2" : "#f04438";
             const tooltip = `${labels[index]}: ${value.toLocaleString()}`;
             return `
-              <rect x="${x}" y="${barY}" width="${barW}" height="${h}" rx="3" fill="${fill}" data-chart-tooltip="${escapeChartText(tooltip)}">
+              <rect class="chart-bar" x="${x}" y="${barY}" width="${barW}" height="${h}" rx="3" fill="${fill}" data-chart-tooltip="${escapeChartText(tooltip)}">
                 <title>${escapeChartText(tooltip)}</title>
               </rect>
               <text x="${x + barW / 2}" y="${height - 9}" fill="#475569" font-size="${compact ? 11 : 12}" text-anchor="middle">${labels[index]}</text>
@@ -241,8 +241,8 @@ function miniLineChart(values, label = "+125,000") {
             `;
           })
           .join("")}
-        <path d="${area}" fill="url(#miniArea)"/>
-        <path d="${path}" fill="none" stroke="#2474f2" stroke-width="2.6"/>
+        <path class="chart-area-fill" d="${area}" fill="url(#miniArea)"/>
+        <path class="chart-line chart-line-primary" d="${path}" fill="none" stroke="#2474f2" stroke-width="2.6" pathLength="1"/>
         <rect x="${width - right - 58}" y="${sy(values[values.length - 1]) - 20}" width="64" height="25" rx="6" fill="#2474f2"/>
         <text x="${width - right - 26}" y="${sy(values[values.length - 1]) - 3}" fill="white" font-size="12" font-weight="800" text-anchor="middle">${label}</text>
         <text x="${left}" y="${height - 3}" fill="#64748b" font-size="11">09:00</text>
@@ -265,7 +265,7 @@ function donutChart(segments, center, small = false) {
       const circle = `
         <g class="donut-segment" data-chart-tooltip="${escapeChartText(tooltip)}">
           <title>${escapeChartText(tooltip)}</title>
-          <circle cx="60" cy="60" r="${radius}" fill="none" stroke="${item.color}" stroke-width="14"
+          <circle class="donut-arc" cx="60" cy="60" r="${radius}" fill="none" stroke="${item.color}" stroke-width="14"
             stroke-dasharray="${dash} ${circumference - dash}" stroke-dashoffset="${-offset}"
             transform="rotate(-90 60 60)"/>
           <circle class="donut-hit-area" cx="60" cy="60" r="${radius}" fill="none" stroke="transparent" stroke-width="26"
@@ -377,20 +377,20 @@ function candleChart() {
             const bodyH = Math.max(4, Math.abs(sy(open) - sy(close)));
             const bodyW = compact ? 5 : 8;
             return `
-              <line x1="${x}" y1="${sy(high)}" x2="${x}" y2="${sy(low)}" stroke="${color}" stroke-width="${compact ? 1.25 : 1.6}"/>
-              <rect x="${x - bodyW / 2}" y="${yTop}" width="${bodyW}" height="${bodyH}" rx="1.5" fill="${color}"/>
+              <line class="chart-candle-wick" x1="${x}" y1="${sy(high)}" x2="${x}" y2="${sy(low)}" stroke="${color}" stroke-width="${compact ? 1.25 : 1.6}"/>
+              <rect class="chart-candle-body" x="${x - bodyW / 2}" y="${yTop}" width="${bodyW}" height="${bodyH}" rx="1.5" fill="${color}"/>
             `;
           })
           .join("")}
-        <path d="${pathFor(ma(5))}" fill="none" stroke="#ef4444" stroke-width="${compact ? 1.2 : 1.4}" opacity=".65"/>
-        <path d="${pathFor(ma(20))}" fill="none" stroke="#22c55e" stroke-width="${compact ? 1.2 : 1.4}" opacity=".65"/>
+        <path class="chart-line chart-line-secondary" d="${pathFor(ma(5))}" fill="none" stroke="#ef4444" stroke-width="${compact ? 1.2 : 1.4}" opacity=".65" pathLength="1"/>
+        <path class="chart-line chart-line-tertiary" d="${pathFor(ma(20))}" fill="none" stroke="#22c55e" stroke-width="${compact ? 1.2 : 1.4}" opacity=".65" pathLength="1"/>
         ${volumes
           .map((v, i) => {
             const x = sx(i);
             const h = Math.min(compact ? 34 : 42, v);
             const up = prices[i][3] >= prices[i][0];
             const bodyW = compact ? 5 : 8;
-            return `<rect x="${x - bodyW / 2}" y="${height - bottom - h + (compact ? 24 : 28)}" width="${bodyW}" height="${h}" rx="1" fill="${up ? "#8bbcff" : "#ff9b9b"}" opacity=".85"/>`;
+            return `<rect class="chart-bar chart-volume-bar" x="${x - bodyW / 2}" y="${height - bottom - h + (compact ? 24 : 28)}" width="${bodyW}" height="${h}" rx="1" fill="${up ? "#8bbcff" : "#ff9b9b"}" opacity=".85"/>`;
           })
           .join("")}
         <text x="${left}" y="${height - 5}" fill="#64748b" font-size="${compact ? 10 : 12}">${compact ? "04/01" : "02/19"}</text>

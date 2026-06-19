@@ -89,6 +89,72 @@ function scheduleFitValueText(root = document) {
   });
 }
 
+function shouldReduceMotion() {
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+}
+
+function getAnimatedNumberParts(text) {
+  const value = String(text || "").trim();
+  const match = value.match(/^([+-]?)(\d[\d,]*(?:\.\d+)?)(.*)$/);
+  if (!match) return null;
+
+  const [, sign, rawNumber, suffix] = match;
+  const decimals = rawNumber.includes(".") ? rawNumber.split(".")[1].length : 0;
+  const numericValue = Number(rawNumber.replace(/,/g, ""));
+  if (!Number.isFinite(numericValue)) return null;
+
+  return {
+    target: sign === "-" ? -numericValue : numericValue,
+    decimals,
+    suffix,
+    showPlus: sign === "+"
+  };
+}
+
+function formatAnimatedNumber(value, parts) {
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? "-" : parts.showPlus ? "+" : "";
+  const formatted = absValue.toLocaleString("ko-KR", {
+    minimumFractionDigits: parts.decimals,
+    maximumFractionDigits: parts.decimals
+  });
+
+  return `${sign}${formatted}${parts.suffix}`;
+}
+
+function animateNumericValues(root = document) {
+  if (shouldReduceMotion()) return;
+
+  const targets = root.querySelectorAll(".metric-value, .metric-sub strong, .list-row > strong, .donut-center strong");
+  targets.forEach((node, index) => {
+    const originalText = node.textContent;
+    const parts = getAnimatedNumberParts(originalText);
+    if (!parts || parts.target === 0) return;
+
+    const duration = 720 + Math.min(index, 4) * 55;
+    const startedAt = performance.now();
+    node.classList.add("number-animating");
+
+    const step = (now) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      node.textContent = formatAnimatedNumber(parts.target * eased, parts);
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+        return;
+      }
+
+      node.textContent = originalText;
+      node.classList.remove("number-animating");
+      scheduleFitValueText(root);
+    };
+
+    node.textContent = formatAnimatedNumber(0, parts);
+    requestAnimationFrame(step);
+  });
+}
+
 function scrollPageToTop() {
   const html = document.documentElement;
   const body = document.body;
@@ -1033,6 +1099,7 @@ function render() {
   if (route === "landing" && typeof setupLandingReveal === "function") {
     setupLandingReveal();
   }
+  animateNumericValues(document.querySelector("#app"));
   scheduleFitValueText();
 }
 

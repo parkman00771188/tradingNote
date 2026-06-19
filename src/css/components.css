@@ -1143,6 +1143,65 @@
   height: 100%;
 }
 
+.chart svg,
+.donut svg {
+  animation: chartSurfaceIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.chart-area-fill {
+  opacity: 0;
+  animation: chartAreaIn 0.72s ease-out 0.16s forwards;
+}
+
+.chart-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: chartLineDraw 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.chart-line-secondary {
+  animation-delay: 0.08s;
+}
+
+.chart-line-tertiary {
+  animation-delay: 0.16s;
+}
+
+.chart-target-stroke {
+  opacity: 0;
+  animation: chartTargetIn 0.5s ease-out 0.22s forwards;
+}
+
+.chart-bar,
+.chart-candle-body,
+.chart-candle-wick {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: chartBarIn 0.58s cubic-bezier(0.2, 0.9, 0.28, 1.05) both;
+}
+
+.chart svg > circle:not(.chart-hotspot),
+.chart svg > rect:not(.chart-bar):not(.chart-candle-body):not(.chart-volume-bar) {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: chartLabelIn 0.42s ease-out 0.52s both;
+}
+
+.chart-candle-wick {
+  animation-duration: 0.42s;
+}
+
+.donut-segment {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: chartDonutIn 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.number-animating {
+  display: inline-block;
+  animation: numberValuePop 0.46s ease-out both;
+}
+
 .chart-hotspot {
   fill: transparent;
   pointer-events: all;
@@ -1180,6 +1239,117 @@
 
 .chart-target-line {
   pointer-events: stroke;
+}
+
+@keyframes chartSurfaceIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes chartAreaIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chartLineDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes chartTargetIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes chartBarIn {
+  from {
+    opacity: 0;
+    transform: scaleY(0.15) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+@keyframes chartLabelIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chartDonutIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes numberValuePop {
+  from {
+    opacity: 0.65;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart svg,
+  .donut svg,
+  .chart-area-fill,
+  .chart-line,
+  .chart-target-stroke,
+  .chart-bar,
+  .chart-candle-body,
+  .chart-candle-wick,
+  .chart svg > circle:not(.chart-hotspot),
+  .chart svg > rect:not(.chart-bar):not(.chart-candle-body):not(.chart-volume-bar),
+  .donut-segment,
+  .number-animating {
+    animation: none !important;
+  }
+
+  .chart-area-fill {
+    opacity: 1;
+  }
+
+  .chart-line,
+  .chart-target-stroke {
+    stroke-dashoffset: 0;
+  }
+
+  .chart-target-stroke {
+    opacity: 1;
+  }
 }
 
 .donut svg {
