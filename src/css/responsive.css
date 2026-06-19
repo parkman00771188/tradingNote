@@ -423,7 +423,7 @@
   }
 
   .asset-settings-modal {
-    --asset-settings-stage-bg: #e8edf2;
+    --asset-settings-stage-bg: #ffffff;
     grid-template-rows: auto minmax(0, 1fr);
     width: min(520px, calc(100vw - 24px));
     height: min(760px, calc(100vh - 24px));
@@ -601,7 +601,7 @@
     padding: 22px 24px 18px;
     border-radius: 22px;
     border-color: #edf1f6;
-    box-shadow: none;
+    box-shadow: 0 16px 36px rgba(23, 68, 140, 0.055);
   }
 
   .asset-settings-display-card.is-editing {
