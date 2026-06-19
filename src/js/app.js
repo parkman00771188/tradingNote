@@ -32,6 +32,7 @@ var assetSettingsOpenMenuId = null;
 var assetSettingsEditingId = null;
 var assetSettingsActiveIndex = 0;
 var assetSettingsSlideFrame = null;
+const assetSettingsVisibleDotLimit = 7;
 
 const fallbackAssetInvestedBalance = 42750000;
 
@@ -252,7 +253,6 @@ function cancelAssetSettingsEdit() {
 }
 
 function addAssetSettingsDraft() {
-  if (assetSettingsDrafts.length >= 12) return;
   const draft = createAssetSettingsDraft();
   assetSettingsDrafts.push(draft);
   assetSettingsError = "";
@@ -378,7 +378,7 @@ function applyAssetSettingsEdit() {
 
 function renderAssetSettingsModal() {
   const drafts = assetSettingsDrafts;
-  const canAdd = drafts.length < 12;
+  const canAdd = true;
 
   return `
     <div class="modal-backdrop">
@@ -466,7 +466,7 @@ function renderAssetSettingsModal() {
             }
           </div>
           <div class="asset-settings-footer">
-            <span>${drafts.length}/12</span>
+            <span>${drafts.length}</span>
           </div>
           <p class="asset-settings-feedback error">${assetSettingsError}</p>
           <div class="asset-cash-actions">
@@ -541,9 +541,46 @@ function renderAssetSettingsCardView(item, index) {
   `;
 }
 
+function getAssetSettingsDotWindow(total, activeIndex) {
+  if (total <= assetSettingsVisibleDotLimit) {
+    return { start: 0, end: total };
+  }
+
+  const half = Math.floor(assetSettingsVisibleDotLimit / 2);
+  const maxStart = Math.max(0, total - assetSettingsVisibleDotLimit);
+  const start = Math.min(Math.max(0, activeIndex - half), maxStart);
+  return { start, end: start + assetSettingsVisibleDotLimit };
+}
+
+function renderAssetSettingsSlideDots(total, activeIndex) {
+  const safeTotal = Math.max(0, total);
+  if (!safeTotal) {
+    return `<div class="asset-settings-slide-dots" aria-hidden="true"></div>`;
+  }
+
+  const safeActiveIndex = Math.min(Math.max(activeIndex, 0), safeTotal - 1);
+  const { start, end } = getAssetSettingsDotWindow(safeTotal, safeActiveIndex);
+  const classes = [
+    "asset-settings-slide-dots",
+    start > 0 ? "has-left-overflow" : "",
+    end < safeTotal ? "has-right-overflow" : ""
+  ].filter(Boolean).join(" ");
+
+  return `
+    <div class="${classes}" aria-hidden="true">
+      <div class="asset-settings-dot-window">
+        ${Array.from({ length: end - start }, (_, offset) => {
+          const index = start + offset;
+          return `<span data-asset-settings-dot-index="${index}" class="${index === safeActiveIndex ? "active" : ""}"></span>`;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderAssetSettingsModalCardView() {
   const drafts = assetSettingsDrafts;
-  const canAdd = drafts.length < 12;
+  const canAdd = true;
   const activeDotIndex = Math.min(Math.max(assetSettingsActiveIndex, 0), Math.max(drafts.length - 1, 0));
   const tabs = [
     ["모든 자산", drafts.length, true, ""],
@@ -593,9 +630,7 @@ function renderAssetSettingsModalCardView() {
                 : ""
             }
           </div>
-          <div class="asset-settings-slide-dots" aria-hidden="true">
-            ${drafts.map((_, index) => `<span class="${index === activeDotIndex ? "active" : ""}"></span>`).join("")}
-          </div>
+          ${renderAssetSettingsSlideDots(drafts.length, activeDotIndex)}
         </div>
       </section>
     </div>
@@ -627,9 +662,11 @@ function updateAssetSettingsSlideDots(cards) {
     return;
   }
   assetSettingsActiveIndex = Math.min(getAssetSettingsClosestSlideIndex(cards), slideCards.length - 1);
-  document.querySelectorAll(".asset-settings-slide-dots span").forEach((dot, index) => {
-    dot.classList.toggle("active", index === assetSettingsActiveIndex);
-  });
+  const dots = document.querySelector(".asset-settings-slide-dots");
+  if (!dots) return;
+  const template = document.createElement("template");
+  template.innerHTML = renderAssetSettingsSlideDots(slideCards.length, assetSettingsActiveIndex).trim();
+  dots.replaceWith(template.content.firstElementChild);
 }
 
 function syncAssetSettingsActiveIndexFromDom() {

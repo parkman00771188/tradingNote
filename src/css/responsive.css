@@ -746,16 +746,37 @@
 
   .asset-settings-slide-dots {
     display: flex;
+    align-items: center;
     justify-content: center;
     grid-row: 2 / 3;
-    gap: 10px;
-    min-height: 28px;
+    min-height: 44px;
     margin-top: -1px;
-    padding: 1px 0 8px;
+    padding: 13px 0 10px;
+    overflow: hidden;
     background: transparent;
   }
 
-  .asset-settings-slide-dots span {
+  .asset-settings-dot-window {
+    gap: 10px;
+    max-width: 154px;
+  }
+
+  .asset-settings-slide-dots.has-left-overflow::before,
+  .asset-settings-slide-dots.has-right-overflow::after {
+    top: 10px;
+    bottom: 8px;
+    width: 30px;
+  }
+
+  .asset-settings-slide-dots.has-left-overflow::before {
+    left: calc(50% - 90px);
+  }
+
+  .asset-settings-slide-dots.has-right-overflow::after {
+    right: calc(50% - 90px);
+  }
+
+  .asset-settings-dot-window span {
     width: 10px;
     height: 10px;
     background: #cbd3de;
@@ -763,7 +784,7 @@
     transition: width 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
   }
 
-  .asset-settings-slide-dots span.active {
+  .asset-settings-dot-window span.active {
     width: 34px;
     background: var(--blue);
   }
@@ -921,16 +942,36 @@
     }
 
     .asset-settings-slide-dots {
-      min-height: 24px;
-      padding-bottom: 6px;
+      min-height: 34px;
+      padding: 9px 0 7px;
     }
 
-    .asset-settings-slide-dots span {
+    .asset-settings-dot-window {
+      gap: 9px;
+      max-width: 137px;
+    }
+
+    .asset-settings-slide-dots.has-left-overflow::before,
+    .asset-settings-slide-dots.has-right-overflow::after {
+      top: 7px;
+      bottom: 5px;
+      width: 26px;
+    }
+
+    .asset-settings-slide-dots.has-left-overflow::before {
+      left: calc(50% - 80px);
+    }
+
+    .asset-settings-slide-dots.has-right-overflow::after {
+      right: calc(50% - 80px);
+    }
+
+    .asset-settings-dot-window span {
       width: 8px;
       height: 8px;
     }
 
-    .asset-settings-slide-dots span.active {
+    .asset-settings-dot-window span.active {
       width: 30px;
     }
   }

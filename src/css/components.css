@@ -3720,24 +3720,57 @@ body.modal-open {
 }
 
 .asset-settings-slide-dots {
+  position: relative;
   display: flex;
+  align-items: center;
   justify-content: center;
   grid-row: 2 / 3;
-  gap: 10px;
-  min-height: 52px;
+  min-height: 64px;
   margin-top: -1px;
-  padding: 1px 0 24px;
+  padding: 12px 0 26px;
+  overflow: hidden;
   background: transparent;
 }
 
-.asset-settings-slide-dots span {
+.asset-settings-dot-window {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 154px;
+  overflow: hidden;
+}
+
+.asset-settings-slide-dots.has-left-overflow::before,
+.asset-settings-slide-dots.has-right-overflow::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 20px;
+  z-index: 1;
+  width: 34px;
+  pointer-events: none;
+}
+
+.asset-settings-slide-dots.has-left-overflow::before {
+  left: calc(50% - 94px);
+  background: linear-gradient(90deg, var(--asset-settings-stage-bg, #e8edf2) 10%, rgba(232, 237, 242, 0));
+}
+
+.asset-settings-slide-dots.has-right-overflow::after {
+  right: calc(50% - 94px);
+  background: linear-gradient(270deg, var(--asset-settings-stage-bg, #e8edf2) 10%, rgba(232, 237, 242, 0));
+}
+
+.asset-settings-dot-window span {
   width: 10px;
   height: 10px;
   background: #cbd3de;
   border-radius: 999px;
 }
 
-.asset-settings-slide-dots span.active {
+.asset-settings-dot-window span.active {
   width: 34px;
   background: var(--blue);
 }
