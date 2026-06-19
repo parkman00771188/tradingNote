@@ -400,16 +400,45 @@ function getAssetSettingsWatchPrice(item) {
   return Math.max(0, Number(watch?.price) || 0);
 }
 
+function getAssetSettingsValuationPrice(item, mode = item.priceInputMode) {
+  const inputMode = mode === "quantity" ? "quantity" : "full";
+  const averagePrice = Math.max(0, Number(item.averagePrice) || 0);
+  if (inputMode === "full") return averagePrice;
+
+  const watchPrice = getAssetSettingsWatchPrice(item);
+  return Math.max(0, watchPrice || Number(item.currentPrice) || averagePrice);
+}
+
+function getAssetSettingsPreviewAmount(item, mode = item.priceInputMode) {
+  return Math.round((Number(item.quantity) || 0) * getAssetSettingsValuationPrice(item, mode));
+}
+
+function updateAssetSettingsCardPreview(rowId) {
+  const item = assetSettingsDrafts.find((draft) => draft.id === rowId);
+  const card = document.querySelector(`[data-asset-setting-card="${rowId}"]`);
+  if (!item || !card) return;
+
+  const amount = getAssetSettingsPreviewAmount(item);
+  const valueNode = card.querySelector(".asset-settings-value-panel strong");
+  if (valueNode) {
+    valueNode.innerHTML = `${formatMarketNumber(amount)}<small>\uC6D0</small>`;
+  }
+
+  const legacyAmountNode = card.querySelector(".asset-settings-preview p:first-child strong");
+  if (legacyAmountNode) {
+    legacyAmountNode.textContent = `${formatMarketNumber(amount)}\uC6D0`;
+  }
+}
+
 function normalizeAssetSettingsRow(item) {
   const mode = item.priceInputMode === "quantity" ? "quantity" : "full";
   const quantity = Math.max(0, Number(item.quantity) || 0);
-  const watchPrice = getAssetSettingsWatchPrice(item);
-  const fallbackPrice = mode === "full" ? Math.max(0, Number(item.averagePrice) || 0) : 0;
-  const currentPrice = Math.max(0, watchPrice || Number(item.currentPrice) || fallbackPrice);
-  const amount = Math.round(quantity * currentPrice);
+  const valuationPrice = getAssetSettingsValuationPrice(item, mode);
+  const amount = Math.round(quantity * valuationPrice);
   const averagePrice = mode === "quantity"
     ? quantity ? Math.round(amount / quantity) : 0
     : Math.max(0, Number(item.averagePrice) || 0);
+  const currentPrice = mode === "quantity" ? valuationPrice : averagePrice;
 
   return {
     name: String(item.name || "").trim(),
@@ -554,7 +583,7 @@ function renderAssetSettingsModal() {
           <div class="asset-settings-cards" aria-label="자산 설정 카드 목록">
             ${drafts
               .map((item, index) => {
-                const amount = Math.round((Number(item.quantity) || 0) * (Number(item.currentPrice) || 0));
+                const amount = getAssetSettingsPreviewAmount(item);
                 const costBasis = Math.round((Number(item.quantity) || 0) * (Number(item.averagePrice) || 0));
                 const profit = amount - costBasis;
                 const rate = costBasis ? (profit / costBasis) * 100 : 0;
@@ -639,8 +668,7 @@ function renderAssetSettingsCardView(item, index) {
   const meta = typeof getAssetHoldingMeta === "function" ? getAssetHoldingMeta(item, index) : { sector: "국내 주식" };
   const inputMode = item.priceInputMode === "quantity" ? "quantity" : "full";
   const isQuantityOnly = inputMode === "quantity";
-  const previewPrice = Math.max(0, getAssetSettingsWatchPrice(item) || Number(item.currentPrice) || (isQuantityOnly ? 0 : Number(item.averagePrice) || 0));
-  const amount = Math.round((Number(item.quantity) || 0) * previewPrice);
+  const amount = getAssetSettingsPreviewAmount(item, inputMode);
   const displayCode = String(item.code || "").trim() || "코드 미입력";
   const codeMeta = displayCode === "코드 미입력" ? displayCode : `${displayCode} · ${meta.sector || "국내 주식"}`;
   const isEditing = assetSettingsEditingId === item.id;
@@ -1879,11 +1907,13 @@ document.addEventListener("input", (event) => {
 
   const assetSettingField = event.target.closest("[data-asset-setting-field]");
   if (assetSettingField && activeModal === "assetSettings") {
+    const rowId = assetSettingField.dataset.assetSettingId;
     updateAssetSettingsDraft(
-      assetSettingField.dataset.assetSettingId,
+      rowId,
       assetSettingField.dataset.assetSettingField,
       assetSettingField.value
     );
+    updateAssetSettingsCardPreview(rowId);
     return;
   }
 
