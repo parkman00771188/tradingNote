@@ -3730,33 +3730,50 @@ body.modal-open {
 
 .asset-settings-value-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0;
-  margin-top: 16px;
-  padding: 17px 18px;
-  background: linear-gradient(180deg, rgba(238, 245, 255, 0.82), rgba(248, 251, 255, 0.94));
-  border: 1px solid rgba(217, 227, 241, 0.86);
-  border-radius: 20px;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  margin-top: 20px;
+  padding: 24px 26px;
+  background:
+    radial-gradient(circle at 13% 50%, rgba(255, 255, 255, 0.86), transparent 18%),
+    linear-gradient(135deg, #eff7ff 0%, #f7fbff 52%, #edf5ff 100%);
+  border: 1px solid #cfe2ff;
+  border-radius: 24px;
+  box-shadow: 0 18px 38px rgba(36, 116, 242, 0.08);
+}
+
+.asset-settings-value-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  color: var(--blue);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  box-shadow: 0 12px 24px rgba(36, 116, 242, 0.12);
+}
+
+.asset-settings-value-icon svg {
+  width: 29px;
+  height: 29px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
 }
 
 .asset-settings-value-panel > div {
   display: grid;
   gap: 5px;
   align-content: start;
-  min-width: 0;
-}
-
-.asset-settings-value-panel > div:last-child {
-  justify-items: end;
-  text-align: right;
-}
-
-.asset-settings-value-panel > div:only-child {
   justify-items: start;
+  min-width: 0;
   text-align: left;
 }
 
-.asset-settings-value-panel span,
+.asset-settings-value-panel span:not(.asset-settings-value-icon),
 .asset-settings-value-panel em {
   color: #8b95a3;
   font-style: normal;
@@ -3856,16 +3873,37 @@ body.modal-open {
 
 .asset-settings-tile {
   display: grid;
-  gap: 8px;
-  min-height: 66px;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(216, 227, 242, 0.92);
-  border-radius: 14px;
-  box-shadow: 0 10px 22px rgba(23, 68, 140, 0.035);
+  align-content: space-between;
+  gap: 10px;
+  min-height: 118px;
+  padding: 22px 24px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(216, 227, 242, 0.96);
+  border-radius: 22px;
+  box-shadow: 0 18px 38px rgba(23, 68, 140, 0.06);
 }
 
-.asset-settings-tile > span {
+.asset-settings-tile-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--blue);
+  background: #eaf3ff;
+  border-radius: 12px;
+}
+
+.asset-settings-tile-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 2.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.asset-settings-tile > span:not(.asset-settings-tile-icon) {
   color: #7d8795;
   font-size: 12px;
   font-weight: 850;

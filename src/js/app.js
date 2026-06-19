@@ -724,6 +724,7 @@ function renderAssetSettingsCardView(item, index) {
 
       <div class="asset-settings-tile-grid ${isQuantityOnly ? "is-single" : ""}">
         <label class="asset-settings-tile">
+          <span class="asset-settings-tile-icon" aria-hidden="true">${icon("wallet")}</span>
           <span>보유 수량</span>
           <div class="asset-settings-tile-input">
             <input type="text" value="${item.quantity ? formatMarketNumber(item.quantity) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="quantity" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
@@ -734,6 +735,7 @@ function renderAssetSettingsCardView(item, index) {
           isQuantityOnly
             ? ""
             : `<label class="asset-settings-tile">
+                <span class="asset-settings-tile-icon" aria-hidden="true">${icon("performance")}</span>
                 <span>매수평균가</span>
                 <div class="asset-settings-tile-input">
                   <input type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
@@ -744,6 +746,7 @@ function renderAssetSettingsCardView(item, index) {
       </div>
 
       <div class="asset-settings-value-panel">
+        <span class="asset-settings-value-icon" aria-hidden="true">${icon("chart")}</span>
         <div>
           <span>평가금액</span>
           <strong>${formatMarketNumber(amount)}<small>원</small></strong>
