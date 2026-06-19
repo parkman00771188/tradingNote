@@ -3724,7 +3724,6 @@ body.modal-open {
   --asset-settings-dot-size: 10px;
   --asset-settings-dot-gap: 14px;
   --asset-settings-dot-active-width: 34px;
-  --asset-settings-dot-offset: 12px;
   position: relative;
   display: flex;
   align-items: center;
@@ -3753,9 +3752,8 @@ body.modal-open {
   align-items: center;
   gap: var(--asset-settings-dot-gap);
   width: var(--asset-settings-dot-full-width, var(--asset-settings-dot-track-width, 130px));
-  padding-inline: var(--asset-settings-dot-offset);
   transform: translate3d(var(--asset-settings-dot-track-x, 0px), 0, 0);
-  transition: transform 0.12s ease-out;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
 }
 
@@ -3787,25 +3785,20 @@ body.modal-open {
 }
 
 .asset-settings-dot-track span {
-  flex: 0 0 var(--asset-settings-dot-size);
+  flex: 0 0 auto;
   width: var(--asset-settings-dot-size);
   height: var(--asset-settings-dot-size);
   background: #cbd3de;
   border-radius: 999px;
+  transition:
+    width 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.18s ease,
+    opacity 0.18s ease;
 }
 
-.asset-settings-dot-active {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  z-index: 1;
+.asset-settings-dot-track span.active {
   width: var(--asset-settings-dot-active-width);
-  height: var(--asset-settings-dot-size);
   background: var(--blue);
-  border-radius: 999px;
-  transform: translate3d(var(--asset-settings-dot-active-x, 0px), -50%, 0);
-  transition: transform 0.12s ease-out;
-  will-change: transform;
 }
 
 .asset-settings-card-actions {

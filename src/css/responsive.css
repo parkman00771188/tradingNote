@@ -762,8 +762,8 @@
   }
 
   .asset-settings-dot-track,
-  .asset-settings-dot-active {
-    transition-duration: 0.1s;
+  .asset-settings-dot-track span {
+    transition-duration: 0.16s;
   }
 
   .asset-settings-savebar {
