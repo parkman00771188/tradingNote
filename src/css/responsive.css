@@ -643,7 +643,7 @@
   }
 
   .asset-settings-title-wrap {
-    margin-top: 8px;
+    margin-top: 16px;
   }
 
   .asset-settings-title-input {
@@ -730,7 +730,7 @@
 
   .asset-settings-card-actions {
     gap: 10px;
-    padding-top: 12px;
+    padding-top: 6px;
   }
 
   .asset-settings-card-actions .btn {
@@ -884,7 +884,7 @@
     }
 
     .asset-settings-title-wrap {
-      margin-top: 4px;
+      margin-top: 8px;
     }
 
     .asset-settings-title-input {
@@ -929,7 +929,7 @@
     }
 
     .asset-settings-card-actions {
-      padding-top: 8px;
+      padding-top: 4px;
     }
 
     .asset-settings-card-actions .btn {
