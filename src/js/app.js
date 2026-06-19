@@ -32,7 +32,10 @@ var assetSettingsOpenMenuId = null;
 var assetSettingsEditingId = null;
 var assetSettingsActiveIndex = 0;
 var assetSettingsSlideFrame = null;
-const assetSettingsVisibleDotLimit = 7;
+const assetSettingsVisibleDotLimit = 5;
+const assetSettingsDotSize = 10;
+const assetSettingsDotGap = 14;
+const assetSettingsDotActiveWidth = 34;
 
 const fallbackAssetInvestedBalance = 42750000;
 
@@ -541,15 +544,63 @@ function renderAssetSettingsCardView(item, index) {
   `;
 }
 
-function getAssetSettingsDotWindow(total, activeIndex) {
-  if (total <= assetSettingsVisibleDotLimit) {
-    return { start: 0, end: total };
+function getAssetSettingsVisibleDotCount(total) {
+  return Math.min(Math.max(total, 0), assetSettingsVisibleDotLimit);
+}
+
+function getAssetSettingsDotStep() {
+  return assetSettingsDotSize + assetSettingsDotGap;
+}
+
+function getAssetSettingsDotTrackWidth(visibleCount) {
+  if (!visibleCount) return 0;
+  return assetSettingsDotActiveWidth + Math.max(visibleCount - 1, 0) * getAssetSettingsDotStep();
+}
+
+function getAssetSettingsDotActiveX(total, activeIndex) {
+  const visibleCount = getAssetSettingsVisibleDotCount(total);
+  if (total <= 1 || visibleCount <= 1) return 0;
+
+  const safeIndex = Math.min(Math.max(activeIndex, 0), total - 1);
+  const progress = safeIndex / (total - 1);
+  return progress * (visibleCount - 1) * getAssetSettingsDotStep();
+}
+
+function getAssetSettingsScrollIndex(cards, slideCards) {
+  if (slideCards.length <= 1) return 0;
+
+  const cardsRect = cards.getBoundingClientRect();
+  const viewportCenter = cards.scrollLeft + cardsRect.width / 2;
+  const centers = slideCards.map((card) => {
+    const rect = card.getBoundingClientRect();
+    return cards.scrollLeft + rect.left - cardsRect.left + rect.width / 2;
+  });
+
+  if (viewportCenter <= centers[0]) return 0;
+
+  const lastIndex = centers.length - 1;
+  if (viewportCenter >= centers[lastIndex]) return lastIndex;
+
+  for (let index = 0; index < lastIndex; index += 1) {
+    const start = centers[index];
+    const end = centers[index + 1];
+    if (viewportCenter >= start && viewportCenter <= end) {
+      const distance = Math.max(end - start, 1);
+      return index + (viewportCenter - start) / distance;
+    }
   }
 
-  const half = Math.floor(assetSettingsVisibleDotLimit / 2);
-  const maxStart = Math.max(0, total - assetSettingsVisibleDotLimit);
-  const start = Math.min(Math.max(0, activeIndex - half), maxStart);
-  return { start, end: start + assetSettingsVisibleDotLimit };
+  return 0;
+}
+
+function updateAssetSettingsDotElement(dots, total, activeIndex) {
+  const visibleCount = getAssetSettingsVisibleDotCount(total);
+  const activeX = getAssetSettingsDotActiveX(total, activeIndex);
+
+  dots.style.setProperty("--asset-settings-dot-track-width", `${getAssetSettingsDotTrackWidth(visibleCount)}px`);
+  dots.style.setProperty("--asset-settings-dot-active-x", `${activeX.toFixed(2)}px`);
+  dots.classList.toggle("has-left-overflow", total > visibleCount && activeIndex > 0.04);
+  dots.classList.toggle("has-right-overflow", total > visibleCount && activeIndex < total - 1.04);
 }
 
 function renderAssetSettingsSlideDots(total, activeIndex) {
@@ -559,20 +610,22 @@ function renderAssetSettingsSlideDots(total, activeIndex) {
   }
 
   const safeActiveIndex = Math.min(Math.max(activeIndex, 0), safeTotal - 1);
-  const { start, end } = getAssetSettingsDotWindow(safeTotal, safeActiveIndex);
+  const visibleCount = getAssetSettingsVisibleDotCount(safeTotal);
   const classes = [
     "asset-settings-slide-dots",
-    start > 0 ? "has-left-overflow" : "",
-    end < safeTotal ? "has-right-overflow" : ""
+    safeTotal > visibleCount && safeActiveIndex > 0 ? "has-left-overflow" : "",
+    safeTotal > visibleCount && safeActiveIndex < safeTotal - 1 ? "has-right-overflow" : ""
   ].filter(Boolean).join(" ");
+  const trackWidth = getAssetSettingsDotTrackWidth(visibleCount);
+  const activeX = getAssetSettingsDotActiveX(safeTotal, safeActiveIndex);
 
   return `
-    <div class="${classes}" aria-hidden="true">
+    <div class="${classes}" style="--asset-settings-dot-track-width: ${trackWidth}px; --asset-settings-dot-active-x: ${activeX.toFixed(2)}px;" aria-hidden="true">
       <div class="asset-settings-dot-window">
-        ${Array.from({ length: end - start }, (_, offset) => {
-          const index = start + offset;
-          return `<span data-asset-settings-dot-index="${index}" class="${index === safeActiveIndex ? "active" : ""}"></span>`;
-        }).join("")}
+        <div class="asset-settings-dot-track">
+          ${Array.from({ length: visibleCount }, () => "<span></span>").join("")}
+        </div>
+        <span class="asset-settings-dot-active"></span>
       </div>
     </div>
   `;
@@ -641,32 +694,17 @@ function getAssetSettingsSlideCards(cards) {
   return Array.from(cards?.querySelectorAll(".asset-settings-display-card") || []);
 }
 
-function getAssetSettingsClosestSlideIndex(cards) {
-  const slideCards = getAssetSettingsSlideCards(cards);
-  if (!slideCards.length) return 0;
-  const cardsRect = cards.getBoundingClientRect();
-  const centerX = cardsRect.left + cardsRect.width / 2;
-  return slideCards.reduce((closestIndex, card, index) => {
-    const rect = card.getBoundingClientRect();
-    const distance = Math.abs(rect.left + rect.width / 2 - centerX);
-    const closestRect = slideCards[closestIndex].getBoundingClientRect();
-    const closestDistance = Math.abs(closestRect.left + closestRect.width / 2 - centerX);
-    return distance < closestDistance ? index : closestIndex;
-  }, 0);
-}
-
 function updateAssetSettingsSlideDots(cards) {
   const slideCards = getAssetSettingsSlideCards(cards);
   if (!slideCards.length) {
     assetSettingsActiveIndex = 0;
     return;
   }
-  assetSettingsActiveIndex = Math.min(getAssetSettingsClosestSlideIndex(cards), slideCards.length - 1);
+  const scrollIndex = getAssetSettingsScrollIndex(cards, slideCards);
+  assetSettingsActiveIndex = Math.min(Math.max(Math.round(scrollIndex), 0), slideCards.length - 1);
   const dots = document.querySelector(".asset-settings-slide-dots");
   if (!dots) return;
-  const template = document.createElement("template");
-  template.innerHTML = renderAssetSettingsSlideDots(slideCards.length, assetSettingsActiveIndex).trim();
-  dots.replaceWith(template.content.firstElementChild);
+  updateAssetSettingsDotElement(dots, slideCards.length, scrollIndex);
 }
 
 function syncAssetSettingsActiveIndexFromDom() {

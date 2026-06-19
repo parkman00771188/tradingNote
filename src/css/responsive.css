@@ -758,21 +758,11 @@
   }
 
   .asset-settings-dot-window {
-    gap: 10px;
-    max-width: 154px;
+    width: var(--asset-settings-dot-track-width, 130px);
   }
 
-  .asset-settings-dot-window span {
-    width: 10px;
-    height: 10px;
-    background: #cbd3de;
-    border-radius: 999px;
-    transition: width 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
-  }
-
-  .asset-settings-dot-window span.active {
-    width: 34px;
-    background: var(--blue);
+  .asset-settings-dot-active {
+    transition-duration: 0.1s;
   }
 
   .asset-settings-savebar {
@@ -934,17 +924,7 @@
     }
 
     .asset-settings-dot-window {
-      gap: 9px;
-      max-width: 137px;
-    }
-
-    .asset-settings-dot-window span {
-      width: 8px;
-      height: 8px;
-    }
-
-    .asset-settings-dot-window span.active {
-      width: 30px;
+      width: var(--asset-settings-dot-track-width, 130px);
     }
   }
 

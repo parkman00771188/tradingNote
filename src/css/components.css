@@ -3721,6 +3721,10 @@ body.modal-open {
 
 .asset-settings-slide-dots {
   --asset-settings-dot-fade: 26px;
+  --asset-settings-dot-size: 10px;
+  --asset-settings-dot-gap: 14px;
+  --asset-settings-dot-active-width: 34px;
+  --asset-settings-dot-offset: 12px;
   position: relative;
   display: flex;
   align-items: center;
@@ -3735,16 +3739,20 @@ body.modal-open {
 
 .asset-settings-dot-window {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  max-width: 154px;
+  width: var(--asset-settings-dot-track-width, 130px);
+  height: var(--asset-settings-dot-size);
   overflow: hidden;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
+}
+
+.asset-settings-dot-track {
+  display: flex;
+  align-items: center;
+  gap: var(--asset-settings-dot-gap);
+  padding-inline: var(--asset-settings-dot-offset);
 }
 
 .asset-settings-slide-dots.has-left-overflow .asset-settings-dot-window {
@@ -3774,16 +3782,25 @@ body.modal-open {
   );
 }
 
-.asset-settings-dot-window span {
-  width: 10px;
-  height: 10px;
+.asset-settings-dot-track span {
+  flex: 0 0 var(--asset-settings-dot-size);
+  width: var(--asset-settings-dot-size);
+  height: var(--asset-settings-dot-size);
   background: #cbd3de;
   border-radius: 999px;
 }
 
-.asset-settings-dot-window span.active {
-  width: 34px;
+.asset-settings-dot-active {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: var(--asset-settings-dot-active-width);
+  height: var(--asset-settings-dot-size);
   background: var(--blue);
+  border-radius: 999px;
+  transform: translate3d(var(--asset-settings-dot-active-x, 0px), -50%, 0);
+  transition: transform 0.12s ease-out;
+  will-change: transform;
 }
 
 .asset-settings-card-actions {
