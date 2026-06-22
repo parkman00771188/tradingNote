@@ -70,7 +70,7 @@ function renderLanding() {
           <button type="button" data-landing-scroll="landing-dashboard">대시보드</button>
           <button type="button" data-landing-scroll="landing-insight">투자 노트</button>
           <button type="button" data-landing-scroll="landing-pattern">통계</button>
-          <button class="landing-nav-cta" type="button" data-route="dashboard">무료로 시작하기</button>
+          <button class="landing-nav-cta" type="button" data-route="login">무료로 시작하기</button>
         </nav>
       </header>
 
@@ -83,7 +83,7 @@ function renderLanding() {
             흩어진 투자 경험을 한 곳에 모아 다음 판단의 근거로 바꿔보세요.
           </p>
           <div class="landing-hero-actions">
-            <button class="landing-primary" type="button" data-route="dashboard">내 투자 기록 시작하기</button>
+            <button class="landing-primary" type="button" data-route="login">내 투자 기록 시작하기</button>
             <button class="landing-secondary" type="button" data-landing-scroll="landing-record">서비스 둘러보기</button>
           </div>
         </div>
@@ -177,7 +177,7 @@ function renderLanding() {
           <h2>오늘의 한 줄이<br>내일의 투자 원칙이 됩니다.</h2>
           <p>복잡한 설정 없이 첫 투자 기록부터 시작하세요. 내 선택을 가장 잘 아는 투자 데이터가 쌓입니다.</p>
           <div class="landing-cta-actions">
-            <button class="landing-primary" type="button" data-route="dashboard">무료로 시작하기</button>
+            <button class="landing-primary" type="button" data-route="login">무료로 시작하기</button>
             <button class="landing-secondary" type="button" data-landing-scroll="landing-record">기능 살펴보기</button>
           </div>
         </div>
@@ -195,7 +195,7 @@ function renderLanding() {
             <button type="button" data-landing-scroll="landing-record">투자 기록</button>
             <button type="button" data-landing-scroll="landing-dashboard">통계 분석</button>
             <button type="button" data-landing-scroll="landing-insight">투자 노트</button>
-            <button type="button" data-route="dashboard">대시보드</button>
+            <button type="button" data-route="login">대시보드</button>
           </nav>
         </div>
       </footer>

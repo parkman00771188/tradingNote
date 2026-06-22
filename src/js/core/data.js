@@ -10,6 +10,10 @@ const navItems = [
 ];
 
 const pageMeta = {
+  login: {
+    title: "간편 로그인",
+    description: "소셜 계정으로 빠르고 안전하게 로그인하세요."
+  },
   dashboard: {
     title: "대시보드",
     description: "오늘의 투자 흐름과 주요 성과를 한눈에 확인하세요."

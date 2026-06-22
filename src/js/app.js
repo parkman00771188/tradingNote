@@ -1,5 +1,6 @@
 const renderers = {
   landing: renderLanding,
+  login: renderLogin,
   dashboard: renderDashboard,
   journal: renderJournal,
   journalWrite: renderJournalWrite,

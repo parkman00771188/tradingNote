@@ -1,0 +1,41 @@
+const loginLogo = "src/resources/assets/brand/tn_lockup_blue.svg";
+
+function googleLogo() {
+  return `
+    <svg class="login-provider-icon" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5Z"/>
+      <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.6 8.4 6.3 14.7Z"/>
+      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.8l-6.5 5C9.5 39.6 16.2 44 24 44Z"/>
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.6l6.2 5.2C36.9 39.1 44 34 44 24c0-1.3-.1-2.4-.4-3.5Z"/>
+    </svg>
+  `;
+}
+
+function renderLogin() {
+  return `
+    <div class="login-page">
+      <section class="login-card" aria-labelledby="loginTitle">
+        <img class="login-logo" src="${loginLogo}" alt="Trading Note">
+        <div class="login-heading">
+          <h1 id="loginTitle">간편 로그인</h1>
+          <p>Trading Note에 오신 것을 환영합니다.<br>소셜 계정으로 빠르고 안전하게 로그인하세요.</p>
+        </div>
+
+        <div class="login-form">
+          <button class="login-social" type="button" data-route="dashboard">
+            ${googleLogo()}
+            <strong>Google로 계속하기</strong>
+          </button>
+          <button class="login-social" type="button" data-route="dashboard">
+            <span class="login-provider-icon apple">&#xF8FF;</span>
+            <strong>Apple로 계속하기</strong>
+          </button>
+
+          <div class="login-divider"><span></span><em>또는</em><span></span></div>
+        </div>
+
+        <p class="login-security">${icon("shield")}회원님의 정보는 안전하게 보호됩니다.</p>
+      </section>
+    </div>
+  `;
+}
