@@ -30,11 +30,7 @@ function renderLogin() {
             <span class="login-provider-icon apple">&#xF8FF;</span>
             <strong>Apple로 계속하기</strong>
           </button>
-
-          <div class="login-divider"><span></span><em>또는</em><span></span></div>
         </div>
-
-        <p class="login-security">${icon("shield")}회원님의 정보는 안전하게 보호됩니다.</p>
       </section>
     </div>
   `;
