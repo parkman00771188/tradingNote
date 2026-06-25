@@ -4037,15 +4037,16 @@ body.modal-open {
 }
 
 .asset-settings-cards {
-  --asset-settings-card-width: min(660px, calc(100% - 56px));
-  --asset-settings-card-edge: max(24px, calc((100% - var(--asset-settings-card-width)) / 2));
+  --asset-settings-card-width: min(720px, calc(100% - 32px));
+  --asset-settings-card-edge: max(16px, calc((100% - var(--asset-settings-card-width)) / 2));
+  box-sizing: border-box;
   display: flex;
-  gap: 20px;
+  gap: 16px;
   align-items: flex-start;
   min-height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 22px var(--asset-settings-card-edge) 12px;
+  padding: 18px var(--asset-settings-card-edge) 14px;
   background: transparent;
   overscroll-behavior-x: contain;
   scroll-padding: 0 var(--asset-settings-card-edge);
@@ -4078,7 +4079,7 @@ body.modal-open {
   place-items: center;
   gap: 12px;
   flex: 0 1 var(--asset-settings-card-width);
-  min-height: 500px;
+  min-height: 440px;
   padding: 42px 28px;
   text-align: center;
   background:
@@ -4144,10 +4145,10 @@ body.modal-open {
   display: flex;
   flex-direction: column;
   flex: 0 0 var(--asset-settings-card-width);
-  min-height: 650px;
+  min-height: 610px;
   max-height: none;
   overflow: visible;
-  padding: 34px 38px 32px;
+  padding: 30px 32px 28px;
   background:
     radial-gradient(circle at 18% 0%, rgba(36, 116, 242, 0.08), transparent 34%),
     linear-gradient(180deg, #f7fbff 0%, #ffffff 42%, #ffffff 100%);
@@ -4376,8 +4377,8 @@ body.modal-open {
 
 .asset-settings-title-wrap {
   display: grid;
-  gap: 8px;
-  margin-top: 24px;
+  gap: 7px;
+  margin-top: 22px;
 }
 
 .asset-settings-title-input {
@@ -4409,17 +4410,17 @@ body.modal-open {
 
 .asset-market-search {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .asset-market-search-box {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 22px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-height: 54px;
-  padding: 0 18px;
+  min-height: 48px;
+  padding: 0 16px;
   background: #ffffff;
   border: 1px solid #d9e4f2;
   border-radius: 16px;
@@ -4433,8 +4434,8 @@ body.modal-open {
 }
 
 .asset-market-search-box svg {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   stroke: currentColor;
   stroke-width: 2.25;
   stroke-linecap: round;
@@ -4443,8 +4444,8 @@ body.modal-open {
 }
 
 .asset-market-search-input.asset-settings-title-input {
-  height: 48px;
-  font-size: 21px;
+  height: 42px;
+  font-size: 19px;
 }
 
 .asset-market-search-panel {
@@ -4541,11 +4542,11 @@ body.modal-open {
 
 .asset-market-code-field {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: 84px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-height: 46px;
-  padding: 0 16px;
+  min-height: 42px;
+  padding: 0 14px;
   background: #ffffff;
   border: 1px solid #e1e8f2;
   border-radius: 14px;
@@ -4553,21 +4554,21 @@ body.modal-open {
 
 .asset-market-code-field span {
   color: #7b8491;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 850;
 }
 
 .asset-market-code-field .asset-settings-code-input {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .asset-settings-value-panel {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 14px;
   align-items: center;
-  margin-top: 28px;
-  padding: 26px 30px;
+  margin-top: 22px;
+  padding: 20px 24px;
   background:
     radial-gradient(circle at 13% 50%, rgba(255, 255, 255, 0.86), transparent 18%),
     linear-gradient(135deg, #eff7ff 0%, #f7fbff 52%, #edf5ff 100%);
@@ -4579,8 +4580,8 @@ body.modal-open {
 .asset-settings-value-icon {
   display: grid;
   place-items: center;
-  width: 54px;
-  height: 54px;
+  width: 44px;
+  height: 44px;
   color: var(--blue);
   background: rgba(255, 255, 255, 0.9);
   border-radius: 50%;
@@ -4588,8 +4589,8 @@ body.modal-open {
 }
 
 .asset-settings-value-icon svg {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   stroke: currentColor;
   stroke-width: 2.5;
   stroke-linecap: round;
@@ -4610,13 +4611,13 @@ body.modal-open {
 .asset-settings-value-panel em {
   color: #8b95a3;
   font-style: normal;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 800;
 }
 
 .asset-settings-value-panel strong {
   color: #111827;
-  font-size: 31px;
+  font-size: 26px;
   line-height: 1.1;
   font-weight: 900;
   white-space: nowrap;
@@ -4624,7 +4625,7 @@ body.modal-open {
 
 .asset-settings-value-panel strong small {
   margin-left: 2px;
-  font-size: 19px;
+  font-size: 16px;
 }
 
 .asset-settings-current-input {
@@ -4688,12 +4689,12 @@ body.modal-open {
 .asset-settings-tile-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px;
-  margin-top: 28px;
+  gap: 16px;
+  margin-top: 22px;
 }
 
 .asset-settings-input-mode + .asset-settings-tile-grid {
-  margin-top: 28px;
+  margin-top: 22px;
 }
 
 .asset-settings-tile-grid.is-single {
@@ -4708,9 +4709,9 @@ body.modal-open {
   position: relative;
   display: grid;
   align-content: space-between;
-  gap: 14px;
-  min-height: 136px;
-  padding: 24px 28px;
+  gap: 12px;
+  min-height: 112px;
+  padding: 20px 22px;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(216, 227, 242, 0.96);
   border-radius: 20px;
@@ -4720,16 +4721,16 @@ body.modal-open {
 .asset-settings-tile-icon {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   color: var(--blue);
   background: #eaf3ff;
   border-radius: 12px;
 }
 
 .asset-settings-tile-icon svg {
-  width: 26px;
-  height: 26px;
+  width: 23px;
+  height: 23px;
   stroke: currentColor;
   stroke-width: 2.35;
   stroke-linecap: round;
@@ -4739,7 +4740,7 @@ body.modal-open {
 
 .asset-settings-tile > span:not(.asset-settings-tile-icon) {
   color: #7d8795;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 850;
 }
 
@@ -4789,7 +4790,7 @@ body.modal-open {
 .asset-settings-tile-input,
 .asset-settings-code-input {
   color: #111827;
-  font-size: 27px;
+  font-size: 23px;
   line-height: 1.1;
   font-weight: 900;
 }
@@ -4798,7 +4799,7 @@ body.modal-open {
   margin-left: 2px;
   color: inherit;
   font-style: normal;
-  font-size: 18px;
+  font-size: 15px;
 }
 
 .asset-settings-tile-input {
@@ -4828,7 +4829,7 @@ body.modal-open {
   flex: 0 0 auto;
   color: inherit;
   font-style: normal;
-  font-size: 19px;
+  font-size: 16px;
   font-weight: 900;
 }
 
@@ -5023,8 +5024,8 @@ body.modal-open {
 .asset-settings-card-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-  gap: 16px;
-  margin-top: 42px;
+  gap: 14px;
+  margin-top: 28px;
   padding-top: 0;
 }
 
@@ -5034,9 +5035,9 @@ body.modal-open {
 }
 
 .asset-settings-card-actions .btn {
-  min-height: 62px;
-  border-radius: 16px;
-  font-size: 18px;
+  min-height: 54px;
+  border-radius: 14px;
+  font-size: 16px;
   font-weight: 900;
   white-space: nowrap;
 }
