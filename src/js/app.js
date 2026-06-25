@@ -1899,13 +1899,6 @@ function updateAssetSettingsMarketMeta(rowId) {
   } else if (sectorChip) {
     sectorChip.remove();
   }
-
-  const displayCode = String(item.code || "").trim() || "코드 미입력";
-  const codeMeta = displayCode === "코드 미입력"
-    ? displayCode
-    : [displayCode, categoryLabel].filter(Boolean).join(" · ");
-  const codeMetaNode = card.querySelector(".asset-settings-title-wrap > p");
-  if (codeMetaNode) codeMetaNode.textContent = codeMeta;
 }
 
 function updateAssetSettingsCardPreview(rowId) {
@@ -2117,12 +2110,8 @@ function renderAssetSettingsCardView(item, index) {
   const inputMode = item.priceInputMode === "quantity" ? "quantity" : "full";
   const isQuantityOnly = inputMode === "quantity";
   const amount = getAssetSettingsPreviewAmount(item, inputMode);
-  const displayCode = String(item.code || "").trim() || "코드 미입력";
   const categoryLabel = getAssetMarketLabel(item);
   const categoryTone = getAssetMarketChipTone(categoryLabel);
-  const codeMeta = displayCode === "코드 미입력"
-    ? displayCode
-    : [displayCode, categoryLabel].filter(Boolean).join(" · ");
   const isEditing = assetSettingsEditingId === item.id;
   const readOnlyAttr = isEditing ? "" : `readonly aria-readonly="true" tabindex="-1"`;
   const motionClass = getAssetSettingsCardMotionClass(item, index);
@@ -2172,7 +2161,6 @@ function renderAssetSettingsCardView(item, index) {
               </label>`
             : `<input class="asset-settings-title-input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="새 자산" data-asset-setting-field="name" data-asset-setting-id="${item.id}" ${readOnlyAttr}>`
         }
-        <p>${escapeChartText(codeMeta)}</p>
       </div>
 
       ${
@@ -2197,9 +2185,9 @@ function renderAssetSettingsCardView(item, index) {
           isQuantityOnly
             ? `<label class="asset-settings-tile">
                 <span class="asset-settings-tile-icon" aria-hidden="true">${icon("chart")}</span>
+                ${currencyToggle}
                 <span class="asset-settings-tile-label">
                   <b>현재가</b>
-                  ${currencyToggle}
                 </span>
                 <div class="asset-settings-tile-input">
                   <input type="text" value="${escapeChartText(currentInputValue)}" ${currentNumberAttrs} autocomplete="off" placeholder="0" data-asset-setting-field="currentPrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>

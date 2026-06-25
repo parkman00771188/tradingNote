@@ -1051,9 +1051,12 @@
     }
 
     .asset-settings-tile-label {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 6px;
+      align-items: center;
+    }
+
+    .asset-settings-currency-toggle {
+      top: 12px;
+      right: 14px;
     }
 
     .asset-settings-currency-toggle button {

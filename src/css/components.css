@@ -4615,6 +4615,7 @@ body.modal-open {
 }
 
 .asset-settings-tile {
+  position: relative;
   display: grid;
   align-content: space-between;
   gap: 10px;
@@ -4653,21 +4654,22 @@ body.modal-open {
 }
 
 .asset-settings-tile-label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   min-width: 0;
 }
 
 .asset-settings-tile-label b {
   color: inherit;
   font: inherit;
+  white-space: nowrap;
 }
 
 .asset-settings-currency-toggle {
+  position: absolute;
+  top: 14px;
+  right: 16px;
   display: inline-flex;
-  flex: 0 0 auto;
   padding: 2px;
   background: #eef5ff;
   border: 1px solid #d8e6fb;
