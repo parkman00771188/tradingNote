@@ -2260,6 +2260,16 @@ function renderAssetSettingsModalCardView() {
               : ""
           }
           ${renderAssetSettingsSlideDots(drafts.length, activeDotIndex)}
+          <div class="asset-settings-savebar">
+            <div class="asset-settings-savebar-copy">
+              <strong>자산 설정 저장</strong>
+              <span>입력한 보유 자산을 대시보드와 자산 현황에 반영합니다.</span>
+            </div>
+            <div class="asset-settings-actions">
+              <button class="btn" type="button" data-asset-settings-cancel>취소</button>
+              <button class="btn primary" type="button" data-asset-settings-apply>저장</button>
+            </div>
+          </div>
         </div>
       </section>
     </div>
