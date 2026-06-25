@@ -206,7 +206,7 @@ async function verifyDriveAccessToken(accessToken, config, user) {
   const tokenInfo = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(tokenInfo.error_description || "Google Drive 권한 토큰이 유효하지 않습니다.");
+    throw new Error(getFriendlyDriveError(response.status, tokenInfo.error_description || tokenInfo.error || "Google Drive token verification failed."));
   }
   if (tokenInfo.aud !== config.googleClientId) {
     throw new Error("Google Drive 권한 토큰 대상 앱이 현재 앱과 일치하지 않습니다.");
@@ -249,9 +249,29 @@ async function driveFetch(accessToken, url, options = {}) {
     data = {};
   }
   if (!response.ok) {
-    throw new Error(data.error?.message || "Google Drive 요청에 실패했습니다.");
+    throw new Error(getFriendlyDriveError(response.status, data.error?.message || data.error_description || "Google Drive request failed."));
   }
   return data;
+}
+
+function getFriendlyDriveError(status, message) {
+  const text = String(message || "");
+  const lower = text.toLowerCase();
+
+  if (lower.includes("has not been used") || lower.includes("disabled")) {
+    return "Google Cloud Console에서 Google Drive API가 활성화되어 있지 않습니다. '사용 설정된 API 및 서비스'에서 Google Drive API를 사용 설정한 뒤 다시 시도하세요.";
+  }
+  if (lower.includes("insufficient authentication scopes") || lower.includes("insufficient permission")) {
+    return "Google Drive 권한 범위가 부족합니다. OAuth 동의 화면의 데이터 액세스에 https://www.googleapis.com/auth/drive.file scope를 추가한 뒤 다시 연결하세요.";
+  }
+  if (status === 403) {
+    return `Google Drive 접근 권한이 거부되었습니다. Drive API 사용 설정과 OAuth 테스트 사용자/Scope 설정을 확인하세요. 상세: ${text}`;
+  }
+  if (status === 401) {
+    return "Google Drive 권한 토큰이 만료되었거나 유효하지 않습니다. Drive 연결 버튼을 눌러 다시 권한을 허용하세요.";
+  }
+
+  return text || "Google Drive 요청에 실패했습니다.";
 }
 
 function escapeDriveQueryValue(value) {

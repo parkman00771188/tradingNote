@@ -753,6 +753,22 @@ function setDriveState(nextState) {
   };
 }
 
+async function readApiJsonResponse(response) {
+  const text = await response.text();
+  try {
+    return { data: text ? JSON.parse(text) : {}, text };
+  } catch (error) {
+    return { data: {}, text };
+  }
+}
+
+function getApiErrorMessage(response, data, text, fallback) {
+  if (data?.error) return data.error;
+  const cleanText = String(text || "").trim();
+  if (cleanText && !cleanText.startsWith("<")) return cleanText.slice(0, 500);
+  return `${fallback} (HTTP ${response.status})`;
+}
+
 function formatDriveDate(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -775,10 +791,10 @@ async function fetchDriveStatus({ rerender = false } = {}) {
       credentials: "include",
       headers: { Accept: "application/json" }
     });
-    const data = await response.json().catch(() => ({}));
+    const { data, text } = await readApiJsonResponse(response);
 
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Google Drive 연결 상태를 확인하지 못했습니다.");
+      throw new Error(getApiErrorMessage(response, data, text, "Google Drive 연결 상태를 확인하지 못했습니다."));
     }
 
     setDriveState({
@@ -882,10 +898,10 @@ async function connectGoogleDrive() {
         snapshot: getAssetDriveSnapshot()
       })
     });
-    const data = await response.json().catch(() => ({}));
+    const { data, text } = await readApiJsonResponse(response);
 
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Google Drive 연결에 실패했습니다.");
+      throw new Error(getApiErrorMessage(response, data, text, "Google Drive 연결에 실패했습니다."));
     }
 
     setDriveState({
@@ -945,10 +961,10 @@ async function saveDriveAssets({ manual = false } = {}) {
         snapshot: getAssetDriveSnapshot()
       })
     });
-    const data = await response.json().catch(() => ({}));
+    const { data, text } = await readApiJsonResponse(response);
 
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Google Drive 저장에 실패했습니다.");
+      throw new Error(getApiErrorMessage(response, data, text, "Google Drive 저장에 실패했습니다."));
     }
 
     setDriveState({
@@ -999,9 +1015,9 @@ async function disconnectGoogleDrive() {
       },
       body: JSON.stringify({ action: "disconnect" })
     });
-    const data = await response.json().catch(() => ({}));
+    const { data, text } = await readApiJsonResponse(response);
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Google Drive 연결 해제에 실패했습니다.");
+      throw new Error(getApiErrorMessage(response, data, text, "Google Drive 연결 해제에 실패했습니다."));
     }
 
     driveAccessToken = "";
