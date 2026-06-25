@@ -15,6 +15,11 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .settings-page {
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 20px;
+  }
+
   .toolbar {
     grid-template-columns: repeat(3, minmax(160px, 1fr));
   }
@@ -1629,6 +1634,21 @@
     grid-template-columns: 1fr;
   }
 
+  .settings-page {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-side {
+    position: static;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .settings-menu {
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+    min-width: 720px;
+  }
+
   .desktop-journal-filter,
   .desktop-calendar-layout {
     display: none;
@@ -2484,6 +2504,37 @@
 
   body[data-route="settings"] .broker-row .btn {
     display: none;
+  }
+
+  body[data-route="settings"] .settings-menu {
+    grid-template-columns: repeat(2, minmax(210px, 1fr));
+    min-width: 460px;
+  }
+
+  body[data-route="settings"] .settings-menu-item {
+    min-height: 68px;
+  }
+
+  body[data-route="settings"] .settings-detail-panel {
+    padding: 18px;
+    gap: 20px;
+  }
+
+  body[data-route="settings"] .settings-detail-row,
+  body[data-route="settings"] .settings-empty-box,
+  body[data-route="settings"] .settings-help-box,
+  body[data-route="settings"] .settings-profile-card {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-route="settings"] .settings-row-control {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+
+  body[data-route="settings"] .settings-inline-select {
+    width: 100%;
   }
 
   body[data-route="stock"] .topbar {

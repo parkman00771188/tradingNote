@@ -61,6 +61,7 @@ var assetSettingsSlideFrame = null;
 var assetSettingsMotion = null;
 var assetSettingsMotionTimer = 0;
 var assetSettingsPendingRemoveId = null;
+var settingsActiveSection = "broker";
 const assetSettingsVisibleDotLimit = 5;
 const assetSettingsDotSize = 10;
 const assetSettingsDotGap = 14;
@@ -2633,6 +2634,13 @@ document.addEventListener("click", (event) => {
   if (sidebarUserMenuOpen && !event.target.closest("[data-sidebar-user-panel]")) {
     sidebarUserMenuOpen = false;
     renderSidebarUser();
+  }
+
+  const settingsSectionButton = event.target.closest("[data-settings-section]");
+  if (settingsSectionButton && getRoute() === "settings") {
+    settingsActiveSection = settingsSectionButton.dataset.settingsSection || "broker";
+    render();
+    return;
   }
 
   const driveConnectButton = event.target.closest("[data-drive-connect]");
