@@ -3314,6 +3314,11 @@ body.modal-open {
   background: var(--blue-soft);
 }
 
+.asset-cash-confirm-card.delete > span {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
 .asset-cash-card svg,
 .asset-cash-confirm-card svg {
   width: 24px;
@@ -3360,6 +3365,11 @@ body.modal-open {
 .asset-cash-confirm-question.withdraw strong,
 .asset-cash-confirm-question.withdraw span {
   color: var(--blue);
+}
+
+.asset-cash-confirm-card.delete strong,
+.asset-cash-confirm-question.delete {
+  color: var(--red);
 }
 
 .asset-cash-card em,

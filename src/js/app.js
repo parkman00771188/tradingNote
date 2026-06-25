@@ -59,6 +59,7 @@ var assetSettingsSlideFrame = null;
 var assetSettingsMotion = null;
 var assetSettingsMotionTimer = 0;
 var assetSettingsPendingRemoveId = null;
+var assetSettingsDeleteTargetId = "";
 var assetMarketSearch = {
   rowId: "",
   query: "",
@@ -1183,6 +1184,7 @@ async function importAssetSettingsFile(file) {
     assetSettingsActiveIndex = 0;
     assetSettingsMotion = null;
     assetSettingsPendingRemoveId = null;
+    assetSettingsDeleteTargetId = "";
   } catch (error) {
     assetSettingsError = error?.message || "자산 파일을 불러오지 못했습니다.";
     assetSettingsMessage = "";
@@ -1601,6 +1603,7 @@ function beginAssetSettingsEdit() {
   assetSettingsActiveIndex = 0;
   assetSettingsMotion = null;
   assetSettingsPendingRemoveId = null;
+  assetSettingsDeleteTargetId = "";
   resetAssetMarketSearch();
 }
 
@@ -1613,6 +1616,7 @@ function cancelAssetSettingsEdit() {
   assetSettingsActiveIndex = 0;
   assetSettingsMotion = null;
   assetSettingsPendingRemoveId = null;
+  assetSettingsDeleteTargetId = "";
   if (assetSettingsMotionTimer) window.clearTimeout(assetSettingsMotionTimer);
   assetSettingsMotionTimer = 0;
   resetAssetMarketSearch();
@@ -2001,6 +2005,87 @@ function applyAssetSettingsEdit() {
   saveAssetStateToStorage();
   cancelAssetSettingsEdit();
   return true;
+}
+
+function getAssetSettingsDeleteTarget() {
+  return assetSettingsDrafts.find((item) => item.id === assetSettingsDeleteTargetId) || null;
+}
+
+function requestAssetSettingsDelete(rowId) {
+  assetSettingsDeleteTargetId = rowId;
+  assetSettingsOpenMenuId = null;
+  activeModal = "assetSettingsDeleteConfirm";
+}
+
+function cancelAssetSettingsDelete() {
+  assetSettingsDeleteTargetId = "";
+  activeModal = "assetSettings";
+}
+
+function confirmAssetSettingsDelete() {
+  const target = getAssetSettingsDeleteTarget();
+  if (!target) {
+    assetSettingsDeleteTargetId = "";
+    activeModal = "assetSettings";
+    return false;
+  }
+
+  const rows = assetSettingsDrafts
+    .filter((item) => item.id !== target.id && !isEmptyAssetSettingsDraft(item))
+    .map((item) => normalizeAssetSettingsRow(item));
+
+  if (rows.length) {
+    if (!replaceAssetHoldings(rows)) {
+      activeModal = "assetSettings";
+      assetSettingsDeleteTargetId = "";
+      return false;
+    }
+  } else {
+    clearAssetHoldingsRuntime();
+  }
+
+  saveAssetStateToStorage();
+  const deletedName = String(target.name || target.code || "자산").trim();
+  beginAssetSettingsEdit();
+  assetSettingsMessage = `${deletedName}을 삭제했습니다.`;
+  assetSettingsDeleteTargetId = "";
+  activeModal = "assetSettings";
+  return true;
+}
+
+function renderAssetSettingsDeleteConfirmModal() {
+  const target = getAssetSettingsDeleteTarget();
+  const targetName = String(target?.name || target?.code || "선택한 자산").trim();
+  const targetCode = String(target?.code || "").trim();
+
+  return `
+    <div class="modal-backdrop">
+      <section class="modal-panel asset-cash-confirm-modal asset-delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="assetDeleteConfirmTitle">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Delete Asset</p>
+            <h2 class="modal-title" id="assetDeleteConfirmTitle">자산 삭제</h2>
+          </div>
+          <button class="icon-button" type="button" data-modal-close aria-label="닫기">X</button>
+        </div>
+        <div class="modal-body">
+          <div class="asset-cash-confirm-card delete">
+            <span>${icon("trash")}</span>
+            <div>
+              <p>삭제 대상</p>
+              <strong>${escapeChartText(targetName)}</strong>
+              ${targetCode ? `<em>${escapeChartText(targetCode)}</em>` : ""}
+            </div>
+          </div>
+          <p class="asset-cash-confirm-question delete">삭제하시겠습니까?</p>
+          <div class="asset-cash-actions">
+            <button class="btn" type="button" data-asset-settings-delete-cancel>취소</button>
+            <button class="btn danger" type="button" data-asset-settings-delete-confirm>확인</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
 }
 
 function renderAssetSettingsModal() {
@@ -2656,6 +2741,7 @@ function cancelActiveModalDraft(modalName = activeModal) {
   if (modalName === "journalTradeTypeFilter") cancelJournalTradeTypeFilterEdit();
   if (modalName === "assetTrendTargets") cancelAssetTrendTargetEdit();
   if (modalName === "assetSettings") cancelAssetSettingsEdit();
+  if (modalName === "assetSettingsDeleteConfirm") cancelAssetSettingsDelete();
 }
 
 function getRoute() {
@@ -2668,7 +2754,7 @@ function renderModal() {
   const modalRoot = document.querySelector("#modalRoot");
   if (!modalRoot) return;
 
-  if (!["journalWrite", "assetCash", "assetCashConfirm", "assetTrendTargets", "assetSettings", "journalDateRange", "journalStockFilter", "journalTradeTypeFilter"].includes(activeModal)) {
+  if (!["journalWrite", "assetCash", "assetCashConfirm", "assetTrendTargets", "assetSettings", "assetSettingsDeleteConfirm", "journalDateRange", "journalStockFilter", "journalTradeTypeFilter"].includes(activeModal)) {
     modalRoot.innerHTML = "";
     if (document.body) document.body.classList.remove("modal-open");
     return;
@@ -2708,6 +2794,11 @@ function renderModal() {
   if (activeModal === "assetSettings") {
     modalRoot.innerHTML = renderAssetSettingsModalCardView();
     hydrateAssetSettingsSlider();
+    return;
+  }
+
+  if (activeModal === "assetSettingsDeleteConfirm") {
+    modalRoot.innerHTML = renderAssetSettingsDeleteConfirmModal();
     return;
   }
 
@@ -3148,6 +3239,26 @@ document.addEventListener("click", (event) => {
       return;
     }
 
+    const assetSettingsDeleteCancel = event.target.closest("[data-asset-settings-delete-cancel]");
+    if (assetSettingsDeleteCancel && activeModal === "assetSettingsDeleteConfirm") {
+      cancelAssetSettingsDelete();
+      renderModal();
+      hydrateIcons(document);
+      return;
+    }
+
+    const assetSettingsDeleteConfirm = event.target.closest("[data-asset-settings-delete-confirm]");
+    if (assetSettingsDeleteConfirm && activeModal === "assetSettingsDeleteConfirm") {
+      if (confirmAssetSettingsDelete()) {
+        render();
+        return;
+      }
+
+      renderModal();
+      hydrateIcons(document);
+      return;
+    }
+
     const assetTargetAdd = event.target.closest("[data-asset-target-add]");
     if (assetTargetAdd && activeModal === "assetTrendTargets") {
       addAssetTrendTargetDraft();
@@ -3266,7 +3377,9 @@ document.addEventListener("click", (event) => {
     const assetSettingsRemove = event.target.closest("[data-asset-settings-remove]");
     if (assetSettingsRemove && activeModal === "assetSettings") {
       syncAssetSettingsActiveIndexFromDom();
-      animateAssetSettingsRemoval(assetSettingsRemove.dataset.assetSettingsRemove);
+      requestAssetSettingsDelete(assetSettingsRemove.dataset.assetSettingsRemove);
+      renderModal();
+      hydrateIcons(document);
       return;
     }
 
