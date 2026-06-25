@@ -608,7 +608,7 @@
   }
 
   .asset-settings-cards {
-    --asset-settings-card-width: min(420px, calc(100% - 32px));
+    --asset-settings-card-width: min(488px, calc(100% - 32px));
     --asset-settings-card-edge: max(16px, calc((100% - var(--asset-settings-card-width)) / 2));
     display: flex;
     align-self: stretch;
@@ -647,17 +647,17 @@
   }
 
   .asset-settings-display-card {
-    min-height: 0;
+    min-height: 660px;
     max-height: none;
     overflow: visible;
-    padding: 18px 20px 16px;
-    border-radius: 18px;
+    padding: 28px 32px 26px;
+    border-radius: 22px;
     border-color: #edf1f6;
     box-shadow: 0 16px 32px rgba(23, 68, 140, 0.052);
   }
 
   .asset-settings-display-card.is-editing {
-    min-height: 0;
+    min-height: 660px;
   }
 
   .asset-settings-slide-nav {
@@ -703,12 +703,12 @@
   }
 
   .asset-settings-title-wrap {
-    margin-top: 10px;
+    margin-top: 18px;
   }
 
   .asset-settings-title-input {
-    height: 34px;
-    font-size: 20px;
+    height: 40px;
+    font-size: 22px;
     line-height: 1.1;
   }
 
@@ -729,35 +729,35 @@
   }
 
   .asset-settings-value-panel {
-    grid-template-columns: 38px minmax(0, 1fr);
-    gap: 10px;
-    margin-top: 10px;
-    padding: 12px 14px;
-    border-radius: 16px;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 15px;
+    margin-top: 24px;
+    padding: 22px 24px;
+    border-radius: 20px;
     box-shadow: 0 12px 26px rgba(36, 116, 242, 0.06);
   }
 
   .asset-settings-value-icon {
-    width: 36px;
-    height: 36px;
+    width: 46px;
+    height: 46px;
   }
 
   .asset-settings-value-icon svg {
-    width: 22px;
-    height: 22px;
+    width: 25px;
+    height: 25px;
   }
 
   .asset-settings-value-panel span:not(.asset-settings-value-icon),
   .asset-settings-value-panel em {
-    font-size: 13px;
+    font-size: 15px;
   }
 
   .asset-settings-value-panel strong {
-    font-size: 21px;
+    font-size: 27px;
   }
 
   .asset-settings-value-panel strong small {
-    font-size: 12px;
+    font-size: 16px;
   }
 
   .asset-settings-current-input input,
@@ -766,44 +766,44 @@
   }
 
   .asset-settings-tile-grid {
-    gap: 10px;
-    margin-top: 12px;
+    gap: 16px;
+    margin-top: 24px;
   }
 
   .asset-settings-input-mode + .asset-settings-tile-grid {
-    margin-top: 10px;
+    margin-top: 22px;
   }
 
   .asset-settings-tile {
-    min-height: 82px;
-    padding: 12px 14px;
-    border-radius: 16px;
+    min-height: 116px;
+    padding: 20px 22px;
+    border-radius: 18px;
   }
 
   .asset-settings-tile-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: 10px;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
   }
 
   .asset-settings-tile-icon svg {
-    width: 20px;
-    height: 20px;
+    width: 23px;
+    height: 23px;
   }
 
   .asset-settings-tile > span:not(.asset-settings-tile-icon) {
-    font-size: 12px;
+    font-size: 14px;
   }
 
   .asset-settings-tile strong,
   .asset-settings-tile-input,
   .asset-settings-code-input {
-    font-size: 16px;
+    font-size: 22px;
   }
 
   .asset-settings-tile-input em,
   .asset-settings-tile strong em {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .asset-settings-card-foot {
@@ -829,15 +829,15 @@
 
   .asset-settings-card-actions {
     display: grid;
-    gap: 10px;
-    margin-top: 12px;
+    gap: 14px;
+    margin-top: 34px;
     padding-top: 0;
   }
 
   .asset-settings-card-actions .btn {
-    min-height: 44px;
-    border-radius: 12px;
-    font-size: 13px;
+    min-height: 56px;
+    border-radius: 14px;
+    font-size: 16px;
   }
 
   .asset-settings-add-card {
@@ -3616,7 +3616,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 560px) {
   .asset-settings-modal .asset-settings-display-card .asset-settings-title-wrap input.asset-settings-title-input {
     font-size: 18px;
   }
@@ -3639,5 +3639,195 @@
 
   .asset-settings-modal .asset-settings-display-card .asset-market-code-field input.asset-settings-code-input {
     width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .asset-settings-backdrop {
+    padding: 8px;
+  }
+
+  .asset-settings-modal {
+    width: min(430px, calc(100vw - 16px));
+    height: min(760px, calc(100vh - 16px));
+    height: min(760px, calc(100dvh - 16px));
+    min-height: min(660px, calc(100vh - 16px));
+    min-height: min(660px, calc(100dvh - 16px));
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 20px;
+  }
+
+  .asset-settings-header {
+    min-height: 80px;
+    padding: 18px 20px 12px;
+  }
+
+  .asset-settings-heading .eyebrow {
+    margin-bottom: 4px;
+    font-size: 13px;
+  }
+
+  .asset-settings-heading .modal-title {
+    font-size: 26px;
+  }
+
+  .asset-settings-header-actions {
+    gap: 8px;
+  }
+
+  .asset-settings-header-add,
+  .asset-settings-nav-button {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    border-radius: 14px;
+  }
+
+  .asset-settings-cards {
+    --asset-settings-card-width: min(390px, calc(100% - 28px));
+    --asset-settings-card-edge: max(14px, calc((100% - var(--asset-settings-card-width)) / 2));
+    gap: 14px;
+    padding: 12px var(--asset-settings-card-edge) 18px;
+  }
+
+  .asset-settings-display-card,
+  .asset-settings-display-card.is-editing {
+    min-height: 560px;
+    padding: 24px 28px 22px;
+    border-radius: 22px;
+  }
+
+  .asset-settings-menu {
+    top: 22px;
+    right: 22px;
+    width: 42px;
+    height: 42px;
+    border-radius: 15px;
+  }
+
+  .asset-settings-chip-row {
+    gap: 8px;
+    padding-right: 56px;
+  }
+
+  .asset-settings-chip,
+  .asset-settings-sector-chip {
+    min-height: 28px;
+    font-size: 11px;
+  }
+
+  .asset-settings-title-wrap {
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  .asset-market-search-box {
+    grid-template-columns: 22px minmax(0, 1fr);
+    min-height: 48px;
+    padding: 0 14px;
+    border-radius: 15px;
+  }
+
+  .asset-market-search-box svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .asset-settings-modal .asset-settings-display-card .asset-settings-title-wrap input.asset-market-search-input {
+    height: 42px;
+    font-size: 18px;
+  }
+
+  .asset-market-code-field {
+    grid-template-columns: 82px minmax(0, 1fr);
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 14px;
+  }
+
+  .asset-market-code-field span {
+    font-size: 13px;
+  }
+
+  .asset-market-code-field .asset-settings-code-input,
+  .asset-settings-modal .asset-settings-display-card .asset-market-code-field input.asset-settings-code-input {
+    font-size: 16px;
+  }
+
+  .asset-settings-tile-grid {
+    gap: 14px;
+    margin-top: 22px;
+  }
+
+  .asset-settings-tile {
+    min-height: 104px;
+    padding: 16px 18px;
+    border-radius: 18px;
+  }
+
+  .asset-settings-tile-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+  }
+
+  .asset-settings-tile-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .asset-settings-tile > span:not(.asset-settings-tile-icon),
+  .asset-settings-value-panel span:not(.asset-settings-value-icon),
+  .asset-settings-value-panel em {
+    font-size: 13px;
+  }
+
+  .asset-settings-tile strong,
+  .asset-settings-tile-input,
+  .asset-settings-code-input {
+    font-size: 20px;
+  }
+
+  .asset-settings-tile-input em,
+  .asset-settings-tile strong em {
+    font-size: 15px;
+  }
+
+  .asset-settings-value-panel {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 13px;
+    margin-top: 22px;
+    padding: 18px 20px;
+    border-radius: 20px;
+  }
+
+  .asset-settings-value-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .asset-settings-value-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .asset-settings-value-panel strong {
+    font-size: 24px;
+  }
+
+  .asset-settings-value-panel strong small {
+    font-size: 15px;
+  }
+
+  .asset-settings-card-actions {
+    gap: 14px;
+    margin-top: 30px;
+  }
+
+  .asset-settings-card-actions .btn {
+    min-height: 54px;
+    border-radius: 15px;
+    font-size: 16px;
   }
 }
