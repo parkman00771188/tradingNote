@@ -103,13 +103,17 @@ function clearGoogleRedirectState() {
   } catch (error) {}
 }
 
+function getGoogleRedirectUri() {
+  return new URL("/", window.location.origin).href;
+}
+
 function buildGoogleRedirectUrl(clientId) {
   const state = createGoogleRedirectState();
   writeGoogleRedirectState(state);
 
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: window.location.origin,
+    redirect_uri: getGoogleRedirectUri(),
     response_type: "token",
     scope: "openid email profile",
     include_granted_scopes: "true",
