@@ -4059,6 +4059,12 @@ body.modal-open {
   scroll-snap-type: none;
 }
 
+.asset-settings-cards.is-single {
+  justify-content: center;
+  overflow-x: hidden;
+  scroll-snap-type: none;
+}
+
 .asset-settings-cards.is-empty {
   justify-content: center;
   overflow: hidden;

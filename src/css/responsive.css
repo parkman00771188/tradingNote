@@ -626,6 +626,13 @@
     display: none;
   }
 
+  .asset-settings-cards.is-single,
+  .asset-settings-cards.is-empty {
+    justify-content: center;
+    overflow-x: hidden;
+    scroll-snap-type: none;
+  }
+
   .asset-settings-card,
   .asset-settings-add-card {
     flex: 0 0 var(--asset-settings-card-width);
@@ -919,6 +926,13 @@
       gap: 16px;
       padding: 8px var(--asset-settings-card-edge) 8px;
       scroll-padding: 0 var(--asset-settings-card-edge);
+    }
+
+    .asset-settings-cards.is-single,
+    .asset-settings-cards.is-empty {
+      justify-content: center;
+      overflow-x: hidden;
+      scroll-snap-type: none;
     }
 
     .asset-settings-card,

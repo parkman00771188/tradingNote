@@ -2402,7 +2402,7 @@ function renderAssetSettingsModalCardView() {
   const canAdd = true;
   const activeDotIndex = Math.min(Math.max(assetSettingsActiveIndex, 0), Math.max(drafts.length - 1, 0));
   const hasMultipleCards = drafts.length > 1;
-  const cardsClass = `asset-settings-cards${drafts.length ? "" : " is-empty"}`;
+  const cardsClass = `asset-settings-cards${drafts.length ? "" : " is-empty"}${drafts.length === 1 ? " is-single" : ""}`;
   const motionAttr = assetSettingsMotion ? ` data-motion="${assetSettingsMotion.type}"` : "";
   const tabs = [
     ["모든 자산", drafts.length, true, ""],
@@ -2421,9 +2421,6 @@ function renderAssetSettingsModalCardView() {
             <h2 class="modal-title" id="assetSettingsModalTitle">자산 설정</h2>
           </div>
           <div class="asset-settings-header-actions">
-            <input class="asset-settings-file-input" type="file" accept=".xlsx,.xls,.csv" data-asset-settings-file>
-            <button class="asset-settings-file-action" type="button" data-asset-settings-import aria-label="엑셀 파일 불러오기" title="엑셀 파일 불러오기">${icon("upload")}<span>불러오기</span></button>
-            <button class="asset-settings-file-action" type="button" data-asset-settings-export aria-label="엑셀 파일 내보내기" title="엑셀 파일 내보내기">${icon("download")}<span>내보내기</span></button>
             <button class="btn ghost asset-settings-header-add" type="button" data-asset-settings-add ${canAdd ? "" : "disabled"}>${icon("plus")}자산 추가</button>
             <button class="asset-settings-nav-button" type="button" data-modal-close aria-label="닫기">X</button>
           </div>
