@@ -163,9 +163,10 @@ function assetRate(value) {
 
 function getAssetHoldingMeta(item, index) {
   const fallbackColors = ["#2474f2", "#f05267", "#22c55e", "#f59e0b", "#2356a6", "#7c3aed"];
+  const marketLabel = typeof getAssetMarketLabel === "function" ? getAssetMarketLabel(item) : "";
   return assetHoldingMeta[item.name] || {
     code: item.code || "------",
-    sector: "국내 주식",
+    sector: marketLabel || "자산",
     badge: String(item.name || "?").slice(0, 2),
     color: fallbackColors[index % fallbackColors.length]
   };

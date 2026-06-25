@@ -160,17 +160,36 @@ function getWatchStock(name, code = "") {
     price: parseMarketNumber(row[2]),
     priceText: row[2],
     rate: row[3],
-    change: row[4] || ""
+    change: row[4] || "",
+    type: row[5] || "",
+    quoteType: row[6] || "",
+    market: row[7] || "",
+    exchange: row[8] || "",
+    source: row[9] || ""
   };
 }
 
 function getHoldingData() {
-  const rows = holdings.map(([name, quantityText, amountText, profitText]) => {
+  const rows = holdings.map((holdingRow) => {
+    const [
+      name,
+      quantityText,
+      amountText,
+      profitText,
+      ,
+      ,
+      storedCode,
+      storedType,
+      storedQuoteType,
+      storedMarket,
+      storedExchange,
+      storedSource
+    ] = holdingRow;
     const quantity = parseMarketNumber(quantityText);
     const previousAmount = parseMarketNumber(amountText);
     const previousProfit = parseSignedMarketNumber(profitText);
     const costBasis = Math.max(0, previousAmount - previousProfit);
-    const watch = getWatchStock(name);
+    const watch = getWatchStock(name, storedCode);
     const currentPrice = watch && watch.price ? watch.price : Math.round(previousAmount / Math.max(1, quantity));
     const currentAmount = currentPrice * quantity;
     const profit = currentAmount - costBasis;
@@ -178,7 +197,12 @@ function getHoldingData() {
 
     return {
       name,
-      code: watch ? watch.code : "",
+      code: storedCode || (watch ? watch.code : ""),
+      type: storedType || watch?.type || "",
+      quoteType: storedQuoteType || watch?.quoteType || "",
+      market: storedMarket || watch?.market || "",
+      exchange: storedExchange || watch?.exchange || "",
+      source: storedSource || watch?.source || "",
       quantity,
       averagePrice: quantity ? Math.round(costBasis / quantity) : 0,
       currentPrice,

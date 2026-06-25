@@ -4260,6 +4260,30 @@ body.modal-open {
   border-color: #b8d2ff;
 }
 
+.asset-settings-sector-chip.crypto {
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.asset-settings-sector-chip.future {
+  color: #b45309;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.asset-settings-sector-chip.etf {
+  color: #6d28d9;
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+}
+
+.asset-settings-sector-chip.global {
+  color: #334155;
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
 .asset-settings-title-wrap {
   display: grid;
   gap: 5px;

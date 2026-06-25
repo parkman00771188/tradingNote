@@ -98,7 +98,12 @@ const assetSpreadsheetColumnAliases = {
   quantity: ["보유수량", "수량", "quantity", "qty", "shares"],
   averagePrice: ["매수평균가", "매수평균", "평균단가", "평단", "averageprice", "avgprice", "average cost", "avg cost"],
   currentPrice: ["현재가", "평가단가", "현재가격", "currentprice", "price", "marketprice", "lastprice"],
-  priceInputMode: ["입력방식", "방식", "mode", "inputmode"]
+  priceInputMode: ["입력방식", "방식", "mode", "inputmode"],
+  type: ["자산유형", "유형", "type", "assettype", "category"],
+  quoteType: ["quoteType", "quote type"],
+  market: ["시장", "거래시장", "market"],
+  exchange: ["거래소", "exchange"],
+  source: ["출처", "source"]
 };
 
 const fallbackAssetInvestedBalance = 42750000;
@@ -565,7 +570,12 @@ function normalizeAssetRowInput(item) {
     quantity,
     averagePrice,
     currentPrice,
-    priceInputMode
+    priceInputMode,
+    type: String(item.type || "").trim(),
+    quoteType: String(item.quoteType || "").trim(),
+    market: String(item.market || "").trim(),
+    exchange: String(item.exchange || "").trim(),
+    source: String(item.source || "").trim()
   };
 }
 
@@ -610,7 +620,13 @@ function replaceAssetHoldings(rows) {
         formatMarketNumber(amount),
         formatSignedMarketNumber(profit),
         formatSignedRate(rate),
-        "0%"
+        "0%",
+        row.code,
+        row.type,
+        row.quoteType,
+        row.market,
+        row.exchange,
+        row.source
       ];
     })
   );
@@ -625,11 +641,27 @@ function replaceAssetHoldings(rows) {
       watchRow[2] = formatMarketNumber(row.currentPrice);
       watchRow[3] = watchRow[3] || "+0.00%";
       watchRow[4] = watchRow[4] || "0";
+      watchRow[5] = row.type;
+      watchRow[6] = row.quoteType;
+      watchRow[7] = row.market;
+      watchRow[8] = row.exchange;
+      watchRow[9] = row.source;
       return;
     }
 
     if (typeof watchList !== "undefined") {
-      watchList.push([row.name, row.code, formatMarketNumber(row.currentPrice), "+0.00%", "0"]);
+      watchList.push([
+        row.name,
+        row.code,
+        formatMarketNumber(row.currentPrice),
+        "+0.00%",
+        "0",
+        row.type,
+        row.quoteType,
+        row.market,
+        row.exchange,
+        row.source
+      ]);
     }
   });
 
@@ -741,7 +773,12 @@ function getAssetSnapshot() {
       quantity: item.quantity,
       averagePrice: item.averagePrice,
       currentPrice: item.currentPrice,
-      priceInputMode: "full",
+      priceInputMode: item.priceInputMode || "full",
+      type: item.type || "",
+      quoteType: item.quoteType || "",
+      market: item.market || "",
+      exchange: item.exchange || "",
+      source: item.source || "",
       amount: item.amount,
       costBasis: item.costBasis,
       profit: item.profit,
@@ -1354,7 +1391,56 @@ function createAssetSettingsDraft(item = {}) {
     quantity: Math.max(0, Number(item.quantity) || 0),
     averagePrice: Math.max(0, Number(item.averagePrice) || 0),
     currentPrice: Math.max(0, Number(item.currentPrice) || 0),
-    priceInputMode: item.priceInputMode || (item.averagePrice || item.currentPrice ? "full" : "quantity")
+    priceInputMode: item.priceInputMode || (item.averagePrice || item.currentPrice ? "full" : "quantity"),
+    type: item.type || "",
+    quoteType: item.quoteType || "",
+    market: item.market || "",
+    exchange: item.exchange || "",
+    source: item.source || ""
+  };
+}
+
+function getAssetMarketLabel(item = {}) {
+  const type = String(item.type || "").trim();
+  const quoteType = String(item.quoteType || "").trim().toUpperCase();
+  const market = String(item.market || "").trim();
+  const exchange = String(item.exchange || "").trim();
+  const code = String(item.code || item.symbol || "").trim().toUpperCase();
+  const marketUpper = market.toUpperCase();
+  const exchangeUpper = exchange.toUpperCase();
+
+  if (["KOSPI", "KOSDAQ", "KONEX"].includes(marketUpper)) return marketUpper;
+  if (["KOSPI", "KOSDAQ", "KONEX"].includes(exchangeUpper)) return exchangeUpper;
+  if (quoteType === "CRYPTOCURRENCY" || type === "암호화폐") return "암호화폐";
+  if (quoteType === "FUTURE" || type === "선물") return "선물";
+  if (quoteType === "ETF" || type.toUpperCase() === "ETF") return "ETF";
+  if (quoteType === "INDEX" || type === "지수") return "지수";
+  if (quoteType === "CURRENCY" || type === "환율") return "환율";
+  if (/^[A-Z0-9]+-[A-Z]{3}$/.test(code)) return "암호화폐";
+  if (/=F$/.test(code)) return "선물";
+  if (/\.KS$/.test(code)) return "KOSPI";
+  if (/\.KQ$/.test(code)) return "KOSDAQ";
+  if (quoteType === "EQUITY") return type || "주식";
+  return type || market || "";
+}
+
+function getAssetMarketChipTone(label) {
+  const text = String(label || "");
+  if (/암호화폐|crypto/i.test(text)) return "crypto";
+  if (/선물|future/i.test(text)) return "future";
+  if (/ETF/i.test(text)) return "etf";
+  if (/KOSPI|KOSDAQ|KONEX|국내/i.test(text)) return "domestic";
+  return "global";
+}
+
+function clearAssetMarketMeta(item = {}) {
+  return {
+    ...item,
+    type: "",
+    quoteType: "",
+    market: "",
+    exchange: "",
+    source: ""
   };
 }
 
@@ -1438,7 +1524,7 @@ function updateAssetSettingsDraft(rowId, field, value) {
       return { ...item, priceInputMode: value === "full" ? "full" : "quantity" };
     }
     if (field === "name" || field === "code") {
-      return { ...item, [field]: value };
+      return clearAssetMarketMeta({ ...item, [field]: value });
     }
     return { ...item, [field]: parseKRWInput(value) };
   });
@@ -1586,7 +1672,12 @@ function applyAssetMarketResult(rowId, resultIndex) {
   patchAssetSettingsDraft(rowId, {
     name: result.name || currentDraft.name || result.symbol || "",
     code: result.code || result.symbol || currentDraft.code || "",
-    currentPrice: Math.max(0, Number(currentPrice) || 0)
+    currentPrice: Math.max(0, Number(currentPrice) || 0),
+    type: result.type || "",
+    quoteType: result.quoteType || "",
+    market: result.market || "",
+    exchange: result.exchange || "",
+    source: result.source || ""
   });
 
   assetSettingsEditingId = rowId;
@@ -1621,6 +1712,34 @@ function getAssetSettingsPreviewAmount(item, mode = item.priceInputMode) {
   return Math.round((Number(item.quantity) || 0) * getAssetSettingsValuationPrice(item, mode));
 }
 
+function updateAssetSettingsMarketMeta(rowId) {
+  const item = assetSettingsDrafts.find((draft) => draft.id === rowId);
+  const card = document.querySelector(`[data-asset-setting-card="${rowId}"]`);
+  if (!item || !card) return;
+
+  const categoryLabel = getAssetMarketLabel(item);
+  const chipRow = card.querySelector(".asset-settings-chip-row");
+  let sectorChip = card.querySelector(".asset-settings-sector-chip");
+
+  if (categoryLabel && chipRow) {
+    if (!sectorChip) {
+      sectorChip = document.createElement("span");
+      chipRow.appendChild(sectorChip);
+    }
+    sectorChip.className = `asset-settings-sector-chip ${getAssetMarketChipTone(categoryLabel)}`;
+    sectorChip.textContent = categoryLabel;
+  } else if (sectorChip) {
+    sectorChip.remove();
+  }
+
+  const displayCode = String(item.code || "").trim() || "코드 미입력";
+  const codeMeta = displayCode === "코드 미입력"
+    ? displayCode
+    : [displayCode, categoryLabel].filter(Boolean).join(" · ");
+  const codeMetaNode = card.querySelector(".asset-settings-title-wrap > p");
+  if (codeMetaNode) codeMetaNode.textContent = codeMeta;
+}
+
 function updateAssetSettingsCardPreview(rowId) {
   const item = assetSettingsDrafts.find((draft) => draft.id === rowId);
   const card = document.querySelector(`[data-asset-setting-card="${rowId}"]`);
@@ -1636,6 +1755,8 @@ function updateAssetSettingsCardPreview(rowId) {
   if (legacyAmountNode) {
     legacyAmountNode.textContent = `${formatMarketNumber(amount)}\uC6D0`;
   }
+
+  updateAssetSettingsMarketMeta(rowId);
 }
 
 function normalizeAssetSettingsRow(item) {
@@ -1654,7 +1775,12 @@ function normalizeAssetSettingsRow(item) {
     quantity,
     averagePrice,
     currentPrice,
-    priceInputMode: mode
+    priceInputMode: mode,
+    type: String(item.type || "").trim(),
+    quoteType: String(item.quoteType || "").trim(),
+    market: String(item.market || "").trim(),
+    exchange: String(item.exchange || "").trim(),
+    source: String(item.source || "").trim()
   };
 }
 
@@ -1816,15 +1942,17 @@ function renderAssetSettingsModal() {
 }
 
 function renderAssetSettingsCardView(item, index) {
-  const meta = typeof getAssetHoldingMeta === "function" ? getAssetHoldingMeta(item, index) : { sector: "국내 주식" };
   const inputMode = item.priceInputMode === "quantity" ? "quantity" : "full";
   const isQuantityOnly = inputMode === "quantity";
   const amount = getAssetSettingsPreviewAmount(item, inputMode);
   const displayCode = String(item.code || "").trim() || "코드 미입력";
-  const codeMeta = displayCode === "코드 미입력" ? displayCode : `${displayCode} · ${meta.sector || "국내 주식"}`;
+  const categoryLabel = getAssetMarketLabel(item);
+  const categoryTone = getAssetMarketChipTone(categoryLabel);
+  const codeMeta = displayCode === "코드 미입력"
+    ? displayCode
+    : [displayCode, categoryLabel].filter(Boolean).join(" · ");
   const isEditing = assetSettingsEditingId === item.id;
   const readOnlyAttr = isEditing ? "" : `readonly aria-readonly="true" tabindex="-1"`;
-  const categoryLabel = "국내 주식";
   const motionClass = getAssetSettingsCardMotionClass(item, index);
   const searchPanel = renderAssetMarketSearchPanel(item.id);
 
@@ -1841,7 +1969,7 @@ function renderAssetSettingsCardView(item, index) {
       }
       <div class="asset-settings-chip-row">
         <span class="asset-settings-chip">ASSET ${String(index + 1).padStart(2, "0")}</span>
-        <span class="asset-settings-sector-chip domestic">${categoryLabel}</span>
+        ${categoryLabel ? `<span class="asset-settings-sector-chip ${categoryTone}">${escapeChartText(categoryLabel)}</span>` : ""}
       </div>
       <div class="asset-settings-title-wrap">
         ${
