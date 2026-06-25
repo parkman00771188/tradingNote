@@ -236,6 +236,10 @@
     width: min(100%, 480px);
   }
 
+  .drive-info-grid {
+    grid-template-columns: 1fr;
+  }
+
   .memo-grid {
     grid-template-columns: 1fr;
   }

@@ -22,6 +22,18 @@ var fitMetricValueFrame = 0;
 var mobileViewportInsetFrame = 0;
 var authCheckPromise = null;
 var sidebarUserMenuOpen = false;
+var driveState = {
+  checked: false,
+  loading: false,
+  connecting: false,
+  saving: false,
+  connected: false,
+  data: null,
+  message: "",
+  error: ""
+};
+var driveAccessToken = "";
+var driveAssetSaveTimer = 0;
 var authState = {
   checked: false,
   checking: false,
@@ -54,6 +66,8 @@ const authRequiredRoutes = new Set(["dashboard", "journal", "journalWrite", "sto
 const assetStorageKey = "trading-note-assets-v1";
 const assetXlsxLibraryUrl = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
 var assetXlsxLibraryPromise = null;
+const googleDriveFileScope = "https://www.googleapis.com/auth/drive.file";
+const googleDriveScope = `openid email profile ${googleDriveFileScope}`;
 const assetSpreadsheetHeaders = [
   "종목명",
   "종목코드",
@@ -287,6 +301,17 @@ function logoutUser() {
   activeModal = null;
   mobileSheetOpen = false;
   sidebarUserMenuOpen = false;
+  driveAccessToken = "";
+  setDriveState({
+    checked: false,
+    loading: false,
+    connecting: false,
+    saving: false,
+    connected: false,
+    data: null,
+    message: "",
+    error: ""
+  });
   window.location.hash = "landing";
   render();
 }
@@ -452,6 +477,7 @@ function saveAssetStateToStorage() {
         holdings: getAssetRowsForStorage()
       })
     );
+    scheduleDriveAssetSave();
   } catch (error) {
     console.warn("자산 데이터를 브라우저 저장소에 저장하지 못했습니다.", error);
   }
@@ -517,6 +543,359 @@ function getAssetSpreadsheetRows() {
     "평가손익": item.profit,
     "수익률": Number(item.rate.toFixed(2))
   }));
+}
+
+function getAssetDriveSnapshot() {
+  const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    cashBalance: assetCashBalance,
+    holdings: holdingData.map((item) => ({
+      name: item.name,
+      code: item.code,
+      quantity: item.quantity,
+      averagePrice: item.averagePrice,
+      currentPrice: item.currentPrice,
+      priceInputMode: "full",
+      amount: item.amount,
+      costBasis: item.costBasis,
+      profit: item.profit,
+      rate: Number(item.rate.toFixed(2))
+    }))
+  };
+}
+
+function setDriveState(nextState) {
+  driveState = {
+    ...driveState,
+    ...nextState
+  };
+}
+
+function formatDriveDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+async function fetchDriveStatus({ rerender = false } = {}) {
+  if (driveState.loading) return driveState;
+  setDriveState({ loading: true, error: "" });
+
+  try {
+    const response = await fetch("/api/drive?action=status", {
+      credentials: "include",
+      headers: { Accept: "application/json" }
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Google Drive 연결 상태를 확인하지 못했습니다.");
+    }
+
+    setDriveState({
+      checked: true,
+      loading: false,
+      connected: Boolean(data.drive?.connected),
+      data: data.drive || null,
+      message: data.drive?.connected ? "Google Drive가 연결되어 있습니다." : "",
+      error: ""
+    });
+  } catch (error) {
+    setDriveState({
+      checked: true,
+      loading: false,
+      connected: false,
+      data: null,
+      message: "",
+      error: error?.message || "Google Drive 연결 상태를 확인하지 못했습니다."
+    });
+  }
+
+  if (rerender && getRoute() === "settings") render();
+  return driveState;
+}
+
+function hydrateDriveSettingsPage() {
+  if (!authState.authenticated) return;
+  if (driveState.checked || driveState.loading) return;
+  fetchDriveStatus({ rerender: true });
+}
+
+async function getGoogleAuthClientId() {
+  const response = await fetch("/api/auth?action=config", {
+    credentials: "include",
+    headers: { Accept: "application/json" }
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.googleClientId) {
+    throw new Error("Google OAuth Client ID를 확인하지 못했습니다.");
+  }
+  return data.googleClientId;
+}
+
+async function requestGoogleDriveAccessToken(prompt = "select_account") {
+  if (typeof loadGoogleIdentityScript !== "function") {
+    throw new Error("Google 로그인 스크립트를 찾지 못했습니다.");
+  }
+
+  await loadGoogleIdentityScript();
+  const clientId = await getGoogleAuthClientId();
+
+  return new Promise((resolve, reject) => {
+    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: googleDriveScope,
+      prompt,
+      callback: (response) => {
+        if (response?.error) {
+          reject(new Error(response.error_description || "Google Drive 권한 요청이 취소되었습니다."));
+          return;
+        }
+        if (!response?.access_token) {
+          reject(new Error("Google Drive 권한 토큰을 받지 못했습니다."));
+          return;
+        }
+
+        driveAccessToken = response.access_token;
+        resolve(response.access_token);
+      },
+      error_callback: () => reject(new Error("Google Drive 권한 요청이 취소되었습니다."))
+    });
+
+    tokenClient.requestAccessToken({ prompt });
+  });
+}
+
+async function connectGoogleDrive() {
+  if (driveState.connecting) return;
+  setDriveState({
+    connecting: true,
+    message: "Google Drive 권한을 요청하고 있습니다.",
+    error: ""
+  });
+  render();
+
+  try {
+    const accessToken = await requestGoogleDriveAccessToken("consent select_account");
+    setDriveState({ message: "TradingNote 폴더와 기본 데이터 파일을 만들고 있습니다." });
+    render();
+
+    const response = await fetch("/api/drive", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        action: "connect",
+        accessToken,
+        snapshot: getAssetDriveSnapshot()
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Google Drive 연결에 실패했습니다.");
+    }
+
+    setDriveState({
+      checked: true,
+      connecting: false,
+      connected: true,
+      data: data.drive,
+      message: "Google Drive 연결이 완료되었습니다.",
+      error: ""
+    });
+  } catch (error) {
+    setDriveState({
+      connecting: false,
+      message: "",
+      error: error?.message || "Google Drive 연결에 실패했습니다."
+    });
+  }
+
+  if (getRoute() === "settings") render();
+}
+
+async function saveDriveAssets({ manual = false } = {}) {
+  if (!driveState.connected || driveState.saving) return;
+
+  if (!driveAccessToken) {
+    if (!manual) return;
+    try {
+      driveAccessToken = await requestGoogleDriveAccessToken("select_account");
+    } catch (error) {
+      setDriveState({
+        message: "",
+        error: error?.message || "Google Drive 권한을 다시 받아야 합니다."
+      });
+      if (getRoute() === "settings") render();
+      return;
+    }
+  }
+
+  setDriveState({
+    saving: true,
+    message: manual ? "자산 데이터를 Google Drive에 저장하고 있습니다." : driveState.message,
+    error: ""
+  });
+  if (manual && getRoute() === "settings") render();
+
+  try {
+    const response = await fetch("/api/drive", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        action: "save_assets",
+        accessToken: driveAccessToken,
+        snapshot: getAssetDriveSnapshot()
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Google Drive 저장에 실패했습니다.");
+    }
+
+    setDriveState({
+      saving: false,
+      connected: true,
+      data: data.drive,
+      message: "자산 데이터가 Google Drive에 저장되었습니다.",
+      error: ""
+    });
+  } catch (error) {
+    driveAccessToken = "";
+    setDriveState({
+      saving: false,
+      message: "",
+      error: `${error?.message || "Google Drive 저장에 실패했습니다."} Drive 저장 버튼을 눌러 권한을 다시 허용해주세요.`
+    });
+  }
+
+  if (getRoute() === "settings") render();
+}
+
+function scheduleDriveAssetSave() {
+  if (!driveState.connected || !driveAccessToken) return;
+  if (driveAssetSaveTimer) window.clearTimeout(driveAssetSaveTimer);
+
+  driveAssetSaveTimer = window.setTimeout(() => {
+    driveAssetSaveTimer = 0;
+    saveDriveAssets();
+  }, 900);
+}
+
+async function disconnectGoogleDrive() {
+  if (!driveState.connected) return;
+  setDriveState({
+    loading: true,
+    message: "Google Drive 연결을 해제하고 있습니다.",
+    error: ""
+  });
+  render();
+
+  try {
+    const response = await fetch("/api/drive", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({ action: "disconnect" })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Google Drive 연결 해제에 실패했습니다.");
+    }
+
+    driveAccessToken = "";
+    setDriveState({
+      checked: true,
+      loading: false,
+      connected: false,
+      data: null,
+      message: "Google Drive 연결을 해제했습니다. Drive의 파일은 삭제되지 않습니다.",
+      error: ""
+    });
+  } catch (error) {
+    setDriveState({
+      loading: false,
+      message: "",
+      error: error?.message || "Google Drive 연결 해제에 실패했습니다."
+    });
+  }
+
+  if (getRoute() === "settings") render();
+}
+
+function renderDriveSettingsPanel() {
+  const drive = driveState.data;
+  const statusTone = driveState.connected ? "green" : driveState.error ? "red" : "blue";
+  const statusText = driveState.loading
+    ? "확인 중"
+    : driveState.connected
+      ? "연결됨"
+      : "연결 안 됨";
+
+  return `
+    <article class="panel drive-settings-panel">
+      <div class="panel-header tight">
+        <h2 class="panel-title">Google Drive 데이터 저장소</h2>
+        ${tag(statusText, statusTone)}
+      </div>
+      <div class="drive-settings-body">
+        <span class="drive-settings-icon">${icon("download")}</span>
+        <div>
+          <strong>${driveState.connected ? escapeHtml(drive?.folderName || "TradingNote") : "Drive 연결"}</strong>
+          <p class="list-sub">
+            ${driveState.connected
+              ? "현재 계정의 Google Drive에 앱 데이터 폴더와 CSV/JSON 파일을 저장합니다."
+              : "현재 로그인된 Google 계정의 Drive에 TradingNote 폴더를 만들고 데이터 파일을 저장합니다."}
+          </p>
+        </div>
+      </div>
+
+      ${driveState.connected ? `
+        <div class="drive-info-grid">
+          <div><p class="tiny">루트 폴더</p><strong>${escapeHtml(drive?.folderName || "TradingNote")}</strong></div>
+          <div><p class="tiny">최근 저장</p><strong>${formatDriveDate(drive?.updatedAt)}</strong></div>
+          <div><p class="tiny">생성 파일</p><strong>${Object.keys(drive?.files || {}).length}개</strong></div>
+        </div>
+        <div class="drive-file-list">
+          ${Object.values(drive?.files || {}).map((file) => `<span>${escapeHtml(file.name || "data")}</span>`).join("")}
+        </div>
+      ` : ""}
+
+      ${driveState.message ? `<p class="drive-settings-feedback success">${escapeHtml(driveState.message)}</p>` : ""}
+      ${driveState.error ? `<p class="drive-settings-feedback error">${escapeHtml(driveState.error)}</p>` : ""}
+
+      <div class="drive-settings-actions">
+        ${driveState.connected && drive?.webViewLink ? `<a class="btn ghost" href="${escapeHtml(drive.webViewLink)}" target="_blank" rel="noopener">Drive 열기</a>` : ""}
+        ${driveState.connected ? `
+          <button class="btn primary" type="button" data-drive-save-assets ${driveState.saving ? "disabled" : ""}>${driveState.saving ? "저장 중" : "지금 저장"}</button>
+          <button class="btn ghost" type="button" data-drive-disconnect ${driveState.loading ? "disabled" : ""}>연결 해제</button>
+        ` : `
+          <button class="btn primary" type="button" data-drive-connect ${driveState.connecting || driveState.loading ? "disabled" : ""}>${driveState.connecting ? "연결 중" : "Drive 연결"}</button>
+        `}
+      </div>
+    </article>
+  `;
 }
 
 function getAssetSpreadsheetFileBaseName() {
@@ -1992,6 +2371,9 @@ function render() {
       });
     }
   }
+  if (route === "settings") {
+    hydrateDriveSettingsPage();
+  }
   animateNumericValues(document.querySelector("#app"));
   scheduleFitValueText();
 }
@@ -2048,6 +2430,24 @@ document.addEventListener("click", (event) => {
   if (sidebarUserMenuOpen && !event.target.closest("[data-sidebar-user-panel]")) {
     sidebarUserMenuOpen = false;
     renderSidebarUser();
+  }
+
+  const driveConnectButton = event.target.closest("[data-drive-connect]");
+  if (driveConnectButton) {
+    connectGoogleDrive();
+    return;
+  }
+
+  const driveSaveAssetsButton = event.target.closest("[data-drive-save-assets]");
+  if (driveSaveAssetsButton) {
+    saveDriveAssets({ manual: true });
+    return;
+  }
+
+  const driveDisconnectButton = event.target.closest("[data-drive-disconnect]");
+  if (driveDisconnectButton) {
+    disconnectGoogleDrive();
+    return;
   }
 
   const modalButton = event.target.closest("[data-modal]");

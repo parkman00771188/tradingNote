@@ -51,14 +51,12 @@ function renderSettings() {
             <div class="setting-row"><div><strong>마케팅 및 업데이트 소식</strong><p class="list-sub">서비스 소식 및 프로모션 안내를 받습니다.</p></div><span></span><button class="switch" type="button"></button></div>
           </div>
         </article>
-        <article class="panel">
-          <div class="panel-header tight"><h2 class="panel-title">데이터 백업 / 내보내기</h2></div>
-          <div class="list">
-            <div class="setting-row"><span class="list-icon">${icon("shield")}</span><div><strong>자동 백업</strong><p class="list-sub">데이터를 매일 자동으로 백업합니다.</p></div>${tag("활성", "green")}</div>
-            <div class="setting-row"><span class="list-icon">${icon("journal")}</span><div><strong>데이터 내보내기</strong><p class="list-sub">매매 일지 데이터를 CSV로 내보냅니다.</p></div><button class="btn ghost" type="button">내보내기</button></div>
-            <div class="setting-row"><span class="list-icon">${icon("download")}</span><div><strong>백업 파일 다운로드</strong><p class="list-sub">최근 백업: 2024.06.19 23:59</p></div><button class="btn ghost" type="button">다운로드</button></div>
-          </div>
-        </article>
+        ${typeof renderDriveSettingsPanel === "function" ? renderDriveSettingsPanel() : `
+          <article class="panel">
+            <div class="panel-header tight"><h2 class="panel-title">Google Drive 데이터 저장소</h2></div>
+            <p class="list-sub">Drive 연결을 준비하고 있습니다.</p>
+          </article>
+        `}
 
         <article class="panel">
           <div class="panel-header tight"><h2 class="panel-title">보안</h2></div>

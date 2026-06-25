@@ -53,3 +53,34 @@ npx wrangler pages deploy . --project-name tradingnote --branch main
 ```
 
 Google 로그인 성공 시 서버가 Google ID 토큰을 검증하고, 사용자 프로필은 KV에 AES-GCM으로 암호화 저장됩니다. 브라우저에는 HttpOnly 세션 쿠키만 내려갑니다.
+
+## Google Drive 데이터 저장소
+
+설정 화면의 `Drive 연결` 버튼은 현재 로그인된 Google 계정에 `TradingNote` 폴더를 만들고, Cloudflare KV에는 폴더/파일 ID만 암호화 저장합니다. Drive access token은 저장하지 않습니다.
+
+Google Cloud Console에서 아래 설정이 필요합니다.
+
+1. Google Drive API를 활성화합니다.
+2. OAuth 동의 화면의 데이터 액세스 범위에 아래 scope를 추가합니다.
+
+```text
+https://www.googleapis.com/auth/drive.file
+```
+
+연결 시 생성되는 기본 구조:
+
+```text
+TradingNote/
+  manifest.json
+  assets/
+    holdings.csv
+    cash.csv
+  journal/
+    trades.csv
+  memo/
+    memos.json
+  settings/
+    preferences.json
+```
+
+자산 설정이나 입출금 변경 후 같은 브라우저 세션에 Drive 권한 토큰이 살아 있으면 `assets/holdings.csv`, `assets/cash.csv`에 자동 저장됩니다. 토큰이 만료되면 설정에서 `지금 저장`을 눌러 Drive 권한을 다시 허용하면 됩니다.

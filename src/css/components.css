@@ -2303,6 +2303,115 @@ body[data-route="assets"] .asset-grid > article:first-child .legend-row > span:l
   text-align: center;
 }
 
+.drive-settings-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.drive-settings-body {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(180deg, #f8fbff, #ffffff);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.drive-settings-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  color: var(--blue);
+  background: #eaf2ff;
+  border-radius: 12px;
+}
+
+.drive-settings-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.drive-settings-body strong {
+  display: block;
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 850;
+}
+
+.drive-settings-body p {
+  margin-top: 7px;
+}
+
+.drive-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.drive-info-grid > div {
+  min-width: 0;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.drive-info-grid strong {
+  display: block;
+  min-width: 0;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drive-file-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.drive-file-list span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.drive-settings-feedback {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 800;
+}
+
+.drive-settings-feedback.success {
+  color: #16a34a;
+}
+
+.drive-settings-feedback.error {
+  color: var(--red);
+}
+
+.drive-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .switch {
   position: relative;
   width: 42px;
