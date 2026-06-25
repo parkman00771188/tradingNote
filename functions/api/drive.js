@@ -553,13 +553,13 @@ export async function onRequest(context) {
     const url = new URL(context.request.url);
     const action = url.searchParams.get("action");
 
-    if (context.request.method === "GET" && action === "status") return handleStatus(context);
+    if (context.request.method === "GET" && action === "status") return await handleStatus(context);
 
     if (context.request.method === "POST") {
       const body = await context.request.clone().json().catch(() => ({}));
-      if (body.action === "connect") return handleConnect(context);
-      if (body.action === "save_assets") return handleSaveAssets(context);
-      if (body.action === "disconnect") return handleDisconnect(context);
+      if (body.action === "connect") return await handleConnect(context);
+      if (body.action === "save_assets") return await handleSaveAssets(context);
+      if (body.action === "disconnect") return await handleDisconnect(context);
     }
 
     return badRequest("지원하지 않는 Google Drive 요청입니다.");

@@ -426,14 +426,14 @@ export async function onRequest(context) {
     const url = new URL(context.request.url);
     const action = url.searchParams.get("action");
 
-    if (context.request.method === "GET" && action === "config") return handleConfig(context);
-    if (context.request.method === "GET" && action === "session") return handleSession(context);
+    if (context.request.method === "GET" && action === "config") return await handleConfig(context);
+    if (context.request.method === "GET" && action === "session") return await handleSession(context);
 
     if (context.request.method === "POST") {
       const body = await context.request.clone().json().catch(() => ({}));
-      if (body.action === "google") return handleGoogleLogin(context);
-      if (body.action === "google_access_token") return handleGoogleAccessTokenLogin(context);
-      if (body.action === "logout") return handleLogout(context);
+      if (body.action === "google") return await handleGoogleLogin(context);
+      if (body.action === "google_access_token") return await handleGoogleAccessTokenLogin(context);
+      if (body.action === "logout") return await handleLogout(context);
     }
 
     return badRequest("지원하지 않는 인증 요청입니다.");
