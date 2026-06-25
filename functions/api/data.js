@@ -28,14 +28,14 @@ function getConfig(env) {
   return {
     encryptionKey: env.AUTH_ENCRYPTION_KEY || "",
     sessionSecret: env.AUTH_SESSION_SECRET || env.AUTH_ENCRYPTION_KEY || "",
-    usersKv: env.USERS_KV
+    db: env.DB
   };
 }
 
 function assertConfig(config) {
   if (!config.encryptionKey) throw new Error("AUTH_ENCRYPTION_KEY secret이 필요합니다.");
   if (!config.sessionSecret) throw new Error("AUTH_SESSION_SECRET secret이 필요합니다.");
-  if (!config.usersKv) throw new Error("USERS_KV KV 바인딩이 필요합니다.");
+  if (!config.db) throw new Error("Cloudflare D1 DB 바인딩이 필요합니다.");
 }
 
 function base64UrlToBytes(value) {
@@ -147,10 +147,6 @@ async function readSession(config, request) {
   return session;
 }
 
-function dataStorageKey(userKey) {
-  return `data:${userKey}`;
-}
-
 function emptyUserData() {
   return {
     version: DATA_VERSION,
@@ -208,8 +204,13 @@ async function requireSession(context) {
 }
 
 async function readUserData(config, userKey) {
-  const record = await config.usersKv.get(dataStorageKey(userKey), "json");
-  if (!record) return emptyUserData();
+  const row = await config.db
+    .prepare("SELECT data_encrypted FROM user_data WHERE user_key = ?")
+    .bind(userKey)
+    .first();
+
+  if (!row?.data_encrypted) return emptyUserData();
+  const record = JSON.parse(row.data_encrypted);
   return {
     ...emptyUserData(),
     ...(await decryptJson(record, config.encryptionKey))
@@ -217,7 +218,20 @@ async function readUserData(config, userKey) {
 }
 
 async function saveUserData(config, userKey, data) {
-  await config.usersKv.put(dataStorageKey(userKey), JSON.stringify(await encryptJson(data, config.encryptionKey)));
+  const nowIso = data.updatedAt || new Date().toISOString();
+  const encryptedData = JSON.stringify(await encryptJson(data, config.encryptionKey));
+
+  await config.db
+    .prepare(`
+      INSERT INTO user_data (user_key, data_encrypted, version, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(user_key) DO UPDATE SET
+        data_encrypted = excluded.data_encrypted,
+        version = excluded.version,
+        updated_at = excluded.updated_at
+    `)
+    .bind(userKey, encryptedData, DATA_VERSION, nowIso, nowIso)
+    .run();
 }
 
 export async function onRequestGet(context) {

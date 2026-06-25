@@ -29,19 +29,19 @@ function getAuthConfig(env) {
     encryptionKey: env.AUTH_ENCRYPTION_KEY || "",
     sessionSecret: env.AUTH_SESSION_SECRET || env.AUTH_ENCRYPTION_KEY || "",
     hostedDomain: env.GOOGLE_HOSTED_DOMAIN || "",
-    usersKv: env.USERS_KV
+    db: env.DB
   };
 }
 
 function isAuthConfigured(config) {
-  return Boolean(config.googleClientId && config.encryptionKey && config.sessionSecret && config.usersKv);
+  return Boolean(config.googleClientId && config.encryptionKey && config.sessionSecret && config.db);
 }
 
 function assertServerConfig(config) {
   if (!config.googleClientId) throw new Error("GOOGLE_CLIENT_ID 환경변수가 필요합니다.");
   if (!config.encryptionKey) throw new Error("AUTH_ENCRYPTION_KEY secret이 필요합니다.");
   if (!config.sessionSecret) throw new Error("AUTH_SESSION_SECRET secret이 필요합니다.");
-  if (!config.usersKv) throw new Error("USERS_KV KV 바인딩이 필요합니다.");
+  if (!config.db) throw new Error("Cloudflare D1 DB 바인딩이 필요합니다.");
 }
 
 function base64UrlToBytes(value) {
@@ -264,6 +264,56 @@ async function getUserKey(config, googleSub) {
   return `user:${hash}`;
 }
 
+async function getUserRecord(config, userKey) {
+  const row = await config.db
+    .prepare("SELECT profile_encrypted FROM app_users WHERE user_key = ?")
+    .bind(userKey)
+    .first();
+
+  if (!row?.profile_encrypted) return null;
+  return JSON.parse(row.profile_encrypted);
+}
+
+async function saveUserRecord(config, userKey, googleUser, user, existingUser) {
+  const nowIso = user.lastLoginAt;
+  const encryptedProfile = JSON.stringify(await encryptJson(user, config.encryptionKey));
+  const providerSubjectHash = await hmacHex(config.sessionSecret, `provider:google:${googleUser.sub}`);
+  const emailHash = googleUser.email ? await hmacHex(config.sessionSecret, `email:${googleUser.email.toLowerCase()}`) : "";
+
+  await config.db
+    .prepare(`
+      INSERT INTO app_users (
+        user_key,
+        provider,
+        provider_subject_hash,
+        email_hash,
+        profile_encrypted,
+        created_at,
+        updated_at,
+        last_login_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_key) DO UPDATE SET
+        provider = excluded.provider,
+        provider_subject_hash = excluded.provider_subject_hash,
+        email_hash = excluded.email_hash,
+        profile_encrypted = excluded.profile_encrypted,
+        updated_at = excluded.updated_at,
+        last_login_at = excluded.last_login_at
+    `)
+    .bind(
+      userKey,
+      "google",
+      providerSubjectHash,
+      emailHash,
+      encryptedProfile,
+      existingUser?.createdAt || nowIso,
+      nowIso,
+      nowIso
+    )
+    .run();
+}
+
 function publicUser(user) {
   return {
     name: user.name || "",
@@ -275,7 +325,7 @@ function publicUser(user) {
 
 async function persistGoogleUser(context, config, googleUser) {
   const userKey = await getUserKey(config, googleUser.sub);
-  const existingRecord = await config.usersKv.get(userKey, "json");
+  const existingRecord = await getUserRecord(config, userKey);
   const existingUser = existingRecord ? await decryptJson(existingRecord, config.encryptionKey) : null;
   const nowIso = new Date().toISOString();
   const user = {
@@ -291,7 +341,7 @@ async function persistGoogleUser(context, config, googleUser) {
     lastLoginAt: nowIso
   };
 
-  await config.usersKv.put(userKey, JSON.stringify(await encryptJson(user, config.encryptionKey)));
+  await saveUserRecord(config, userKey, googleUser, user, existingUser);
 
   return json(
     {
@@ -393,7 +443,7 @@ async function handleSession(context) {
   const session = await readSession(config, context.request);
   if (!session) return json({ ok: true, authenticated: false, registered: false });
 
-  const record = await config.usersKv.get(session.userKey, "json");
+  const record = await getUserRecord(config, session.userKey);
   if (!record) {
     return json(
       { ok: true, authenticated: false, registered: false },

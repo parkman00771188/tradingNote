@@ -184,7 +184,7 @@ async function hydrateLoginPage() {
 
     if (!config.authReady) {
       container.innerHTML = renderFallbackGoogleButton(true);
-      setLoginMessage("Google 로그인 서버 설정이 아직 완료되지 않았습니다. AUTH_ENCRYPTION_KEY, AUTH_SESSION_SECRET, USERS_KV를 확인해주세요.", "error");
+      setLoginMessage("Google 로그인 서버 설정이 아직 완료되지 않았습니다. AUTH_ENCRYPTION_KEY, AUTH_SESSION_SECRET, D1 DB 바인딩을 확인해주세요.", "error");
       return;
     }
 

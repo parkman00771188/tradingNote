@@ -2,6 +2,7 @@ name = "tradingnote"
 compatibility_date = "2026-06-25"
 pages_build_output_dir = "."
 
-[[kv_namespaces]]
-binding = "USERS_KV"
-id = "89233f7b0ce94c2d846bb0cc433048a0"
+[[d1_databases]]
+binding = "DB"
+database_name = "tradingnote-db"
+database_id = "458d73d9-956c-4d97-af47-c61b8544a757"

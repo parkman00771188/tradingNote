@@ -4,7 +4,7 @@ const settingsSections = [
   { id: "display", label: "통화 및 표시", description: "기본 통화 및 시간, 표시 설정", icon: "coin" },
   { id: "tags", label: "거래 태그 관리", description: "거래 태그 생성 및 관리", icon: "tag" },
   { id: "notifications", label: "알림 설정", description: "이메일 및 앱 알림 설정", icon: "bell" },
-  { id: "backup", label: "백업 및 저장", description: "Google Drive 연동 및 데이터 관리", icon: "cloud" },
+  { id: "backup", label: "백업 및 저장", description: "Cloudflare D1 데이터 관리", icon: "cloud" },
   { id: "security", label: "보안", description: "비밀번호 및 2단계 인증 설정", icon: "shield" },
   { id: "theme", label: "테마", description: "앱 테마 및 색상 설정", icon: "eye" },
   { id: "api", label: "API 연동", description: "외부 서비스 및 API 관리", icon: "chart" }
@@ -89,7 +89,7 @@ function renderBrokerSettingsPanel() {
           <span class="settings-row-icon">${icon("wallet")}</span>
           <div>
             <strong>아직 연결된 계좌가 없습니다.</strong>
-            <p>증권사 연동 기능은 준비 중입니다. 지금은 자산 설정과 Google Drive 저장으로 데이터를 관리할 수 있습니다.</p>
+            <p>증권사 연동 기능은 준비 중입니다. 지금은 자산 설정과 Cloudflare D1 저장으로 데이터를 관리할 수 있습니다.</p>
           </div>
         </article>
         <button class="settings-add-button" type="button">${icon("plus")}증권사 계좌 추가</button>
@@ -123,7 +123,7 @@ function renderBrokerSettingsPanel() {
         <span class="status-icon">${icon("info")}</span>
         <div>
           <strong>도움말</strong>
-          <p>계좌 연동 기능은 향후 제공 예정입니다. 현재는 자산 설정과 Drive 저장을 먼저 사용할 수 있습니다.</p>
+          <p>계좌 연동 기능은 향후 제공 예정입니다. 현재는 자산 설정과 D1 자동 저장을 먼저 사용할 수 있습니다.</p>
         </div>
       </div>
     </section>
@@ -176,12 +176,12 @@ function renderNotificationSettingsPanel() {
 }
 
 function renderBackupSettingsPanel() {
-  return typeof renderDriveSettingsPanel === "function"
-    ? renderDriveSettingsPanel()
+  return typeof renderDatabaseSettingsPanel === "function"
+    ? renderDatabaseSettingsPanel()
     : `
       <section class="panel settings-detail-panel">
-        ${renderSettingsPanelHeader("백업 및 저장", "Google Drive 연동 및 데이터 저장소를 관리합니다.")}
-        <p class="list-sub">Drive 연결을 준비하고 있습니다.</p>
+        ${renderSettingsPanelHeader("백업 및 저장", "Cloudflare D1 데이터 저장소를 관리합니다.")}
+        <p class="list-sub">D1 저장소 상태를 확인하고 있습니다.</p>
       </section>
     `;
 }
