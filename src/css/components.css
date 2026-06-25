@@ -3707,8 +3707,8 @@ body.modal-open {
 .asset-settings-add-card span {
   display: grid;
   place-items: center;
-  width: 58px;
-  height: 58px;
+  width: 52px;
+  height: 52px;
   color: white;
   background: var(--blue);
   border-radius: 50%;
@@ -3716,13 +3716,13 @@ body.modal-open {
 }
 
 .asset-settings-add-card.is-empty span {
-  width: 72px;
-  height: 72px;
+  width: 62px;
+  height: 62px;
 }
 
 .asset-settings-add-card svg {
-  width: 28px;
-  height: 28px;
+  width: 25px;
+  height: 25px;
   stroke: currentColor;
   stroke-width: 2.2;
   stroke-linecap: round;
@@ -3801,9 +3801,9 @@ body.modal-open {
 .asset-settings-modal {
   --asset-settings-stage-bg: #ffffff;
   grid-template-rows: auto minmax(0, 1fr);
-  width: min(1120px, calc(100vw - 48px));
-  height: min(860px, calc(100vh - 48px));
-  max-height: calc(100vh - 48px);
+  width: min(980px, calc(100vw - 40px));
+  height: min(740px, calc(100vh - 40px));
+  max-height: calc(100vh - 40px);
   background: var(--asset-settings-stage-bg);
   border: 1px solid #dce4ee;
   border-radius: 18px;
@@ -3815,8 +3815,8 @@ body.modal-open {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: center;
-  min-height: 96px;
-  padding: 22px 48px;
+  min-height: 78px;
+  padding: 16px 36px;
   background: #ffffff;
   border-bottom: 1px solid #dde3ec;
 }
@@ -3826,7 +3826,7 @@ body.modal-open {
 }
 
 .asset-settings-heading .modal-title {
-  font-size: 30px;
+  font-size: 25px;
   line-height: 1.08;
   font-weight: 900;
 }
@@ -3846,8 +3846,8 @@ body.modal-open {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 42px;
-  padding: 0 14px;
+  min-height: 36px;
+  padding: 0 12px;
   color: #172033;
   background: #ffffff;
   border: 1px solid #d7e0ec;
@@ -3890,8 +3890,8 @@ body.modal-open {
 .asset-settings-nav-button {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   color: #172033;
   background: #ffffff;
   border: 1px solid #d7e0ec;
@@ -3901,8 +3901,8 @@ body.modal-open {
 }
 
 .asset-settings-nav-button svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   stroke: currentColor;
   stroke-width: 2.2;
   stroke-linecap: round;
@@ -4004,16 +4004,16 @@ body.modal-open {
 }
 
 .asset-settings-cards {
-  --asset-settings-card-width: min(620px, calc(100% - 96px));
-  --asset-settings-card-edge: max(28px, calc((100% - var(--asset-settings-card-width)) / 2));
+  --asset-settings-card-width: min(500px, calc(100% - 388px));
+  --asset-settings-card-edge: max(24px, calc((100% - var(--asset-settings-card-width) - 344px) / 2));
   display: flex;
   grid-row: 1 / 2;
-  gap: 28px;
-  align-items: stretch;
+  gap: 24px;
+  align-items: flex-start;
   min-height: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 28px var(--asset-settings-card-edge) 12px;
+  padding: 20px var(--asset-settings-card-edge) 10px;
   background: transparent;
   overscroll-behavior-x: contain;
   scroll-padding: 0 var(--asset-settings-card-edge);
@@ -4037,7 +4037,7 @@ body.modal-open {
   min-height: 0;
   max-height: 100%;
   overflow-y: auto;
-  padding: 28px 40px 24px;
+  padding: 22px 28px 18px;
   background:
     radial-gradient(circle at 18% 0%, rgba(36, 116, 242, 0.08), transparent 34%),
     linear-gradient(180deg, #f7fbff 0%, #ffffff 42%, #ffffff 100%);
@@ -4127,10 +4127,10 @@ body.modal-open {
 
 .asset-settings-menu {
   position: absolute;
-  top: 28px;
-  right: 28px;
-  width: 34px;
-  height: 34px;
+  top: 22px;
+  right: 22px;
+  width: 32px;
+  height: 32px;
   color: #7b8491;
   background: #ffffff;
   border: 1px solid #dce3ec;
@@ -4197,8 +4197,8 @@ body.modal-open {
   align-items: center;
   justify-content: center;
   width: max-content;
-  min-height: 30px;
-  padding: 0 14px;
+  min-height: 26px;
+  padding: 0 12px;
   color: #7d8795;
   background: #f0f3f7;
   border-radius: 999px;
@@ -4221,8 +4221,8 @@ body.modal-open {
   align-items: center;
   justify-content: center;
   width: max-content;
-  min-height: 30px;
-  padding: 0 18px;
+  min-height: 26px;
+  padding: 0 14px;
   color: var(--blue);
   background: #f4f8ff;
   border: 1px solid #b8d2ff;
@@ -4243,19 +4243,19 @@ body.modal-open {
 .asset-settings-title-wrap {
   display: grid;
   gap: 5px;
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
 .asset-settings-title-input {
   width: 100%;
   min-width: 0;
-  height: 40px;
+  height: 36px;
   padding: 0;
   color: #111827;
   background: transparent;
   border: 0;
   outline: 0;
-  font-size: 29px;
+  font-size: 22px;
   line-height: 1.1;
   font-weight: 900;
   letter-spacing: 0;
@@ -4284,7 +4284,7 @@ body.modal-open {
   grid-template-columns: 24px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-height: 46px;
+  min-height: 40px;
   padding: 0 12px;
   background: #ffffff;
   border: 1px solid #d9e4f2;
@@ -4309,8 +4309,8 @@ body.modal-open {
 }
 
 .asset-market-search-input.asset-settings-title-input {
-  height: 44px;
-  font-size: 22px;
+  height: 38px;
+  font-size: 17px;
 }
 
 .asset-market-search-panel {
@@ -4410,7 +4410,7 @@ body.modal-open {
   grid-template-columns: 76px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-height: 42px;
+  min-height: 36px;
   padding: 0 12px;
   background: #ffffff;
   border: 1px solid #e1e8f2;
@@ -4429,24 +4429,24 @@ body.modal-open {
 
 .asset-settings-value-panel {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
   align-items: center;
-  margin-top: 20px;
-  padding: 24px 26px;
+  margin-top: 12px;
+  padding: 16px 18px;
   background:
     radial-gradient(circle at 13% 50%, rgba(255, 255, 255, 0.86), transparent 18%),
     linear-gradient(135deg, #eff7ff 0%, #f7fbff 52%, #edf5ff 100%);
   border: 1px solid #cfe2ff;
-  border-radius: 24px;
+  border-radius: 18px;
   box-shadow: 0 18px 38px rgba(36, 116, 242, 0.08);
 }
 
 .asset-settings-value-icon {
   display: grid;
   place-items: center;
-  width: 54px;
-  height: 54px;
+  width: 40px;
+  height: 40px;
   color: var(--blue);
   background: rgba(255, 255, 255, 0.9);
   border-radius: 50%;
@@ -4454,8 +4454,8 @@ body.modal-open {
 }
 
 .asset-settings-value-icon svg {
-  width: 29px;
-  height: 29px;
+  width: 22px;
+  height: 22px;
   stroke: currentColor;
   stroke-width: 2.5;
   stroke-linecap: round;
@@ -4482,7 +4482,7 @@ body.modal-open {
 
 .asset-settings-value-panel strong {
   color: #111827;
-  font-size: clamp(23px, 1.9vw, 30px);
+  font-size: 22px;
   line-height: 1.1;
   font-weight: 900;
   white-space: nowrap;
@@ -4522,7 +4522,7 @@ body.modal-open {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
 .asset-settings-input-mode button {
@@ -4530,13 +4530,13 @@ body.modal-open {
   align-items: center;
   justify-content: center;
   min-width: 0;
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 12px;
   color: #64748b;
   background: #f8fafc;
   border: 1px solid #e1e7f0;
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.2;
   font-weight: 850;
   letter-spacing: 0;
@@ -4555,7 +4555,7 @@ body.modal-open {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
 .asset-settings-input-mode + .asset-settings-tile-grid {
@@ -4574,27 +4574,27 @@ body.modal-open {
   display: grid;
   align-content: space-between;
   gap: 10px;
-  min-height: 118px;
-  padding: 22px 24px;
+  min-height: 86px;
+  padding: 14px 16px;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(216, 227, 242, 0.96);
-  border-radius: 22px;
+  border-radius: 16px;
   box-shadow: 0 18px 38px rgba(23, 68, 140, 0.06);
 }
 
 .asset-settings-tile-icon {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   color: var(--blue);
   background: #eaf3ff;
   border-radius: 12px;
 }
 
 .asset-settings-tile-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   stroke: currentColor;
   stroke-width: 2.35;
   stroke-linecap: round;
@@ -4698,8 +4698,8 @@ body.modal-open {
 }
 
 .asset-settings-add-card {
-  flex: 0 0 var(--asset-settings-card-width);
-  min-height: 0;
+  flex: 0 0 min(320px, var(--asset-settings-card-width));
+  min-height: 330px;
   border-radius: 24px;
   box-shadow: none;
   scroll-snap-align: center;
@@ -4844,7 +4844,7 @@ body.modal-open {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
   gap: 10px;
   margin-top: auto;
-  padding-top: 22px;
+  padding-top: 18px;
 }
 
 .asset-settings-card-actions.is-placeholder {
@@ -4853,8 +4853,8 @@ body.modal-open {
 }
 
 .asset-settings-card-actions .btn {
-  min-height: 50px;
-  border-radius: 14px;
+  min-height: 44px;
+  border-radius: 12px;
   font-weight: 900;
   white-space: nowrap;
 }

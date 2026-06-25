@@ -435,9 +435,9 @@
   .asset-settings-modal {
     --asset-settings-stage-bg: #ffffff;
     grid-template-rows: auto minmax(0, 1fr);
-    width: min(720px, calc(100vw - 24px));
-    height: min(900px, calc(100vh - 24px));
-    height: min(900px, calc(100dvh - 24px));
+    width: min(560px, calc(100vw - 20px));
+    height: min(700px, calc(100vh - 20px));
+    height: min(700px, calc(100dvh - 20px));
     max-height: calc(100vh - 24px);
     max-height: calc(100dvh - 24px);
     overflow: hidden;
@@ -452,8 +452,8 @@
     z-index: 3;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    min-height: 88px;
-    padding: 20px 32px 16px;
+    min-height: 74px;
+    padding: 16px 24px 12px;
     background: #ffffff;
     border-bottom: 0;
   }
@@ -479,7 +479,7 @@
   }
 
   .asset-settings-heading .modal-title {
-    font-size: 24px;
+    font-size: 23px;
     line-height: 1.1;
     font-weight: 950;
   }
@@ -595,18 +595,18 @@
   }
 
   .asset-settings-cards {
-    --asset-settings-card-width: calc(100% - 52px);
-    --asset-settings-card-edge: 26px;
+    --asset-settings-card-width: calc(100% - 36px);
+    --asset-settings-card-edge: 18px;
     display: flex;
     grid-row: 1 / 2;
     align-self: stretch;
-    align-items: stretch;
-    gap: 22px;
+    align-items: flex-start;
+    gap: 18px;
     height: auto;
     min-height: 0;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 18px var(--asset-settings-card-edge) 16px;
+    padding: 12px var(--asset-settings-card-edge) 8px;
     background: #ffffff;
     scroll-padding: 0 var(--asset-settings-card-edge);
     scroll-snap-type: x mandatory;
@@ -625,8 +625,8 @@
 
   .asset-settings-display-card {
     min-height: 0;
-    padding: 22px 24px 16px;
-    border-radius: 22px;
+    padding: 18px 20px 16px;
+    border-radius: 18px;
     border-color: #edf1f6;
     box-shadow: 0 16px 32px rgba(23, 68, 140, 0.052);
   }
@@ -640,10 +640,10 @@
   }
 
   .asset-settings-menu {
-    top: 24px;
-    right: 24px;
-    width: 46px;
-    height: 46px;
+    top: 18px;
+    right: 18px;
+    width: 38px;
+    height: 38px;
     border-radius: 14px;
   }
 
@@ -661,7 +661,7 @@
   }
 
   .asset-settings-chip {
-    min-height: 34px;
+    min-height: 28px;
     padding: 0 11px;
     font-size: 11px;
   }
@@ -672,28 +672,28 @@
   }
 
   .asset-settings-sector-chip {
-    min-height: 34px;
+    min-height: 28px;
     padding: 0 12px;
     font-size: 12px;
   }
 
   .asset-settings-title-wrap {
-    margin-top: 14px;
+    margin-top: 10px;
   }
 
   .asset-settings-title-input {
-    height: 40px;
-    font-size: clamp(29px, 7.7vw, 34px);
-    line-height: 1.05;
+    height: 34px;
+    font-size: 20px;
+    line-height: 1.1;
   }
 
   .asset-settings-title-wrap p {
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .asset-settings-input-mode {
     gap: 7px;
-    margin-top: 14px;
+    margin-top: 10px;
   }
 
   .asset-settings-input-mode button {
@@ -704,17 +704,17 @@
   }
 
   .asset-settings-value-panel {
-    grid-template-columns: 44px minmax(0, 1fr);
-    gap: 12px;
-    margin-top: 12px;
-    padding: 16px 18px;
-    border-radius: 18px;
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+    padding: 12px 14px;
+    border-radius: 16px;
     box-shadow: 0 12px 26px rgba(36, 116, 242, 0.06);
   }
 
   .asset-settings-value-icon {
-    width: 42px;
-    height: 42px;
+    width: 36px;
+    height: 36px;
   }
 
   .asset-settings-value-icon svg {
@@ -728,7 +728,7 @@
   }
 
   .asset-settings-value-panel strong {
-    font-size: clamp(22px, 6vw, 24px);
+    font-size: 21px;
   }
 
   .asset-settings-value-panel strong small {
@@ -742,7 +742,7 @@
 
   .asset-settings-tile-grid {
     gap: 10px;
-    margin-top: 22px;
+    margin-top: 12px;
   }
 
   .asset-settings-input-mode + .asset-settings-tile-grid {
@@ -750,9 +750,9 @@
   }
 
   .asset-settings-tile {
-    min-height: 96px;
-    padding: 16px 18px;
-    border-radius: 18px;
+    min-height: 82px;
+    padding: 12px 14px;
+    border-radius: 16px;
   }
 
   .asset-settings-tile-icon {
@@ -767,13 +767,13 @@
   }
 
   .asset-settings-tile > span:not(.asset-settings-tile-icon) {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .asset-settings-tile strong,
   .asset-settings-tile-input,
   .asset-settings-code-input {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .asset-settings-tile-input em,
@@ -805,18 +805,19 @@
   .asset-settings-card-actions {
     display: grid;
     gap: 10px;
-    padding-top: 8px;
+    padding-top: 12px;
   }
 
   .asset-settings-card-actions .btn {
-    min-height: 50px;
+    min-height: 44px;
     border-radius: 12px;
     font-size: 13px;
   }
 
   .asset-settings-add-card {
-    min-height: 490px;
-    border-radius: 26px;
+    flex-basis: var(--asset-settings-card-width);
+    min-height: 300px;
+    border-radius: 20px;
   }
 
   .asset-settings-slide-dots {
@@ -825,9 +826,9 @@
     align-items: center;
     justify-content: center;
     grid-row: 2 / 3;
-    min-height: 36px;
-    margin-top: -8px;
-    padding: 8px 0 12px;
+    min-height: 28px;
+    margin-top: -4px;
+    padding: 4px 0 8px;
     overflow: hidden;
     background: transparent;
   }
@@ -866,9 +867,9 @@
     }
 
     .asset-settings-modal {
-      width: min(700px, calc(100vw - 16px));
-      height: min(780px, calc(100vh - 16px));
-      height: min(780px, calc(100dvh - 16px));
+      width: min(540px, calc(100vw - 16px));
+      height: min(640px, calc(100vh - 16px));
+      height: min(640px, calc(100dvh - 16px));
       max-height: calc(100vh - 16px);
       max-height: calc(100dvh - 16px);
     }
@@ -893,10 +894,10 @@
     }
 
     .asset-settings-cards {
-      --asset-settings-card-width: calc(100% - 44px);
-      --asset-settings-card-edge: 22px;
-      gap: 18px;
-      padding: 10px var(--asset-settings-card-edge) 12px;
+      --asset-settings-card-width: calc(100% - 32px);
+      --asset-settings-card-edge: 16px;
+      gap: 16px;
+      padding: 8px var(--asset-settings-card-edge) 8px;
       scroll-padding: 0 var(--asset-settings-card-edge);
     }
 
@@ -906,12 +907,12 @@
     }
 
     .asset-settings-add-card {
-      min-height: 420px;
+      min-height: 260px;
     }
 
     .asset-settings-display-card {
-      padding: 18px 20px 16px;
-      border-radius: 20px;
+      padding: 16px 18px 14px;
+      border-radius: 18px;
     }
 
     .asset-settings-menu {
@@ -942,9 +943,9 @@
     }
 
     .asset-settings-title-input {
-      height: 34px;
-      font-size: clamp(25px, 6.9vw, 30px);
-      line-height: 1.06;
+      height: 32px;
+      font-size: 18px;
+      line-height: 1.1;
     }
 
     .asset-market-search-box {
@@ -954,8 +955,8 @@
     }
 
     .asset-market-search-input.asset-settings-title-input {
-      height: 40px;
-      font-size: 18px;
+      height: 36px;
+      font-size: 16px;
     }
 
     .asset-market-search-results {
@@ -1056,7 +1057,7 @@
     }
 
     .asset-settings-card-actions {
-      padding-top: 4px;
+      padding-top: 10px;
     }
 
     .asset-settings-card-actions .btn {
@@ -3559,7 +3560,11 @@
 
 @media (max-width: 768px) {
   .asset-settings-modal .asset-settings-display-card .asset-settings-title-wrap input.asset-settings-title-input {
-    font-size: clamp(34px, 9.3vw, 40px);
+    font-size: 18px;
+  }
+
+  .asset-settings-modal .asset-settings-display-card .asset-settings-title-wrap input.asset-market-search-input {
+    font-size: 16px;
   }
 
   .asset-settings-modal .asset-settings-display-card .asset-settings-value-panel .asset-settings-current-input input,
