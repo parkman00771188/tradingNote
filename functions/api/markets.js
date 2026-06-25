@@ -18,6 +18,16 @@ const POPULAR_KRX_CODE_BOOST = {
   "000270": 16
 };
 
+const YAHOO_QUOTE_TYPE_LABELS = {
+  CRYPTOCURRENCY: "암호화폐",
+  CURRENCY: "환율",
+  EQUITY: "주식",
+  ETF: "ETF",
+  FUTURE: "선물",
+  INDEX: "지수",
+  MUTUALFUND: "펀드"
+};
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -145,11 +155,15 @@ function mapYahooQuote(quote) {
 
   const name = quote.longname || quote.shortname || symbol;
   const code = symbol.replace(/\.(KS|KQ)$/i, "");
+  const quoteType = String(quote.quoteType || "").trim().toUpperCase();
+  const type = YAHOO_QUOTE_TYPE_LABELS[quoteType] || quote.typeDisp || quoteType;
 
   return {
     name,
     code,
     symbol,
+    type,
+    quoteType,
     market: quote.exchDisp || quote.exchange || "",
     exchange: quote.exchange || quote.exchDisp || "",
     industry: quote.industryDisp || quote.industry || "",
@@ -163,8 +177,8 @@ async function searchYahoo(query, limit) {
   url.searchParams.set("q", query);
   url.searchParams.set("quotesCount", String(limit));
   url.searchParams.set("newsCount", "0");
-  url.searchParams.set("lang", "ko-KR");
-  url.searchParams.set("region", "KR");
+  url.searchParams.set("lang", "en-US");
+  url.searchParams.set("region", "US");
 
   const response = await fetch(url.toString(), {
     headers: REQUEST_HEADERS,
@@ -174,7 +188,6 @@ async function searchYahoo(query, limit) {
 
   const payload = await response.json().catch(() => ({}));
   return (payload.quotes || [])
-    .filter((quote) => ["EQUITY", "ETF"].includes(quote.quoteType))
     .map(mapYahooQuote)
     .filter(Boolean)
     .slice(0, limit);
@@ -222,6 +235,8 @@ async function enrichWithChart(item) {
     ...item,
     name: item.name || chart.name,
     symbol: chart.symbol || item.symbol,
+    type: item.type,
+    quoteType: item.quoteType,
     market: item.market || chart.market,
     exchange: item.exchange || chart.exchange,
     currency: item.currency || chart.currency,
@@ -253,7 +268,7 @@ async function searchMarkets(query) {
   const trimmedQuery = String(query || "").trim().slice(0, 80);
   if (trimmedQuery.length < 2) return [];
 
-  const limit = 8;
+  const limit = 12;
   const shouldSearchYahoo = !hasHangul(trimmedQuery);
   const [krxResults, yahooResults] = await Promise.all([
     searchKrx(trimmedQuery, limit).catch(() => []),
@@ -266,6 +281,8 @@ async function searchMarkets(query) {
     name: item.name,
     code: item.code,
     symbol: item.symbol,
+    type: item.type || "",
+    quoteType: item.quoteType || "",
     market: item.market,
     exchange: item.exchange,
     industry: item.industry || "",

@@ -1501,7 +1501,7 @@ function renderAssetMarketSearchPanel(rowId) {
     <div class="asset-market-search-results" role="listbox" aria-label="종목 검색 결과">
       ${assetMarketSearch.results.map((result, index) => {
         const priceText = formatAssetMarketPrice(result);
-        const marketText = [result.symbol, result.market || result.exchange, result.source]
+        const marketText = [result.symbol, result.type || result.quoteType, result.market || result.exchange]
           .filter(Boolean)
           .join(" · ");
         return `
