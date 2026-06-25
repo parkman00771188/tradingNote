@@ -1,6 +1,7 @@
 const loginLogo = "src/resources/assets/brand/tn_lockup_blue.svg";
 const googleIdentityScriptUrl = "https://accounts.google.com/gsi/client";
 var googleIdentityScriptPromise = null;
+var googleTokenClient = null;
 var loginMessage = "";
 var loginMessageTone = "";
 var loginHydrationToken = 0;
@@ -58,12 +59,7 @@ async function fetchLoginConfig() {
   return response.json();
 }
 
-async function handleGoogleCredentialResponse(response) {
-  if (!response?.credential) {
-    setLoginMessage("Google 로그인 응답을 받지 못했습니다. 다시 시도해주세요.", "error");
-    return;
-  }
-
+async function completeGoogleLogin(payload) {
   setLoginMessage("Google 계정을 확인하고 있습니다.", "loading");
 
   try {
@@ -74,10 +70,7 @@ async function handleGoogleCredentialResponse(response) {
         "Content-Type": "application/json",
         Accept: "application/json"
       },
-      body: JSON.stringify({
-        action: "google",
-        credential: response.credential
-      })
+      body: JSON.stringify(payload)
     });
     const authResult = await authResponse.json().catch(() => ({}));
 
@@ -95,13 +88,56 @@ async function handleGoogleCredentialResponse(response) {
   }
 }
 
+async function handleGoogleCredentialResponse(response) {
+  if (!response?.credential) {
+    setLoginMessage("Google 로그인 응답을 받지 못했습니다. 다시 시도해주세요.", "error");
+    return;
+  }
+
+  await completeGoogleLogin({
+    action: "google",
+    credential: response.credential
+  });
+}
+
+async function handleGoogleTokenResponse(response) {
+  if (response?.error) {
+    setLoginMessage(response.error_description || "Google 계정 선택이 취소되었습니다.", "error");
+    return;
+  }
+  if (!response?.access_token) {
+    setLoginMessage("Google 계정 선택 응답을 받지 못했습니다. 다시 시도해주세요.", "error");
+    return;
+  }
+
+  await completeGoogleLogin({
+    action: "google_access_token",
+    accessToken: response.access_token
+  });
+}
+
 function renderFallbackGoogleButton(disabled = false) {
   return `
     <button class="login-social ${disabled ? "disabled" : ""}" type="button" data-google-login-fallback ${disabled ? "disabled aria-disabled=\"true\"" : ""}>
       ${googleLogo()}
-      <strong>Google로 계속하기</strong>
+      <strong>Google로 로그인</strong>
     </button>
   `;
+}
+
+function bindGoogleLoginButton(container) {
+  const button = container.querySelector("[data-google-login-fallback]");
+  if (!button || button.disabled) return;
+
+  button.addEventListener("click", () => {
+    if (!googleTokenClient) {
+      setLoginMessage("Google 로그인을 아직 준비 중입니다. 잠시 후 다시 눌러주세요.", "loading");
+      return;
+    }
+
+    setLoginMessage("Google 계정을 선택해주세요.", "loading");
+    googleTokenClient.requestAccessToken({ prompt: "select_account" });
+  });
 }
 
 async function hydrateLoginPage() {
@@ -134,20 +170,23 @@ async function hydrateLoginPage() {
       client_id: config.googleClientId,
       callback: handleGoogleCredentialResponse,
       ux_mode: "popup",
-      auto_select: false
+      auto_select: false,
+      use_fedcm_for_button: false,
+      button_auto_select: false
     });
 
-    container.innerHTML = "";
-    window.google.accounts.id.renderButton(container, {
-      type: "standard",
-      theme: "outline",
-      size: "large",
-      text: "continue_with",
-      shape: "rectangular",
-      logo_alignment: "left",
-      width: Math.min(420, Math.max(280, container.clientWidth || 360)),
-      locale: "ko"
+    googleTokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: config.googleClientId,
+      scope: "openid email profile",
+      prompt: "select_account",
+      callback: handleGoogleTokenResponse,
+      error_callback: () => {
+        setLoginMessage("Google 계정 선택이 취소되었습니다.", "error");
+      }
     });
+
+    container.innerHTML = renderFallbackGoogleButton(false);
+    bindGoogleLoginButton(container);
     setLoginMessage("", "");
   } catch (error) {
     container.innerHTML = renderFallbackGoogleButton(true);

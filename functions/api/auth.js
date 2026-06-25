@@ -1,4 +1,6 @@
 const GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
+const GOOGLE_TOKENINFO_URL = "https://www.googleapis.com/oauth2/v3/tokeninfo";
+const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
 const SESSION_COOKIE_NAME = "tn_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
@@ -98,6 +100,10 @@ function timingSafeEqual(left, right) {
   return diff === 0;
 }
 
+function isGoogleTrue(value) {
+  return value === true || value === "true";
+}
+
 async function sha256KeyMaterial(secret) {
   return crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret));
 }
@@ -193,7 +199,7 @@ async function verifyGoogleIdToken(idToken, config) {
   if (payload.nbf && payload.nbf > now + 60) {
     throw new Error("Google ID 토큰이 아직 유효하지 않습니다.");
   }
-  if (payload.email_verified !== true && payload.email_verified !== "true") {
+  if (!isGoogleTrue(payload.email_verified)) {
     throw new Error("Google에서 이메일 소유가 확인된 계정만 사용할 수 있습니다.");
   }
   if (config.hostedDomain && payload.hd !== config.hostedDomain) {
@@ -201,6 +207,56 @@ async function verifyGoogleIdToken(idToken, config) {
   }
 
   return payload;
+}
+
+async function verifyGoogleAccessToken(accessToken, config) {
+  if (!accessToken) throw new Error("Google 액세스 토큰이 필요합니다.");
+
+  const tokenInfoResponse = await fetch(`${GOOGLE_TOKENINFO_URL}?access_token=${encodeURIComponent(accessToken)}`, {
+    headers: { Accept: "application/json" }
+  });
+  const tokenInfo = await tokenInfoResponse.json().catch(() => ({}));
+
+  if (!tokenInfoResponse.ok) {
+    throw new Error(tokenInfo.error_description || "Google 액세스 토큰이 유효하지 않습니다.");
+  }
+  if (tokenInfo.aud !== config.googleClientId) {
+    throw new Error("Google 액세스 토큰 대상 앱이 현재 앱과 일치하지 않습니다.");
+  }
+  if (Number(tokenInfo.expires_in || 0) <= 0) {
+    throw new Error("Google 액세스 토큰이 만료되었습니다.");
+  }
+
+  const userInfoResponse = await fetch(GOOGLE_USERINFO_URL, {
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${accessToken}`
+    }
+  });
+  const userInfo = await userInfoResponse.json().catch(() => ({}));
+
+  if (!userInfoResponse.ok) {
+    throw new Error(userInfo.error_description || "Google 사용자 정보를 가져오지 못했습니다.");
+  }
+  if (!userInfo.sub && !tokenInfo.sub) {
+    throw new Error("Google 사용자 식별자를 확인하지 못했습니다.");
+  }
+  if (!isGoogleTrue(userInfo.email_verified) && !isGoogleTrue(tokenInfo.email_verified) && !isGoogleTrue(tokenInfo.verified_email)) {
+    throw new Error("Google에서 이메일 소유가 확인된 계정만 사용할 수 있습니다.");
+  }
+  if (config.hostedDomain && userInfo.hd !== config.hostedDomain && tokenInfo.hd !== config.hostedDomain) {
+    throw new Error("허용된 Google Workspace 도메인의 계정만 로그인할 수 있습니다.");
+  }
+
+  return {
+    sub: userInfo.sub || tokenInfo.sub,
+    email: userInfo.email || tokenInfo.email || "",
+    email_verified: userInfo.email_verified ?? tokenInfo.email_verified ?? tokenInfo.verified_email,
+    name: userInfo.name || "",
+    picture: userInfo.picture || "",
+    locale: userInfo.locale || "",
+    hd: userInfo.hd || tokenInfo.hd || ""
+  };
 }
 
 async function getUserKey(config, googleSub) {
@@ -215,6 +271,40 @@ function publicUser(user) {
     picture: user.picture || "",
     provider: user.provider || "google"
   };
+}
+
+async function persistGoogleUser(context, config, googleUser) {
+  const userKey = await getUserKey(config, googleUser.sub);
+  const existingRecord = await config.usersKv.get(userKey, "json");
+  const existingUser = existingRecord ? await decryptJson(existingRecord, config.encryptionKey) : null;
+  const nowIso = new Date().toISOString();
+  const user = {
+    provider: "google",
+    googleSub: googleUser.sub,
+    email: googleUser.email || "",
+    emailVerified: isGoogleTrue(googleUser.email_verified),
+    name: googleUser.name || "",
+    picture: googleUser.picture || "",
+    locale: googleUser.locale || "",
+    hostedDomain: googleUser.hd || "",
+    createdAt: existingUser?.createdAt || nowIso,
+    lastLoginAt: nowIso
+  };
+
+  await config.usersKv.put(userKey, JSON.stringify(await encryptJson(user, config.encryptionKey)));
+
+  return json(
+    {
+      ok: true,
+      registered: true,
+      isNewUser: !existingRecord,
+      user: publicUser(user)
+    },
+    200,
+    {
+      "Set-Cookie": await createSessionCookie(config, context.request, userKey)
+    }
+  );
 }
 
 async function createSessionCookie(config, request, userKey) {
@@ -275,37 +365,19 @@ async function handleGoogleLogin(context) {
   if (!body.credential) return badRequest("Google ID 토큰이 필요합니다.");
 
   const googleUser = await verifyGoogleIdToken(body.credential, config);
-  const userKey = await getUserKey(config, googleUser.sub);
-  const existingRecord = await config.usersKv.get(userKey, "json");
-  const existingUser = existingRecord ? await decryptJson(existingRecord, config.encryptionKey) : null;
-  const nowIso = new Date().toISOString();
-  const user = {
-    provider: "google",
-    googleSub: googleUser.sub,
-    email: googleUser.email || "",
-    emailVerified: googleUser.email_verified === true || googleUser.email_verified === "true",
-    name: googleUser.name || "",
-    picture: googleUser.picture || "",
-    locale: googleUser.locale || "",
-    hostedDomain: googleUser.hd || "",
-    createdAt: existingUser?.createdAt || nowIso,
-    lastLoginAt: nowIso
-  };
+  return persistGoogleUser(context, config, googleUser);
+}
 
-  await config.usersKv.put(userKey, JSON.stringify(await encryptJson(user, config.encryptionKey)));
+async function handleGoogleAccessTokenLogin(context) {
+  const config = getAuthConfig(context.env);
+  assertServerConfig(config);
 
-  return json(
-    {
-      ok: true,
-      registered: true,
-      isNewUser: !existingRecord,
-      user: publicUser(user)
-    },
-    200,
-    {
-      "Set-Cookie": await createSessionCookie(config, context.request, userKey)
-    }
-  );
+  const body = await context.request.json().catch(() => ({}));
+  if (body.action !== "google_access_token") return badRequest("지원하지 않는 인증 요청입니다.");
+  if (!body.accessToken) return badRequest("Google 액세스 토큰이 필요합니다.");
+
+  const googleUser = await verifyGoogleAccessToken(body.accessToken, config);
+  return persistGoogleUser(context, config, googleUser);
 }
 
 async function handleSession(context) {
@@ -360,6 +432,7 @@ export async function onRequest(context) {
     if (context.request.method === "POST") {
       const body = await context.request.clone().json().catch(() => ({}));
       if (body.action === "google") return handleGoogleLogin(context);
+      if (body.action === "google_access_token") return handleGoogleAccessTokenLogin(context);
       if (body.action === "logout") return handleLogout(context);
     }
 
