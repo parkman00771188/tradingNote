@@ -2165,8 +2165,8 @@ function updateAssetSettingsDotElement(dots, total, activeIndex) {
 
 function renderAssetSettingsSlideDots(total, activeIndex) {
   const safeTotal = Math.max(0, total);
-  if (!safeTotal) {
-    return `<div class="asset-settings-slide-dots" aria-hidden="true"></div>`;
+  if (safeTotal <= 1) {
+    return "";
   }
 
   const safeActiveIndex = Math.min(Math.max(activeIndex, 0), safeTotal - 1);
@@ -2259,7 +2259,7 @@ function renderAssetSettingsModalCardView() {
                 <button class="asset-settings-slide-nav next" type="button" data-asset-settings-slide="next" aria-label="다음 자산" ${activeDotIndex >= drafts.length - 1 ? "disabled" : ""}>${icon("chevronRight")}</button>`
               : ""
           }
-          ${renderAssetSettingsSlideDots(drafts.length, activeDotIndex)}
+          ${hasMultipleCards ? renderAssetSettingsSlideDots(drafts.length, activeDotIndex) : ""}
         </div>
       </section>
     </div>
