@@ -165,7 +165,11 @@ function getWatchStock(name, code = "") {
     quoteType: row[6] || "",
     market: row[7] || "",
     exchange: row[8] || "",
-    source: row[9] || ""
+    source: row[9] || "",
+    currency: row[10] || "",
+    marketPrice: Number(row[11]) || 0,
+    exchangeRateToKrw: Number(row[12]) || 0,
+    priceDisplayCurrency: row[13] || ""
   };
 }
 
@@ -183,7 +187,11 @@ function getHoldingData() {
       storedQuoteType,
       storedMarket,
       storedExchange,
-      storedSource
+      storedSource,
+      storedCurrency,
+      storedMarketPrice,
+      storedExchangeRateToKrw,
+      storedPriceDisplayCurrency
     ] = holdingRow;
     const quantity = parseMarketNumber(quantityText);
     const previousAmount = parseMarketNumber(amountText);
@@ -203,6 +211,10 @@ function getHoldingData() {
       market: storedMarket || watch?.market || "",
       exchange: storedExchange || watch?.exchange || "",
       source: storedSource || watch?.source || "",
+      currency: storedCurrency || watch?.currency || "",
+      marketPrice: Number(storedMarketPrice || watch?.marketPrice || 0),
+      exchangeRateToKrw: Number(storedExchangeRateToKrw || watch?.exchangeRateToKrw || 0),
+      priceDisplayCurrency: storedPriceDisplayCurrency || watch?.priceDisplayCurrency || "",
       quantity,
       averagePrice: quantity ? Math.round(costBasis / quantity) : 0,
       currentPrice,

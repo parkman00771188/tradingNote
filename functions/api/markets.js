@@ -28,6 +28,8 @@ const YAHOO_QUOTE_TYPE_LABELS = {
   MUTUALFUND: "펀드"
 };
 
+const fxRateCache = new Map();
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -40,6 +42,10 @@ function json(data, status = 200) {
 
 function normalizeText(value) {
   return String(value || "").replace(/\s+/g, "").toLowerCase();
+}
+
+function normalizeCurrency(value) {
+  return String(value || "").trim().toUpperCase();
 }
 
 function cleanHtmlCell(value) {
@@ -227,9 +233,30 @@ async function fetchYahooChart(symbol) {
   };
 }
 
+async function fetchFxRateToKrw(currency) {
+  const normalizedCurrency = normalizeCurrency(currency);
+  if (!normalizedCurrency) return 0;
+  if (normalizedCurrency === "KRW") return 1;
+
+  const cached = fxRateCache.get(normalizedCurrency);
+  if (cached && Date.now() - cached.time < 60000) return cached.rate;
+
+  const chart = await fetchYahooChart(`${normalizedCurrency}KRW=X`).catch(() => null);
+  const rate = Number(chart?.currentPrice || 0);
+  if (!rate) return 0;
+
+  fxRateCache.set(normalizedCurrency, { rate, time: Date.now() });
+  return rate;
+}
+
 async function enrichWithChart(item) {
   const chart = await fetchYahooChart(item.symbol);
   if (!chart) return item;
+  const currency = normalizeCurrency(chart.currency || item.currency);
+  const exchangeRateToKrw = await fetchFxRateToKrw(currency).catch(() => 0);
+  const currentPriceKrw = chart.currentPrice && exchangeRateToKrw
+    ? Math.round(chart.currentPrice * exchangeRateToKrw)
+    : 0;
 
   return {
     ...item,
@@ -239,8 +266,10 @@ async function enrichWithChart(item) {
     quoteType: item.quoteType,
     market: item.market || chart.market,
     exchange: item.exchange || chart.exchange,
-    currency: item.currency || chart.currency,
+    currency,
     currentPrice: chart.currentPrice || item.currentPrice || 0,
+    currentPriceKrw,
+    exchangeRateToKrw,
     change: chart.change || 0,
     changeRate: chart.changeRate || 0
   };
@@ -288,6 +317,8 @@ async function searchMarkets(query) {
     industry: item.industry || "",
     currency: item.currency || "",
     currentPrice: Number(item.currentPrice || 0),
+    currentPriceKrw: Number(item.currentPriceKrw || 0),
+    exchangeRateToKrw: Number(item.exchangeRateToKrw || 0),
     change: Number(item.change || 0),
     changeRate: Number(item.changeRate || 0),
     source: item.source || "Yahoo Finance"

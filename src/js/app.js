@@ -86,7 +86,13 @@ const assetSpreadsheetHeaders = [
   "보유수량",
   "매수평균가",
   "현재가",
+  "통화",
+  "외화현재가",
+  "환율",
   "입력방식",
+  "자산유형",
+  "시장",
+  "거래소",
   "평가금액",
   "매수금액",
   "평가손익",
@@ -103,7 +109,11 @@ const assetSpreadsheetColumnAliases = {
   quoteType: ["quoteType", "quote type"],
   market: ["시장", "거래시장", "market"],
   exchange: ["거래소", "exchange"],
-  source: ["출처", "source"]
+  source: ["출처", "source"],
+  currency: ["통화", "currency"],
+  marketPrice: ["외화현재가", "원시현재가", "marketprice", "foreignprice"],
+  exchangeRateToKrw: ["환율", "원화환율", "exchangerate", "exchangeratetokrw"],
+  priceDisplayCurrency: ["표시통화", "displaycurrency", "pricedisplaycurrency"]
 };
 
 const fallbackAssetInvestedBalance = 42750000;
@@ -126,6 +136,23 @@ function getAssetTotalValue() {
 
 function parseKRWInput(value) {
   return Math.max(0, Number(String(value).replace(/[^0-9]/g, "")) || 0);
+}
+
+function parseAssetDecimalInput(value) {
+  const normalized = String(value ?? "")
+    .replace(/,/g, "")
+    .replace(/[^0-9.]/g, "");
+  const [integerPart, ...decimalParts] = normalized.split(".");
+  const numericText = `${integerPart || "0"}${decimalParts.length ? `.${decimalParts.join("")}` : ""}`;
+  return Math.max(0, Number(numericText) || 0);
+}
+
+function formatAssetDecimal(value) {
+  const number = Number(value) || 0;
+  if (!number) return "";
+  return number.toLocaleString(undefined, {
+    maximumFractionDigits: number >= 100 ? 2 : 6
+  });
 }
 
 function formatNumberInput(input) {
@@ -575,7 +602,11 @@ function normalizeAssetRowInput(item) {
     quoteType: String(item.quoteType || "").trim(),
     market: String(item.market || "").trim(),
     exchange: String(item.exchange || "").trim(),
-    source: String(item.source || "").trim()
+    source: String(item.source || "").trim(),
+    currency: String(item.currency || "").trim().toUpperCase(),
+    marketPrice: parseAssetDecimalInput(item.marketPrice),
+    exchangeRateToKrw: parseAssetDecimalInput(item.exchangeRateToKrw),
+    priceDisplayCurrency: String(item.priceDisplayCurrency || "").trim().toUpperCase()
   };
 }
 
@@ -626,7 +657,11 @@ function replaceAssetHoldings(rows) {
         row.quoteType,
         row.market,
         row.exchange,
-        row.source
+        row.source,
+        row.currency,
+        row.marketPrice,
+        row.exchangeRateToKrw,
+        row.priceDisplayCurrency
       ];
     })
   );
@@ -646,6 +681,10 @@ function replaceAssetHoldings(rows) {
       watchRow[7] = row.market;
       watchRow[8] = row.exchange;
       watchRow[9] = row.source;
+      watchRow[10] = row.currency;
+      watchRow[11] = row.marketPrice;
+      watchRow[12] = row.exchangeRateToKrw;
+      watchRow[13] = row.priceDisplayCurrency;
       return;
     }
 
@@ -660,7 +699,11 @@ function replaceAssetHoldings(rows) {
         row.quoteType,
         row.market,
         row.exchange,
-        row.source
+        row.source,
+        row.currency,
+        row.marketPrice,
+        row.exchangeRateToKrw,
+        row.priceDisplayCurrency
       ]);
     }
   });
@@ -753,7 +796,13 @@ function getAssetSpreadsheetRows() {
     "보유수량": item.quantity,
     "매수평균가": item.averagePrice,
     "현재가": item.currentPrice,
+    "통화": item.currency || "KRW",
+    "외화현재가": item.marketPrice || item.currentPrice,
+    "환율": item.exchangeRateToKrw || 1,
     "입력방식": "수량+평단",
+    "자산유형": getAssetMarketLabel(item),
+    "시장": item.market || "",
+    "거래소": item.exchange || "",
     "평가금액": item.amount,
     "매수금액": item.costBasis,
     "평가손익": item.profit,
@@ -779,6 +828,10 @@ function getAssetSnapshot() {
       market: item.market || "",
       exchange: item.exchange || "",
       source: item.source || "",
+      currency: item.currency || "",
+      marketPrice: item.marketPrice || 0,
+      exchangeRateToKrw: item.exchangeRateToKrw || 0,
+      priceDisplayCurrency: item.priceDisplayCurrency || "",
       amount: item.amount,
       costBasis: item.costBasis,
       profit: item.profit,
@@ -1396,8 +1449,63 @@ function createAssetSettingsDraft(item = {}) {
     quoteType: item.quoteType || "",
     market: item.market || "",
     exchange: item.exchange || "",
-    source: item.source || ""
+    source: item.source || "",
+    currency: normalizeAssetCurrency(item.currency || ""),
+    marketPrice: Math.max(0, Number(item.marketPrice) || 0),
+    exchangeRateToKrw: Math.max(0, Number(item.exchangeRateToKrw) || 0),
+    priceDisplayCurrency: normalizeAssetCurrency(item.priceDisplayCurrency || "")
   };
+}
+
+function normalizeAssetCurrency(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
+function inferAssetCurrencyFromCode(code) {
+  const match = String(code || "").trim().toUpperCase().match(/^[A-Z0-9]+-([A-Z]{3})$/);
+  return match ? match[1] : "";
+}
+
+function getAssetCurrency(item = {}) {
+  return normalizeAssetCurrency(item.currency) || inferAssetCurrencyFromCode(item.code) || "KRW";
+}
+
+function getAssetExchangeRateToKrw(item = {}) {
+  const currency = getAssetCurrency(item);
+  if (currency === "KRW") return 1;
+  return Math.max(0, Number(item.exchangeRateToKrw) || 0);
+}
+
+function hasAssetForeignDisplay(item = {}) {
+  const currency = getAssetCurrency(item);
+  return currency && currency !== "KRW" && getAssetExchangeRateToKrw(item) > 0;
+}
+
+function getAssetDisplayCurrency(item = {}) {
+  const currency = getAssetCurrency(item);
+  if (!hasAssetForeignDisplay(item)) return "KRW";
+  return normalizeAssetCurrency(item.priceDisplayCurrency) === currency ? currency : "KRW";
+}
+
+function getAssetMarketPrice(item = {}) {
+  const marketPrice = Math.max(0, Number(item.marketPrice) || 0);
+  if (marketPrice) return marketPrice;
+
+  const rate = getAssetExchangeRateToKrw(item);
+  const currentPrice = Math.max(0, Number(item.currentPrice) || 0);
+  return hasAssetForeignDisplay(item) && rate ? currentPrice / rate : currentPrice;
+}
+
+function getAssetCurrentPriceInputValue(item = {}) {
+  const displayCurrency = getAssetDisplayCurrency(item);
+  return displayCurrency === "KRW"
+    ? (item.currentPrice ? formatMarketNumber(item.currentPrice) : "")
+    : formatAssetDecimal(getAssetMarketPrice(item));
+}
+
+function getAssetCurrentPriceUnit(item = {}) {
+  const displayCurrency = getAssetDisplayCurrency(item);
+  return displayCurrency === "KRW" ? "원" : displayCurrency;
 }
 
 function getAssetMarketLabel(item = {}) {
@@ -1440,8 +1548,47 @@ function clearAssetMarketMeta(item = {}) {
     quoteType: "",
     market: "",
     exchange: "",
-    source: ""
+    source: "",
+    currency: "",
+    marketPrice: 0,
+    exchangeRateToKrw: 0,
+    priceDisplayCurrency: ""
   };
+}
+
+function updateAssetCurrentPriceDraftValue(item, value) {
+  const displayCurrency = getAssetDisplayCurrency(item);
+  const rate = getAssetExchangeRateToKrw(item);
+
+  if (displayCurrency === "KRW") {
+    const currentPrice = parseKRWInput(value);
+    return {
+      ...item,
+      currentPrice,
+      marketPrice: hasAssetForeignDisplay(item) && rate ? Math.round((currentPrice / rate) * 1000000) / 1000000 : currentPrice
+    };
+  }
+
+  const marketPrice = parseAssetDecimalInput(value);
+  return {
+    ...item,
+    marketPrice,
+    currentPrice: Math.round(marketPrice * rate)
+  };
+}
+
+function updateAssetPriceDisplayCurrency(rowId, currency) {
+  const normalizedCurrency = normalizeAssetCurrency(currency);
+  assetSettingsDrafts = assetSettingsDrafts.map((item) => {
+    if (item.id !== rowId) return item;
+    const baseCurrency = getAssetCurrency(item);
+    return {
+      ...item,
+      priceDisplayCurrency: normalizedCurrency === baseCurrency && hasAssetForeignDisplay(item) ? baseCurrency : "KRW"
+    };
+  });
+  assetSettingsError = "";
+  assetSettingsMessage = "";
 }
 
 function beginAssetSettingsEdit() {
@@ -1526,6 +1673,9 @@ function updateAssetSettingsDraft(rowId, field, value) {
     if (field === "name" || field === "code") {
       return clearAssetMarketMeta({ ...item, [field]: value });
     }
+    if (field === "currentPrice") {
+      return updateAssetCurrentPriceDraftValue(item, value);
+    }
     return { ...item, [field]: parseKRWInput(value) };
   });
   assetSettingsError = "";
@@ -1557,6 +1707,10 @@ function formatAssetMarketPrice(result) {
   const price = Number(result?.currentPrice || 0);
   if (!price) return "";
   const currency = result.currency || "";
+  const priceKrw = Number(result?.currentPriceKrw || 0);
+  if (currency && currency !== "KRW" && priceKrw) {
+    return `${price.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${currency} · ${formatMarketNumber(priceKrw)}원`;
+  }
   const formatted = currency === "KRW"
     ? `${formatMarketNumber(price)}원`
     : `${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}${currency ? ` ${currency}` : ""}`;
@@ -1665,9 +1819,19 @@ function applyAssetMarketResult(rowId, resultIndex) {
   if (!result) return false;
 
   const currentDraft = assetSettingsDrafts.find((item) => item.id === rowId) || {};
-  const currentPrice = result.currency === "KRW" && Number(result.currentPrice || 0) > 0
-    ? Math.round(Number(result.currentPrice))
-    : currentDraft.currentPrice;
+  const resultCurrency = normalizeAssetCurrency(result.currency || "");
+  const exchangeRateToKrw = Math.max(0, Number(result.exchangeRateToKrw) || (resultCurrency === "KRW" ? 1 : 0));
+  const marketPrice = Math.max(0, Number(result.currentPrice) || 0);
+  const currentPrice = Number(result.currentPriceKrw || 0) > 0
+    ? Math.round(Number(result.currentPriceKrw))
+    : resultCurrency === "KRW" && marketPrice > 0
+      ? Math.round(marketPrice)
+      : marketPrice && exchangeRateToKrw
+        ? Math.round(marketPrice * exchangeRateToKrw)
+        : currentDraft.currentPrice;
+  const priceDisplayCurrency = resultCurrency && resultCurrency !== "KRW" && exchangeRateToKrw
+    ? "KRW"
+    : "KRW";
 
   patchAssetSettingsDraft(rowId, {
     name: result.name || currentDraft.name || result.symbol || "",
@@ -1677,7 +1841,11 @@ function applyAssetMarketResult(rowId, resultIndex) {
     quoteType: result.quoteType || "",
     market: result.market || "",
     exchange: result.exchange || "",
-    source: result.source || ""
+    source: result.source || "",
+    currency: resultCurrency || "KRW",
+    marketPrice,
+    exchangeRateToKrw,
+    priceDisplayCurrency
   });
 
   assetSettingsEditingId = rowId;
@@ -1780,7 +1948,11 @@ function normalizeAssetSettingsRow(item) {
     quoteType: String(item.quoteType || "").trim(),
     market: String(item.market || "").trim(),
     exchange: String(item.exchange || "").trim(),
-    source: String(item.source || "").trim()
+    source: String(item.source || "").trim(),
+    currency: getAssetCurrency(item),
+    marketPrice: getAssetMarketPrice(item),
+    exchangeRateToKrw: getAssetExchangeRateToKrw(item),
+    priceDisplayCurrency: getAssetDisplayCurrency(item)
   };
 }
 
@@ -1955,6 +2127,19 @@ function renderAssetSettingsCardView(item, index) {
   const readOnlyAttr = isEditing ? "" : `readonly aria-readonly="true" tabindex="-1"`;
   const motionClass = getAssetSettingsCardMotionClass(item, index);
   const searchPanel = renderAssetMarketSearchPanel(item.id);
+  const currentDisplayCurrency = getAssetDisplayCurrency(item);
+  const currentUnit = getAssetCurrentPriceUnit(item);
+  const currentInputValue = getAssetCurrentPriceInputValue(item);
+  const currentNumberAttrs = currentDisplayCurrency === "KRW"
+    ? `inputmode="numeric" data-number-input`
+    : `inputmode="decimal"`;
+  const foreignCurrency = getAssetCurrency(item);
+  const currencyToggle = isEditing && hasAssetForeignDisplay(item)
+    ? `<div class="asset-settings-currency-toggle" role="group" aria-label="현재가 표시 통화">
+        <button class="${currentDisplayCurrency === "KRW" ? "active" : ""}" type="button" data-asset-settings-price-currency="KRW" data-asset-setting-id="${item.id}" aria-pressed="${currentDisplayCurrency === "KRW"}">원화</button>
+        <button class="${currentDisplayCurrency === foreignCurrency ? "active" : ""}" type="button" data-asset-settings-price-currency="${escapeChartText(foreignCurrency)}" data-asset-setting-id="${item.id}" aria-pressed="${currentDisplayCurrency === foreignCurrency}">${escapeChartText(foreignCurrency)}</button>
+      </div>`
+    : "";
 
   return `
     <article class="asset-settings-card asset-settings-display-card ${isEditing ? "is-editing" : ""} ${motionClass}" data-asset-setting-card="${item.id}">
@@ -2012,10 +2197,13 @@ function renderAssetSettingsCardView(item, index) {
           isQuantityOnly
             ? `<label class="asset-settings-tile">
                 <span class="asset-settings-tile-icon" aria-hidden="true">${icon("chart")}</span>
-                <span>현재가</span>
+                <span class="asset-settings-tile-label">
+                  <b>현재가</b>
+                  ${currencyToggle}
+                </span>
                 <div class="asset-settings-tile-input">
-                  <input type="text" value="${item.currentPrice ? formatMarketNumber(item.currentPrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="currentPrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
-                  <em>원</em>
+                  <input type="text" value="${escapeChartText(currentInputValue)}" ${currentNumberAttrs} autocomplete="off" placeholder="0" data-asset-setting-field="currentPrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
+                  <em>${escapeChartText(currentUnit)}</em>
                 </div>
               </label>`
             : `<label class="asset-settings-tile">
@@ -3060,6 +3248,20 @@ document.addEventListener("click", (event) => {
       );
       renderModal();
       hydrateIcons(document);
+      return;
+    }
+
+    const assetSettingsPriceCurrency = event.target.closest("[data-asset-settings-price-currency]");
+    if (assetSettingsPriceCurrency && activeModal === "assetSettings") {
+      syncAssetSettingsActiveIndexFromDom();
+      updateAssetPriceDisplayCurrency(
+        assetSettingsPriceCurrency.dataset.assetSettingId,
+        assetSettingsPriceCurrency.dataset.assetSettingsPriceCurrency
+      );
+      renderModal();
+      hydrateIcons(document);
+      const card = document.querySelector(`[data-asset-setting-card="${assetSettingsPriceCurrency.dataset.assetSettingId}"]`);
+      card?.querySelector("[data-asset-setting-field='currentPrice']")?.focus();
       return;
     }
 

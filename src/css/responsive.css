@@ -1050,6 +1050,18 @@
       font-size: 12px;
     }
 
+    .asset-settings-tile-label {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .asset-settings-currency-toggle button {
+      min-height: 20px;
+      padding: 0 7px;
+      font-size: 9px;
+    }
+
     .asset-settings-tile strong,
     .asset-settings-tile-input,
     .asset-settings-code-input {
@@ -3600,5 +3612,9 @@
     flex: 1 1 auto;
     width: 0;
     font-size: inherit;
+  }
+
+  .asset-settings-modal .asset-settings-display-card .asset-market-code-field input.asset-settings-code-input {
+    width: 100%;
   }
 }
