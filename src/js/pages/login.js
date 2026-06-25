@@ -103,6 +103,13 @@ function clearGoogleRedirectState() {
   } catch (error) {}
 }
 
+function getProductionLoginUrl() {
+  const host = window.location.hostname;
+  const isPagesPreview = host.endsWith(".tradingnote.pages.dev") && host !== "tradingnote.pages.dev";
+  if (!isPagesPreview) return "";
+  return "https://tradingnote.pages.dev/#login";
+}
+
 function getGoogleRedirectUri() {
   return new URL("/", window.location.origin).href;
 }
@@ -125,6 +132,13 @@ function buildGoogleRedirectUrl(clientId) {
 }
 
 function startGoogleRedirectLogin(clientId = loginGoogleClientId) {
+  const productionLoginUrl = getProductionLoginUrl();
+  if (productionLoginUrl) {
+    setLoginMessage("Google 로그인은 정식 배포 주소에서 진행합니다. 이동합니다.", "loading");
+    window.location.replace(productionLoginUrl);
+    return;
+  }
+
   if (!clientId) {
     setLoginMessage("Google OAuth Client ID를 확인하지 못했습니다.", "error");
     return;
@@ -290,6 +304,14 @@ function bindGoogleLoginButton(container) {
 async function hydrateLoginPage() {
   const container = document.querySelector("[data-google-login-button]");
   if (!container) return;
+
+  const productionLoginUrl = getProductionLoginUrl();
+  if (productionLoginUrl) {
+    container.innerHTML = renderFallbackGoogleButton(true);
+    setLoginMessage("Google 로그인은 정식 배포 주소에서 진행합니다. 이동합니다.", "loading");
+    window.location.replace(productionLoginUrl);
+    return;
+  }
 
   const token = ++loginHydrationToken;
   setLoginMessage("로그인 설정을 확인하고 있습니다.", "loading");
