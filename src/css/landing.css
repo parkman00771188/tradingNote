@@ -154,6 +154,16 @@ body[data-route="login"] .page-content {
   margin: 0 auto;
 }
 
+.login-google-shell {
+  display: grid;
+  place-items: center;
+  min-height: 68px;
+}
+
+.login-google-shell > div {
+  max-width: 100%;
+}
+
 .login-social {
   display: inline-flex;
   align-items: center;
@@ -173,10 +183,18 @@ body[data-route="login"] .page-content {
   letter-spacing: 0;
 }
 
-.login-social:hover {
+.login-social:hover:not(:disabled) {
   border-color: #c8d6ea;
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.09);
   transform: translateY(-1px);
+}
+
+.login-social.disabled,
+.login-social:disabled {
+  color: #9aa6b8;
+  cursor: not-allowed;
+  background: #f8fafc;
+  box-shadow: none;
 }
 
 .login-provider-icon {
@@ -196,6 +214,32 @@ body[data-route="login"] .page-content {
 
 .login-social strong {
   font-weight: 560;
+}
+
+.login-message {
+  min-height: 20px;
+  margin: 6px 0 0;
+  color: var(--login-muted);
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 700;
+  text-align: center;
+}
+
+.login-message:empty {
+  display: none;
+}
+
+.login-message.loading {
+  color: var(--login-blue);
+}
+
+.login-message.success {
+  color: #16a34a;
+}
+
+.login-message.error {
+  color: #dc2626;
 }
 
 .landing-page button {

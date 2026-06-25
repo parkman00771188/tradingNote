@@ -477,6 +477,23 @@
   .asset-settings-header-actions {
     grid-column: 2 / 3;
     justify-content: end;
+    gap: 8px;
+  }
+
+  .asset-settings-file-action {
+    width: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-radius: 12px;
+  }
+
+  .asset-settings-file-action span {
+    display: none;
+  }
+
+  .asset-settings-sync-status {
+    margin-top: -8px;
+    font-size: 11px;
   }
 
   .asset-settings-header-add {

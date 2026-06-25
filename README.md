@@ -25,3 +25,31 @@
 - 메모: `src/js/pages/memo.js`
 - 캘린더: `src/js/pages/calendar.js`
 - 설정: `src/js/pages/settings.js`
+
+## Google 로그인 / Cloudflare Pages 설정
+
+실제 Google 로그인은 Cloudflare Pages Functions에서 처리합니다.
+
+1. Google Cloud Console에서 OAuth 2.0 웹 클라이언트를 만들고 승인된 JavaScript 원본에 배포 도메인을 추가합니다.
+   - 배포: `https://tradingnote.pages.dev`
+   - 로컬 Pages Functions 개발 시: `http://127.0.0.1:4173`, `http://localhost:4173`
+   - 현재 로그인은 popup 방식이라 승인된 리디렉션 URI는 필요하지 않습니다.
+2. Cloudflare KV namespace를 만들고 Pages 프로젝트에 `USERS_KV` 이름으로 바인딩합니다. 이 저장소는 `wrangler.toml`에서 `USERS_KV` 바인딩을 관리합니다.
+3. Cloudflare Pages 프로젝트 환경변수/secret에 아래 값을 설정합니다.
+   - `GOOGLE_CLIENT_ID`: Google OAuth 웹 클라이언트 ID
+   - `AUTH_ENCRYPTION_KEY`: 사용자 정보 암호화용 긴 랜덤 secret
+   - `AUTH_SESSION_SECRET`: 세션 쿠키 서명용 긴 랜덤 secret
+   - `GOOGLE_HOSTED_DOMAIN`: 선택 사항, 특정 Google Workspace 도메인만 허용할 때 사용
+4. 로컬에서 Functions까지 테스트하려면 `.dev.vars.example`을 `.dev.vars`로 복사해 값을 채우고 Wrangler로 실행합니다.
+
+```bash
+npx wrangler pages dev . --port 4173
+```
+
+배포는 Cloudflare Pages 프로젝트(`tradingnote`)에 직접 업로드합니다.
+
+```bash
+npx wrangler pages deploy . --project-name tradingnote --branch main
+```
+
+Google 로그인 성공 시 서버가 Google ID 토큰을 검증하고, 사용자 프로필은 KV에 AES-GCM으로 암호화 저장됩니다. 브라우저에는 HttpOnly 세션 쿠키만 내려갑니다.

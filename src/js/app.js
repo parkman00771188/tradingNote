@@ -20,6 +20,13 @@ var chartTooltipPointerTapTarget = null;
 var chartTooltipPositionFrame = 0;
 var fitMetricValueFrame = 0;
 var mobileViewportInsetFrame = 0;
+var authCheckPromise = null;
+var authState = {
+  checked: false,
+  checking: false,
+  authenticated: false,
+  user: null
+};
 var assetCashBalance = 8480000;
 var assetCashMode = "deposit";
 var assetCashError = "";
@@ -29,6 +36,7 @@ var assetCashPendingAmount = 0;
 var assetCashPendingMode = "deposit";
 var assetSettingsDrafts = [];
 var assetSettingsError = "";
+var assetSettingsMessage = "";
 var assetSettingsNextId = 1;
 var assetSettingsOpenMenuId = null;
 var assetSettingsEditingId = null;
@@ -41,6 +49,30 @@ const assetSettingsVisibleDotLimit = 5;
 const assetSettingsDotSize = 10;
 const assetSettingsDotGap = 14;
 const assetSettingsDotActiveWidth = 34;
+const authRequiredRoutes = new Set(["dashboard", "journal", "journalWrite", "stock", "performance", "assets", "memo", "calendar", "settings"]);
+const assetStorageKey = "trading-note-assets-v1";
+const assetXlsxLibraryUrl = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+var assetXlsxLibraryPromise = null;
+const assetSpreadsheetHeaders = [
+  "종목명",
+  "종목코드",
+  "보유수량",
+  "매수평균가",
+  "현재가",
+  "입력방식",
+  "평가금액",
+  "매수금액",
+  "평가손익",
+  "수익률"
+];
+const assetSpreadsheetColumnAliases = {
+  name: ["종목명", "자산명", "종목", "보유자산", "name", "asset", "stock", "symbol"],
+  code: ["종목코드", "코드", "티커", "code", "ticker"],
+  quantity: ["보유수량", "수량", "quantity", "qty", "shares"],
+  averagePrice: ["매수평균가", "매수평균", "평균단가", "평단", "averageprice", "avgprice", "average cost", "avg cost"],
+  currentPrice: ["현재가", "평가단가", "현재가격", "currentprice", "price", "marketprice", "lastprice"],
+  priceInputMode: ["입력방식", "방식", "mode", "inputmode"]
+};
 
 const fallbackAssetInvestedBalance = 42750000;
 
@@ -67,6 +99,508 @@ function parseKRWInput(value) {
 function formatNumberInput(input) {
   const digits = String(input.value).replace(/[^0-9]/g, "");
   input.value = digits ? Number(digits).toLocaleString() : "";
+}
+
+function getStoredAuthUser() {
+  try {
+    return JSON.parse(localStorage.getItem("trading-note-auth-user") || "null");
+  } catch (error) {
+    return null;
+  }
+}
+
+function setAuthenticatedUser(user) {
+  authState = {
+    checked: true,
+    checking: false,
+    authenticated: true,
+    user: user || null
+  };
+
+  try {
+    localStorage.setItem("trading-note-auth-user", JSON.stringify(user || null));
+  } catch (error) {
+    console.warn("로그인 사용자 정보를 브라우저 저장소에 저장하지 못했습니다.", error);
+  }
+}
+
+function clearAuthenticatedUser() {
+  authState = {
+    checked: true,
+    checking: false,
+    authenticated: false,
+    user: null
+  };
+
+  try {
+    localStorage.removeItem("trading-note-auth-user");
+  } catch (error) {
+    console.warn("로그인 사용자 정보를 브라우저 저장소에서 제거하지 못했습니다.", error);
+  }
+}
+
+function isAuthRequiredRoute(route) {
+  return authRequiredRoutes.has(route);
+}
+
+async function checkAuthSession({ force = false } = {}) {
+  if (!force && authState.checked) return authState;
+  if (authCheckPromise) return authCheckPromise;
+
+  authState.checking = true;
+  authCheckPromise = fetch("/api/auth?action=session", {
+    credentials: "include",
+    headers: { Accept: "application/json" }
+  })
+    .then(async (response) => {
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.authenticated && data.registered) {
+        setAuthenticatedUser(data.user);
+        return authState;
+      }
+
+      clearAuthenticatedUser();
+      return authState;
+    })
+    .catch(() => {
+      clearAuthenticatedUser();
+      return authState;
+    })
+    .finally(() => {
+      authCheckPromise = null;
+    });
+
+  return authCheckPromise;
+}
+
+function renderAuthGate(message = "로그인 상태를 확인하고 있습니다.") {
+  return `
+    <div class="auth-gate">
+      <div class="auth-gate-panel">
+        <span class="auth-gate-icon">${icon("shield")}</span>
+        <strong>${message}</strong>
+        <p>잠시만 기다려주세요.</p>
+      </div>
+    </div>
+  `;
+}
+
+function logoutUser() {
+  fetch("/api/auth", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json"
+    },
+    body: JSON.stringify({ action: "logout" })
+  }).catch(() => {});
+
+  if (window.google?.accounts?.id) {
+    window.google.accounts.id.disableAutoSelect();
+  }
+  clearAuthenticatedUser();
+  activeModal = null;
+  mobileSheetOpen = false;
+  window.location.hash = "landing";
+  render();
+}
+
+function loadAssetXlsxLibrary() {
+  if (window.XLSX?.utils) return Promise.resolve(true);
+  if (assetXlsxLibraryPromise) return assetXlsxLibraryPromise;
+
+  assetXlsxLibraryPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = assetXlsxLibraryUrl;
+    script.async = true;
+    script.onload = () => {
+      if (window.XLSX?.utils) {
+        resolve(true);
+        return;
+      }
+      assetXlsxLibraryPromise = null;
+      reject(new Error("엑셀 라이브러리를 불러오지 못했습니다."));
+    };
+    script.onerror = () => {
+      assetXlsxLibraryPromise = null;
+      reject(new Error("엑셀 라이브러리를 불러오지 못했습니다."));
+    };
+    document.head.appendChild(script);
+  });
+
+  return assetXlsxLibraryPromise;
+}
+
+function normalizeAssetSpreadsheetHeader(value) {
+  return String(value || "")
+    .replace(/\s+/g, "")
+    .replace(/[()[\]{}]/g, "")
+    .toLowerCase();
+}
+
+function getCanonicalAssetSpreadsheetField(header) {
+  const key = normalizeAssetSpreadsheetHeader(header);
+  return Object.entries(assetSpreadsheetColumnAliases).find(([, aliases]) =>
+    aliases.some((alias) => normalizeAssetSpreadsheetHeader(alias) === key)
+  )?.[0] || "";
+}
+
+function parseAssetSheetNumber(value) {
+  if (typeof value === "number") return Math.max(0, value);
+  const text = String(value ?? "").trim();
+  if (!text || text === "-") return 0;
+  const normalized = text.replace(/[,원주%]/g, "").replace(/[^0-9.]/g, "");
+  return Math.max(0, Number(normalized) || 0);
+}
+
+function normalizeAssetRowInput(item) {
+  const modeText = String(item.priceInputMode || "").trim().toLowerCase();
+  const quantity = parseAssetSheetNumber(item.quantity);
+  let averagePrice = parseAssetSheetNumber(item.averagePrice);
+  let currentPrice = parseAssetSheetNumber(item.currentPrice);
+
+  if (!currentPrice && averagePrice) currentPrice = averagePrice;
+  if (!averagePrice && currentPrice) averagePrice = currentPrice;
+
+  const priceInputMode = modeText.includes("수량") || modeText.includes("quantity")
+    ? "quantity"
+    : "full";
+
+  return {
+    name: String(item.name || "").trim(),
+    code: String(item.code || "").trim(),
+    quantity,
+    averagePrice,
+    currentPrice,
+    priceInputMode
+  };
+}
+
+function validateAssetRows(rows) {
+  if (!rows.length) return "최소 1개 이상의 자산을 입력하세요.";
+
+  const duplicateKeys = new Set();
+  for (const row of rows) {
+    if (!row.name) return "종목명을 입력하세요.";
+    if (!row.quantity) return "보유 수량은 1 이상으로 입력하세요.";
+    if (!row.currentPrice) return "현재가 또는 매수평균가를 입력하세요.";
+    if (!row.averagePrice) return "매수평균가 또는 현재가를 입력하세요.";
+
+    const key = normalizeStockKey(`${row.name}-${row.code || row.name}`);
+    if (duplicateKeys.has(key)) return "같은 자산이 중복되어 있습니다.";
+    duplicateKeys.add(key);
+  }
+
+  return "";
+}
+
+function replaceAssetHoldings(rows) {
+  const normalizedRows = rows.map((row) => normalizeAssetRowInput(row));
+  const validationError = validateAssetRows(normalizedRows);
+  if (validationError) {
+    assetSettingsError = validationError;
+    assetSettingsMessage = "";
+    return false;
+  }
+
+  holdings.splice(
+    0,
+    holdings.length,
+    ...normalizedRows.map((row) => {
+      const amount = Math.round(row.quantity * row.currentPrice);
+      const costBasis = Math.round(row.quantity * row.averagePrice);
+      const profit = amount - costBasis;
+      const rate = costBasis ? (profit / costBasis) * 100 : 0;
+      return [
+        row.name,
+        formatMarketNumber(row.quantity),
+        formatMarketNumber(amount),
+        formatSignedMarketNumber(profit),
+        formatSignedRate(rate),
+        "0%"
+      ];
+    })
+  );
+
+  normalizedRows.forEach((row) => {
+    const watchRow = typeof findWatchListRow === "function" ? findWatchListRow(row.name, row.code) : null;
+    if (watchRow) {
+      watchRow[0] = row.name;
+      watchRow[1] = row.code;
+      watchRow[2] = formatMarketNumber(row.currentPrice);
+      watchRow[3] = watchRow[3] || "+0.00%";
+      watchRow[4] = watchRow[4] || "0";
+      return;
+    }
+
+    if (typeof watchList !== "undefined") {
+      watchList.push([row.name, row.code, formatMarketNumber(row.currentPrice), "+0.00%", "0"]);
+    }
+  });
+
+  assetSettingsError = "";
+  return true;
+}
+
+function getAssetRowsForStorage() {
+  const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
+  return holdingData.map((item) => ({
+    name: item.name,
+    code: item.code,
+    quantity: item.quantity,
+    averagePrice: item.averagePrice,
+    currentPrice: item.currentPrice,
+    priceInputMode: "full"
+  }));
+}
+
+function saveAssetStateToStorage() {
+  if (typeof localStorage === "undefined") return;
+
+  try {
+    localStorage.setItem(
+      assetStorageKey,
+      JSON.stringify({
+        version: 1,
+        cashBalance: assetCashBalance,
+        holdings: getAssetRowsForStorage()
+      })
+    );
+  } catch (error) {
+    console.warn("자산 데이터를 브라우저 저장소에 저장하지 못했습니다.", error);
+  }
+}
+
+function loadAssetStateFromStorage() {
+  if (typeof localStorage === "undefined") return;
+
+  try {
+    const rawState = localStorage.getItem(assetStorageKey);
+    if (!rawState) return;
+
+    const state = JSON.parse(rawState);
+    if (Number.isFinite(Number(state.cashBalance))) {
+      assetCashBalance = Math.max(0, Math.round(Number(state.cashBalance)));
+    }
+
+    if (Array.isArray(state.holdings) && state.holdings.length) {
+      replaceAssetHoldings(state.holdings);
+      assetSettingsError = "";
+      assetSettingsMessage = "";
+    }
+  } catch (error) {
+    console.warn("저장된 자산 데이터를 불러오지 못했습니다.", error);
+  }
+}
+
+function escapeAssetCsvCell(value) {
+  const text = value == null ? "" : String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function buildAssetCsv(rows) {
+  const lines = [
+    assetSpreadsheetHeaders,
+    ...rows.map((row) => assetSpreadsheetHeaders.map((header) => row[header] ?? ""))
+  ];
+  return `\uFEFF${lines.map((line) => line.map(escapeAssetCsvCell).join(",")).join("\r\n")}`;
+}
+
+function downloadAssetBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function getAssetSpreadsheetRows() {
+  const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
+  return holdingData.map((item) => ({
+    "종목명": item.name,
+    "종목코드": item.code,
+    "보유수량": item.quantity,
+    "매수평균가": item.averagePrice,
+    "현재가": item.currentPrice,
+    "입력방식": "수량+평단",
+    "평가금액": item.amount,
+    "매수금액": item.costBasis,
+    "평가손익": item.profit,
+    "수익률": Number(item.rate.toFixed(2))
+  }));
+}
+
+function getAssetSpreadsheetFileBaseName() {
+  const dateText = new Date().toISOString().slice(0, 10);
+  return `trading-note-assets-${dateText}`;
+}
+
+async function exportAssetSettingsFile() {
+  const rows = getAssetSpreadsheetRows();
+
+  try {
+    await loadAssetXlsxLibrary();
+  } catch (error) {
+    console.warn("엑셀 파일 내보내기를 CSV로 대체합니다.", error);
+  }
+
+  if (window.XLSX?.utils && window.XLSX?.writeFile) {
+    const worksheet = XLSX.utils.json_to_sheet(rows, { header: assetSpreadsheetHeaders });
+    worksheet["!cols"] = [
+      { wch: 18 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 10 }
+    ];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Assets");
+    XLSX.writeFile(workbook, `${getAssetSpreadsheetFileBaseName()}.xlsx`);
+    return "xlsx";
+  }
+
+  const csv = buildAssetCsv(rows);
+  downloadAssetBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), `${getAssetSpreadsheetFileBaseName()}.csv`);
+  return "csv";
+}
+
+function parseAssetCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+  const source = String(text || "").replace(/^\uFEFF/, "");
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    const nextChar = source[index + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        cell += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && nextChar === "\n") index += 1;
+      row.push(cell);
+      if (row.some((value) => String(value).trim())) rows.push(row);
+      row = [];
+      cell = "";
+      continue;
+    }
+
+    cell += char;
+  }
+
+  row.push(cell);
+  if (row.some((value) => String(value).trim())) rows.push(row);
+  return rows;
+}
+
+function convertAssetAoaToObjects(aoaRows) {
+  const rows = (aoaRows || []).filter((row) => Array.isArray(row) && row.some((cell) => String(cell ?? "").trim()));
+  if (!rows.length) return [];
+
+  const headerFields = rows[0].map(getCanonicalAssetSpreadsheetField);
+  const hasHeader = headerFields.some(Boolean);
+  const fields = hasHeader
+    ? headerFields
+    : ["name", "code", "quantity", "averagePrice", "currentPrice", "priceInputMode"];
+  const dataRows = hasHeader ? rows.slice(1) : rows;
+
+  return dataRows.map((row) => {
+    const item = {};
+    fields.forEach((field, index) => {
+      if (field) item[field] = row[index];
+    });
+    return item;
+  });
+}
+
+function normalizeImportedAssetRows(rawRows) {
+  const rows = rawRows
+    .map((row) => normalizeAssetRowInput(row))
+    .filter((row) => row.name || row.code || row.quantity || row.averagePrice || row.currentPrice);
+  const validationError = validateAssetRows(rows);
+
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  return rows;
+}
+
+async function readAssetSettingsFile(file) {
+  const extension = file.name.split(".").pop().toLowerCase();
+
+  if (extension === "csv" || extension === "txt") {
+    return convertAssetAoaToObjects(parseAssetCsv(await file.text()));
+  }
+
+  if (["xlsx", "xls"].includes(extension)) {
+    try {
+      await loadAssetXlsxLibrary();
+    } catch (error) {
+      throw new Error("엑셀 파일을 읽을 수 없습니다. 인터넷 연결 후 다시 시도하거나 CSV 파일로 저장해서 불러오세요.");
+    }
+
+    if (!window.XLSX?.read) {
+      throw new Error("엑셀 파일을 읽을 수 없습니다. 인터넷 연결 후 다시 시도하거나 CSV 파일로 저장해서 불러오세요.");
+    }
+
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) throw new Error("엑셀 파일에 시트가 없습니다.");
+
+    const aoaRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: "" });
+    return convertAssetAoaToObjects(aoaRows);
+  }
+
+  throw new Error("CSV, XLSX, XLS 파일만 불러올 수 있습니다.");
+}
+
+async function importAssetSettingsFile(file) {
+  if (!file) return;
+
+  try {
+    const rawRows = await readAssetSettingsFile(file);
+    const rows = normalizeImportedAssetRows(rawRows);
+    if (!replaceAssetHoldings(rows)) throw new Error(assetSettingsError || "자산 데이터를 적용하지 못했습니다.");
+    saveAssetStateToStorage();
+    assetSettingsDrafts = rows.map((row) => createAssetSettingsDraft(row));
+    assetSettingsError = "";
+    assetSettingsMessage = `${file.name}에서 ${rows.length}개 자산을 불러왔습니다.`;
+    assetSettingsOpenMenuId = null;
+    assetSettingsEditingId = null;
+    assetSettingsActiveIndex = 0;
+    assetSettingsMotion = null;
+    assetSettingsPendingRemoveId = null;
+  } catch (error) {
+    assetSettingsError = error?.message || "자산 파일을 불러오지 못했습니다.";
+    assetSettingsMessage = "";
+  }
+
+  render();
 }
 
 function fitValueText(root = document) {
@@ -330,6 +864,7 @@ function beginAssetSettingsEdit() {
   const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
   assetSettingsDrafts = holdingData.map((item) => createAssetSettingsDraft(item));
   assetSettingsError = "";
+  assetSettingsMessage = "";
   assetSettingsOpenMenuId = null;
   assetSettingsEditingId = null;
   assetSettingsActiveIndex = 0;
@@ -340,6 +875,7 @@ function beginAssetSettingsEdit() {
 function cancelAssetSettingsEdit() {
   assetSettingsDrafts = [];
   assetSettingsError = "";
+  assetSettingsMessage = "";
   assetSettingsOpenMenuId = null;
   assetSettingsEditingId = null;
   assetSettingsActiveIndex = 0;
@@ -354,6 +890,7 @@ function addAssetSettingsDraft() {
   const insertIndex = Math.min(Math.max(assetSettingsActiveIndex + 1, 0), assetSettingsDrafts.length);
   assetSettingsDrafts.splice(insertIndex, 0, draft);
   assetSettingsError = "";
+  assetSettingsMessage = "";
   assetSettingsOpenMenuId = null;
   assetSettingsEditingId = draft.id;
   assetSettingsActiveIndex = insertIndex;
@@ -369,6 +906,7 @@ function removeAssetSettingsDraft(rowId) {
   const wasEditing = assetSettingsEditingId === rowId;
   assetSettingsDrafts = assetSettingsDrafts.filter((item) => item.id !== rowId);
   assetSettingsError = "";
+  assetSettingsMessage = "";
   assetSettingsOpenMenuId = null;
   if (!assetSettingsDrafts.length) {
     const draft = createAssetSettingsDraft();
@@ -403,6 +941,7 @@ function updateAssetSettingsDraft(rowId, field, value) {
     return { ...item, [field]: parseKRWInput(value) };
   });
   assetSettingsError = "";
+  assetSettingsMessage = "";
 }
 
 function isEmptyAssetSettingsDraft(item) {
@@ -508,73 +1047,9 @@ function applyAssetSettingsEdit() {
     .filter((item) => !isEmptyAssetSettingsDraft(item))
     .map((item) => normalizeAssetSettingsRow(item));
 
-  if (!rows.length) {
-    assetSettingsError = "최소 1개 이상의 자산을 입력하세요.";
-    return false;
-  }
+  if (!replaceAssetHoldings(rows)) return false;
 
-  const duplicateKeys = new Set();
-  for (const row of rows) {
-    if (!row.name) {
-      assetSettingsError = "종목명을 입력하세요.";
-      return false;
-    }
-    if (!row.quantity) {
-      assetSettingsError = "보유 수량은 1 이상으로 입력하세요.";
-      return false;
-    }
-    if (row.priceInputMode === "quantity" && !row.currentPrice) {
-      assetSettingsError = "보유수량만 입력하려면 현재가를 찾을 수 있는 종목명 또는 종목코드가 필요합니다.";
-      return false;
-    }
-    if (row.priceInputMode === "full" && !row.averagePrice) {
-      assetSettingsError = "수량과 매수평균가는 1 이상으로 입력하세요.";
-      return false;
-    }
-
-    const key = normalizeStockKey(`${row.name}-${row.code || row.name}`);
-    if (duplicateKeys.has(key)) {
-      assetSettingsError = "같은 자산이 중복되어 있습니다.";
-      return false;
-    }
-    duplicateKeys.add(key);
-  }
-
-  holdings.splice(
-    0,
-    holdings.length,
-    ...rows.map((row) => {
-      const amount = Math.round(row.quantity * row.currentPrice);
-      const costBasis = Math.round(row.quantity * row.averagePrice);
-      const profit = amount - costBasis;
-      const rate = costBasis ? (profit / costBasis) * 100 : 0;
-      return [
-        row.name,
-        formatMarketNumber(row.quantity),
-        formatMarketNumber(amount),
-        formatSignedMarketNumber(profit),
-        formatSignedRate(rate),
-        "0%"
-      ];
-    })
-  );
-
-  rows.forEach((row) => {
-    const watchRow = typeof findWatchListRow === "function" ? findWatchListRow(row.name, row.code) : null;
-    if (watchRow) {
-      watchRow[0] = row.name;
-      watchRow[1] = row.code;
-      watchRow[2] = formatMarketNumber(row.currentPrice);
-      watchRow[3] = watchRow[3] || "+0.00%";
-      watchRow[4] = watchRow[4] || "0";
-      return;
-    }
-
-    if (typeof watchList !== "undefined") {
-      watchList.push([row.name, row.code, formatMarketNumber(row.currentPrice), "+0.00%", "0"]);
-    }
-  });
-
+  saveAssetStateToStorage();
   cancelAssetSettingsEdit();
   return true;
 }
@@ -887,9 +1362,17 @@ function renderAssetSettingsModalCardView() {
             <h2 class="modal-title" id="assetSettingsModalTitle">자산 설정</h2>
           </div>
           <div class="asset-settings-header-actions">
+            <input class="asset-settings-file-input" type="file" accept=".xlsx,.xls,.csv" data-asset-settings-file>
+            <button class="asset-settings-file-action" type="button" data-asset-settings-import aria-label="엑셀 파일 불러오기" title="엑셀 파일 불러오기">${icon("upload")}<span>불러오기</span></button>
+            <button class="asset-settings-file-action" type="button" data-asset-settings-export aria-label="엑셀 파일 내보내기" title="엑셀 파일 내보내기">${icon("download")}<span>내보내기</span></button>
             <button class="btn ghost asset-settings-header-add" type="button" data-asset-settings-add ${canAdd ? "" : "disabled"}>${icon("plus")}자산 추가</button>
             <button class="asset-settings-nav-button" type="button" data-modal-close aria-label="닫기">X</button>
           </div>
+          ${
+            assetSettingsError || assetSettingsMessage
+              ? `<p class="asset-settings-sync-status ${assetSettingsError ? "error" : ""}">${escapeChartText(assetSettingsError || assetSettingsMessage)}</p>`
+              : ""
+          }
         </div>
 
         <div class="modal-body asset-settings-body">
@@ -1304,7 +1787,7 @@ function renderMobileSheetLegacy() {
             </button>
           `).join("")}
         </div>
-        <button class="mobile-logout" type="button" data-route="landing">${icon("logout")}로그아웃</button>
+        <button class="mobile-logout" type="button" data-auth-logout>${icon("logout")}로그아웃</button>
       </section>
     </div>
   `;
@@ -1360,7 +1843,7 @@ function renderMobileSheet() {
             </button>
           `).join("")}
         </div>
-        <button class="mobile-logout" type="button" data-route="landing">
+        <button class="mobile-logout" type="button" data-auth-logout>
           ${mobileMoreIcon("logout")}
           <strong>로그아웃</strong>
         </button>
@@ -1373,6 +1856,34 @@ function renderMobileSheet() {
 function render() {
   const route = getRoute();
   const meta = pageMeta[route] || { title: "Trading Note", description: "" };
+
+  if (isAuthRequiredRoute(route) && !authState.checked) {
+    document.body.dataset.route = route;
+    document.querySelector("#pageTitle").textContent = meta.title;
+    document.querySelector("#pageDescription").textContent = meta.description;
+    document.querySelector("#pageEyebrow").textContent = "Trading Journal";
+    renderNav(route);
+    renderPageActions(route);
+    document.querySelector("#app").innerHTML = renderAuthGate();
+    renderModal();
+    renderMobileSheet();
+    hydrateIcons(document);
+    checkAuthSession().then(() => {
+      if (isAuthRequiredRoute(getRoute())) render();
+    });
+    return;
+  }
+
+  if (isAuthRequiredRoute(route) && !authState.authenticated) {
+    window.location.hash = "login";
+    return;
+  }
+
+  if (route === "login" && authState.authenticated) {
+    window.location.hash = "dashboard";
+    return;
+  }
+
   document.body.dataset.route = route;
   document.querySelector("#pageTitle").textContent = meta.title;
   document.querySelector("#pageDescription").textContent = meta.description;
@@ -1385,6 +1896,14 @@ function render() {
   hydrateIcons(document);
   if (route === "landing" && typeof setupLandingReveal === "function") {
     setupLandingReveal();
+  }
+  if (route === "login" && typeof hydrateLoginPage === "function") {
+    hydrateLoginPage();
+    if (!authState.checked) {
+      checkAuthSession().then(() => {
+        if (authState.authenticated && getRoute() === "login") render();
+      });
+    }
   }
   animateNumericValues(document.querySelector("#app"));
   scheduleFitValueText();
@@ -1426,6 +1945,12 @@ function handleJournalWriteExtraClick(event) {
 }
 
 document.addEventListener("click", (event) => {
+  const logoutButton = event.target.closest("[data-auth-logout]");
+  if (logoutButton) {
+    logoutUser();
+    return;
+  }
+
   const modalButton = event.target.closest("[data-modal]");
   if (modalButton) {
     activeModal = modalButton.dataset.modal;
@@ -1592,6 +2117,7 @@ document.addEventListener("click", (event) => {
       }
 
       assetCashBalance = assetCashPendingMode === "withdraw" ? assetCashBalance - assetCashPendingAmount : assetCashBalance + assetCashPendingAmount;
+      saveAssetStateToStorage();
       assetCashError = "";
       assetCashMessage = "";
       assetCashDraftAmount = "";
@@ -1623,6 +2149,32 @@ document.addEventListener("click", (event) => {
       applyAssetTrendTargetEdit();
       activeModal = null;
       render();
+      return;
+    }
+
+    const assetSettingsImport = event.target.closest("[data-asset-settings-import]");
+    if (assetSettingsImport && activeModal === "assetSettings") {
+      document.querySelector("[data-asset-settings-file]")?.click();
+      return;
+    }
+
+    const assetSettingsExport = event.target.closest("[data-asset-settings-export]");
+    if (assetSettingsExport && activeModal === "assetSettings") {
+      exportAssetSettingsFile()
+        .then((exportedType) => {
+          assetSettingsError = "";
+          assetSettingsMessage = exportedType === "xlsx"
+            ? "현재 자산 데이터를 엑셀 파일로 내보냈습니다."
+            : "현재 자산 데이터를 엑셀에서 열 수 있는 CSV 파일로 내보냈습니다.";
+          renderModal();
+          hydrateIcons(document);
+        })
+        .catch((error) => {
+          assetSettingsError = error?.message || "자산 데이터를 내보내지 못했습니다.";
+          assetSettingsMessage = "";
+          renderModal();
+          hydrateIcons(document);
+        });
       return;
     }
 
@@ -1870,6 +2422,14 @@ document.addEventListener("change", (event) => {
     return;
   }
 
+  const assetSettingsFileInput = event.target.closest("[data-asset-settings-file]");
+  if (assetSettingsFileInput && activeModal === "assetSettings") {
+    const [file] = assetSettingsFileInput.files || [];
+    assetSettingsFileInput.value = "";
+    importAssetSettingsFile(file);
+    return;
+  }
+
   if (activeModal && event.target.closest(".modal-panel")) return;
 
   const journalCheckbox = event.target.closest("[data-journal-select]");
@@ -2038,5 +2598,6 @@ window.addEventListener("resize", () => {
 });
 window.visualViewport?.addEventListener("resize", scheduleMobileViewportInset, { passive: true });
 window.visualViewport?.addEventListener("scroll", scheduleMobileViewportInset, { passive: true });
+loadAssetStateFromStorage();
 updateMobileViewportInset();
 render();
