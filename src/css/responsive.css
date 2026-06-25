@@ -713,6 +713,22 @@
     line-height: 1.1;
   }
 
+  .asset-settings-title-wrap.is-readonly {
+    gap: 6px;
+    margin-top: 24px;
+    padding-right: 48px;
+  }
+
+  .asset-settings-title-wrap.is-readonly .asset-settings-title-input {
+    min-height: 32px;
+    font-size: 26px;
+    line-height: 1.12;
+  }
+
+  .asset-settings-read-meta {
+    font-size: 13px;
+  }
+
   .asset-settings-title-wrap p {
     font-size: 12px;
   }
@@ -990,6 +1006,23 @@
       height: 36px;
       font-size: 19px;
       line-height: 1.1;
+    }
+
+    .asset-settings-title-wrap.is-readonly {
+      gap: 5px;
+      margin-top: 18px;
+      padding-right: 46px;
+    }
+
+    .asset-settings-title-wrap.is-readonly .asset-settings-title-input {
+      height: auto;
+      min-height: 30px;
+      font-size: 24px;
+      line-height: 1.12;
+    }
+
+    .asset-settings-read-meta {
+      font-size: 12px;
     }
 
     .asset-market-search-box {
@@ -3723,6 +3756,23 @@
   .asset-settings-title-wrap {
     gap: 8px;
     margin-top: 18px;
+  }
+
+  .asset-settings-title-wrap.is-readonly {
+    gap: 5px;
+    margin-top: 18px;
+    padding-right: 44px;
+  }
+
+  .asset-settings-modal .asset-settings-display-card .asset-settings-title-wrap.is-readonly input.asset-settings-title-input {
+    height: auto;
+    min-height: 30px;
+    font-size: 24px;
+    line-height: 1.12;
+  }
+
+  .asset-settings-read-meta {
+    font-size: 12px;
   }
 
   .asset-market-search-box {

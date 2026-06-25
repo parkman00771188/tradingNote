@@ -4408,6 +4408,34 @@ body.modal-open {
   font-weight: 850;
 }
 
+.asset-settings-title-wrap.is-readonly {
+  gap: 7px;
+  margin-top: 28px;
+  padding-right: 48px;
+}
+
+.asset-settings-title-wrap.is-readonly .asset-settings-title-input {
+  height: auto;
+  min-height: 34px;
+  color: #111827;
+  font-size: 28px;
+  line-height: 1.12;
+  font-weight: 950;
+  pointer-events: none;
+}
+
+.asset-settings-read-meta {
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  color: #8b95a3;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .asset-market-search {
   display: grid;
   gap: 10px;

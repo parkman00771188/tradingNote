@@ -2198,6 +2198,9 @@ function renderAssetSettingsCardView(item, index) {
   const categoryTone = getAssetMarketChipTone(categoryLabel);
   const isEditing = assetSettingsEditingId === item.id;
   const readOnlyAttr = isEditing ? "" : `readonly aria-readonly="true" tabindex="-1"`;
+  const displayName = String(item.name || "").trim() || "새 자산";
+  const displayCode = String(item.code || item.symbol || "").trim();
+  const readOnlyMeta = [displayCode, categoryLabel].filter(Boolean).join(" · ");
   const motionClass = getAssetSettingsCardMotionClass(item, index);
   const searchPanel = renderAssetMarketSearchPanel(item.id);
   const currentDisplayCurrency = getAssetDisplayCurrency(item);
@@ -2229,7 +2232,7 @@ function renderAssetSettingsCardView(item, index) {
         <span class="asset-settings-chip">ASSET ${String(index + 1).padStart(2, "0")}</span>
         ${categoryLabel ? `<span class="asset-settings-sector-chip ${categoryTone}">${escapeChartText(categoryLabel)}</span>` : ""}
       </div>
-      <div class="asset-settings-title-wrap">
+      <div class="asset-settings-title-wrap ${isEditing ? "is-editing" : "is-readonly"}">
         ${
           isEditing
             ? `<div class="asset-market-search">
@@ -2245,6 +2248,7 @@ function renderAssetSettingsCardView(item, index) {
               </label>`
             : `<input class="asset-settings-title-input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="새 자산" data-asset-setting-field="name" data-asset-setting-id="${item.id}" ${readOnlyAttr}>`
         }
+        ${!isEditing && readOnlyMeta ? `<span class="asset-settings-read-meta">${escapeChartText(readOnlyMeta)}</span>` : ""}
       </div>
 
       <div class="asset-settings-tile-grid">
