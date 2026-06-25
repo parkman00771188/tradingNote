@@ -144,7 +144,8 @@
     height: 22px;
   }
 
-  .logout {
+  .logout,
+  .sidebar-user-root {
     display: none;
   }
 
@@ -2696,7 +2697,12 @@
     place-items: center;
     width: 74px;
     height: 74px;
+    color: white;
+    background: linear-gradient(135deg, #2474f2, #22c55e);
     border-radius: 50%;
+    overflow: hidden;
+    font-size: 24px;
+    font-weight: 950;
   }
 
   .mobile-profile-avatar img {

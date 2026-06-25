@@ -21,6 +21,7 @@ var chartTooltipPositionFrame = 0;
 var fitMetricValueFrame = 0;
 var mobileViewportInsetFrame = 0;
 var authCheckPromise = null;
+var sidebarUserMenuOpen = false;
 var authState = {
   checked: false,
   checking: false,
@@ -107,6 +108,89 @@ function getStoredAuthUser() {
   } catch (error) {
     return null;
   }
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function getCurrentUser() {
+  return authState.user || getStoredAuthUser() || null;
+}
+
+function getUserDisplayName(user = getCurrentUser()) {
+  return user?.name || user?.email?.split("@")[0] || "투자자";
+}
+
+function getUserEmail(user = getCurrentUser()) {
+  return user?.email || "Google 계정";
+}
+
+function getUserInitial(user = getCurrentUser()) {
+  return (getUserDisplayName(user).trim()[0] || "T").toUpperCase();
+}
+
+function getSafeUserPicture(user = getCurrentUser()) {
+  const value = user?.picture || "";
+  if (!value) return "";
+
+  try {
+    const url = new URL(value, window.location.origin);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function renderUserAvatar(user = getCurrentUser(), className = "user-avatar") {
+  const picture = getSafeUserPicture(user);
+  const name = getUserDisplayName(user);
+
+  if (picture) {
+    return `<span class="${className} has-image"><img src="${escapeHtml(picture)}" alt="${escapeHtml(name)} 프로필 이미지" referrerpolicy="no-referrer"></span>`;
+  }
+
+  return `<span class="${className}" aria-hidden="true">${escapeHtml(getUserInitial(user))}</span>`;
+}
+
+function renderSidebarUser() {
+  const root = document.querySelector("#sidebarUserRoot");
+  if (!root) return;
+
+  const user = getCurrentUser();
+  const isAuthenticated = Boolean(authState.authenticated || user?.email);
+  if (!isAuthenticated) {
+    sidebarUserMenuOpen = false;
+    root.innerHTML = "";
+    return;
+  }
+
+  const name = getUserDisplayName(user);
+  const email = getUserEmail(user);
+
+  root.innerHTML = `
+    <div class="sidebar-user ${sidebarUserMenuOpen ? "open" : ""}" data-sidebar-user-panel>
+      <button class="sidebar-user-card" type="button" data-sidebar-user-toggle aria-expanded="${sidebarUserMenuOpen ? "true" : "false"}">
+        ${renderUserAvatar(user, "sidebar-user-avatar")}
+        <span class="sidebar-user-meta">
+          <strong>${escapeHtml(name)}</strong>
+          <span>${escapeHtml(email)}</span>
+        </span>
+        <span class="sidebar-user-caret" aria-hidden="true">${icon("chevronRight")}</span>
+      </button>
+      <div class="sidebar-user-menu" role="menu" aria-label="사용자 메뉴">
+        <button class="sidebar-user-menu-button" type="button" data-auth-logout role="menuitem">
+          ${icon("logout")}
+          <span>로그아웃</span>
+        </button>
+      </div>
+    </div>
+  `;
 }
 
 function setAuthenticatedUser(user) {
@@ -202,6 +286,7 @@ function logoutUser() {
   clearAuthenticatedUser();
   activeModal = null;
   mobileSheetOpen = false;
+  sidebarUserMenuOpen = false;
   window.location.hash = "landing";
   render();
 }
@@ -1772,10 +1857,10 @@ function renderMobileSheetLegacy() {
       <section class="mobile-more-sheet" role="dialog" aria-modal="true" aria-label="더보기 메뉴">
         <button class="mobile-sheet-close" type="button" data-mobile-sheet-close aria-label="닫기">X</button>
         <div class="mobile-profile-row">
-          <span class="mobile-profile-avatar">${icon("user")}</span>
+          ${renderUserAvatar(getCurrentUser(), "mobile-profile-avatar")}
           <div>
-            <strong>투자자</strong>
-            <p>investor@example.com</p>
+            <strong>${escapeHtml(getUserDisplayName())}</strong>
+            <p>${escapeHtml(getUserEmail())}</p>
           </div>
           <button class="btn ghost" type="button">내 정보</button>
         </div>
@@ -1828,10 +1913,10 @@ function renderMobileSheet() {
         <span class="mobile-sheet-handle" aria-hidden="true">${mobileMoreIcon("drag_handle")}</span>
         <button class="mobile-sheet-close" type="button" data-mobile-sheet-close aria-label="닫기">${mobileMoreIcon("close")}</button>
         <div class="mobile-profile-row">
-          <span class="mobile-profile-avatar">${mobileMoreIcon("profile_avatar")}</span>
+          ${renderUserAvatar(getCurrentUser(), "mobile-profile-avatar")}
           <div>
-            <strong>투자자</strong>
-            <p>investor@example.com</p>
+            <strong>${escapeHtml(getUserDisplayName())}</strong>
+            <p>${escapeHtml(getUserEmail())}</p>
           </div>
           <button class="mobile-my-info" type="button">내 정보</button>
         </div>
@@ -1863,6 +1948,7 @@ function render() {
     document.querySelector("#pageDescription").textContent = meta.description;
     document.querySelector("#pageEyebrow").textContent = "Trading Journal";
     renderNav(route);
+    renderSidebarUser();
     renderPageActions(route);
     document.querySelector("#app").innerHTML = renderAuthGate();
     renderModal();
@@ -1889,6 +1975,7 @@ function render() {
   document.querySelector("#pageDescription").textContent = meta.description;
   document.querySelector("#pageEyebrow").textContent = route === "journalWrite" ? "New Record" : "Trading Journal";
   renderNav(route);
+  renderSidebarUser();
   renderPageActions(route);
   document.querySelector("#app").innerHTML = renderers[route]();
   renderModal();
@@ -1949,6 +2036,18 @@ document.addEventListener("click", (event) => {
   if (logoutButton) {
     logoutUser();
     return;
+  }
+
+  const sidebarUserToggle = event.target.closest("[data-sidebar-user-toggle]");
+  if (sidebarUserToggle) {
+    sidebarUserMenuOpen = !sidebarUserMenuOpen;
+    renderSidebarUser();
+    return;
+  }
+
+  if (sidebarUserMenuOpen && !event.target.closest("[data-sidebar-user-panel]")) {
+    sidebarUserMenuOpen = false;
+    renderSidebarUser();
   }
 
   const modalButton = event.target.closest("[data-modal]");
@@ -2575,6 +2674,10 @@ document.addEventListener("keydown", (event) => {
     mobileSheetOpen = false;
     renderMobileSheet();
   }
+  if (event.key === "Escape" && sidebarUserMenuOpen) {
+    sidebarUserMenuOpen = false;
+    renderSidebarUser();
+  }
 });
 
 window.addEventListener("hashchange", () => {
@@ -2586,6 +2689,7 @@ window.addEventListener("hashchange", () => {
   assetCashPendingAmount = 0;
   assetCashPendingMode = "deposit";
   mobileSheetOpen = false;
+  sidebarUserMenuOpen = false;
   hideChartTooltip();
   render();
   scrollPageToTop();
