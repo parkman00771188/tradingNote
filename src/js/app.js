@@ -1593,7 +1593,8 @@ function updateAssetPriceDisplayCurrency(rowId, currency) {
   assetSettingsMessage = "";
 }
 
-function beginAssetSettingsEdit() {
+function beginAssetSettingsEdit(options = {}) {
+  const shouldCreateEmptyDraft = Boolean(options.createEmptyDraft);
   const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
   assetSettingsDrafts = holdingData.map((item) => createAssetSettingsDraft(item));
   assetSettingsError = "";
@@ -1604,6 +1605,11 @@ function beginAssetSettingsEdit() {
   assetSettingsMotion = null;
   assetSettingsPendingRemoveId = null;
   assetSettingsDeleteTargetId = "";
+  if (!assetSettingsDrafts.length && shouldCreateEmptyDraft) {
+    const draft = createAssetSettingsDraft();
+    assetSettingsDrafts.push(draft);
+    assetSettingsEditingId = draft.id;
+  }
   resetAssetMarketSearch();
 }
 
@@ -2387,11 +2393,23 @@ function renderAssetSettingsSlideDots(total, activeIndex) {
   `;
 }
 
+function renderAssetSettingsEmptyState() {
+  return `
+    <div class="asset-settings-empty-state">
+      <span>${icon("plus")}</span>
+      <strong>자산을 추가하세요</strong>
+      <p>상단의 자산 추가 버튼을 누르면 종목 검색과 보유 수량을 입력할 수 있습니다.</p>
+      <button class="btn primary" type="button" data-asset-settings-add>${icon("plus")}자산 추가</button>
+    </div>
+  `;
+}
+
 function renderAssetSettingsModalCardView() {
   const drafts = assetSettingsDrafts;
   const canAdd = true;
   const activeDotIndex = Math.min(Math.max(assetSettingsActiveIndex, 0), Math.max(drafts.length - 1, 0));
   const hasMultipleCards = drafts.length > 1;
+  const cardsClass = `asset-settings-cards${drafts.length ? "" : " is-empty"}`;
   const motionAttr = assetSettingsMotion ? ` data-motion="${assetSettingsMotion.type}"` : "";
   const tabs = [
     ["모든 자산", drafts.length, true, ""],
@@ -2438,8 +2456,8 @@ function renderAssetSettingsModalCardView() {
             </div>
           </div>
 
-          <div class="asset-settings-cards" aria-label="자산 설정 카드 목록"${motionAttr}>
-            ${drafts.map((item, index) => renderAssetSettingsCardView(item, index)).join("")}
+          <div class="${cardsClass}" aria-label="자산 설정 카드 목록"${motionAttr}>
+            ${drafts.length ? drafts.map((item, index) => renderAssetSettingsCardView(item, index)).join("") : renderAssetSettingsEmptyState()}
           </div>
           ${
             hasMultipleCards
@@ -3057,7 +3075,7 @@ document.addEventListener("click", (event) => {
       beginAssetTrendTargetEdit();
     }
     if (activeModal === "assetSettings") {
-      beginAssetSettingsEdit();
+      beginAssetSettingsEdit({ createEmptyDraft: true });
     }
     renderModal();
     hydrateIcons(document);
@@ -3369,7 +3387,7 @@ document.addEventListener("click", (event) => {
 
     const assetSettingsCancel = event.target.closest("[data-asset-settings-cancel]");
     if (assetSettingsCancel && activeModal === "assetSettings") {
-      beginAssetSettingsEdit();
+      beginAssetSettingsEdit({ createEmptyDraft: true });
       renderModal();
       hydrateIcons(document);
       return;

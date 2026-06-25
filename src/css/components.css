@@ -4059,6 +4059,75 @@ body.modal-open {
   scroll-snap-type: none;
 }
 
+.asset-settings-cards.is-empty {
+  justify-content: center;
+  overflow: hidden;
+}
+
+.asset-settings-empty-state {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  flex: 0 1 min(560px, calc(100% - 48px));
+  min-height: 360px;
+  padding: 42px 28px;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(36, 116, 242, 0.08), transparent 38%),
+    #f8fbff;
+  border: 1px dashed #b8d2ff;
+  border-radius: 24px;
+  scroll-snap-align: center;
+}
+
+.asset-settings-empty-state > span {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  color: #ffffff;
+  background: var(--blue);
+  border-radius: 50%;
+  box-shadow: 0 16px 34px rgba(36, 116, 242, 0.24);
+}
+
+.asset-settings-empty-state svg {
+  width: 28px;
+  height: 28px;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.asset-settings-empty-state strong {
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.asset-settings-empty-state p {
+  max-width: 320px;
+  margin: -4px 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 750;
+}
+
+.asset-settings-empty-state .btn {
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 14px;
+}
+
+.asset-settings-empty-state .btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 .asset-settings-display-card {
   position: relative;
   display: flex;
