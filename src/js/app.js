@@ -1925,7 +1925,7 @@ function updateAssetSettingsCardPreview(rowId) {
 }
 
 function normalizeAssetSettingsRow(item) {
-  const mode = item.priceInputMode === "quantity" ? "quantity" : "full";
+  const mode = "quantity";
   const quantity = Math.max(0, Number(item.quantity) || 0);
   const valuationPrice = getAssetSettingsValuationPrice(item, mode);
   const amount = Math.round(quantity * valuationPrice);
@@ -2192,8 +2192,7 @@ function renderAssetSettingsModal() {
 }
 
 function renderAssetSettingsCardView(item, index) {
-  const inputMode = item.priceInputMode === "quantity" ? "quantity" : "full";
-  const isQuantityOnly = inputMode === "quantity";
+  const inputMode = "quantity";
   const amount = getAssetSettingsPreviewAmount(item, inputMode);
   const categoryLabel = getAssetMarketLabel(item);
   const categoryTone = getAssetMarketChipTone(categoryLabel);
@@ -2248,15 +2247,6 @@ function renderAssetSettingsCardView(item, index) {
         }
       </div>
 
-      ${
-        isEditing
-          ? `<div class="asset-settings-input-mode" role="tablist" aria-label="자산 입력 방식">
-              <button class="${isQuantityOnly ? "active" : ""}" type="button" data-asset-settings-input-mode="quantity" data-asset-setting-id="${item.id}" aria-pressed="${isQuantityOnly}">보유수량만 입력</button>
-              <button class="${isQuantityOnly ? "" : "active"}" type="button" data-asset-settings-input-mode="full" data-asset-setting-id="${item.id}" aria-pressed="${isQuantityOnly ? "false" : "true"}">보유수량+매수평균가 입력</button>
-            </div>`
-          : ""
-      }
-
       <div class="asset-settings-tile-grid">
         <label class="asset-settings-tile">
           <span class="asset-settings-tile-icon" aria-hidden="true">${icon("wallet")}</span>
@@ -2266,28 +2256,17 @@ function renderAssetSettingsCardView(item, index) {
             <em>주</em>
           </div>
         </label>
-        ${
-          isQuantityOnly
-            ? `<label class="asset-settings-tile">
-                <span class="asset-settings-tile-icon" aria-hidden="true">${icon("chart")}</span>
-                ${currencyToggle}
-                <span class="asset-settings-tile-label">
-                  <b>현재가</b>
-                </span>
-                <div class="asset-settings-tile-input">
-                  <input type="text" value="${escapeChartText(currentInputValue)}" ${currentNumberAttrs} autocomplete="off" placeholder="0" data-asset-setting-field="currentPrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
-                  <em>${escapeChartText(currentUnit)}</em>
-                </div>
-              </label>`
-            : `<label class="asset-settings-tile">
-                <span class="asset-settings-tile-icon" aria-hidden="true">${icon("performance")}</span>
-                <span>매수평균가</span>
-                <div class="asset-settings-tile-input">
-                  <input type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
-                  <em>원</em>
-                </div>
-              </label>`
-        }
+        <label class="asset-settings-tile">
+          <span class="asset-settings-tile-icon" aria-hidden="true">${icon("chart")}</span>
+          ${currencyToggle}
+          <span class="asset-settings-tile-label">
+            <b>현재가</b>
+          </span>
+          <div class="asset-settings-tile-input">
+            <input type="text" value="${escapeChartText(currentInputValue)}" ${currentNumberAttrs} autocomplete="off" placeholder="0" data-asset-setting-field="currentPrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
+            <em>${escapeChartText(currentUnit)}</em>
+          </div>
+        </label>
       </div>
 
       <div class="asset-settings-value-panel">
@@ -2461,14 +2440,6 @@ function renderAssetSettingsModalCardView() {
 
           <div class="asset-settings-cards" aria-label="자산 설정 카드 목록"${motionAttr}>
             ${drafts.map((item, index) => renderAssetSettingsCardView(item, index)).join("")}
-            ${
-              canAdd
-                ? `<button class="asset-settings-add-card ${drafts.length ? "" : "is-empty"}" type="button" data-asset-settings-add aria-label="자산 추가">
-                    <span>${icon("plus")}</span>
-                    ${drafts.length ? "<strong>자산 추가</strong><em>새 보유 자산을 카드로 추가합니다.</em>" : ""}
-                  </button>`
-                : ""
-            }
           </div>
           ${
             hasMultipleCards
