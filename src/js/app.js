@@ -3493,12 +3493,6 @@ document.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("hashchange", () => {
-  if (typeof processGoogleRedirectLoginResponse === "function" && processGoogleRedirectLoginResponse()) {
-    render();
-    scrollPageToTop();
-    return;
-  }
-
   cancelActiveModalDraft();
   activeModal = null;
   assetCashError = "";
@@ -3522,7 +3516,4 @@ window.visualViewport?.addEventListener("resize", scheduleMobileViewportInset, {
 window.visualViewport?.addEventListener("scroll", scheduleMobileViewportInset, { passive: true });
 initializeUserDataState();
 updateMobileViewportInset();
-if (typeof processGoogleRedirectLoginResponse === "function") {
-  processGoogleRedirectLoginResponse();
-}
 render();
