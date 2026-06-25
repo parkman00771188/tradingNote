@@ -1,8 +1,32 @@
+function renderSettingsProfilePanel() {
+  const user = typeof getCurrentUser === "function" ? getCurrentUser() : null;
+  const name = typeof getUserDisplayName === "function" ? getUserDisplayName(user) : user?.name || "사용자";
+  const email = typeof getUserEmail === "function" ? getUserEmail(user) : user?.email || "Google 계정";
+  const avatar = typeof renderUserAvatar === "function"
+    ? renderUserAvatar(user, "avatar settings-profile-avatar")
+    : `<div class="avatar">${String(name || "T").slice(0, 1).toUpperCase()}</div>`;
+
+  return `
+    <article class="panel">
+      <div class="panel-header tight"><h2 class="panel-title">프로필 정보</h2></div>
+      <div class="profile">
+        <div>${avatar}</div>
+        <div class="list">
+          <div><p class="tiny">이름</p><strong>${escapeHtml(name)}</strong></div>
+          <div><p class="tiny">이메일</p><strong>${escapeHtml(email)}</strong></div>
+          <div><p class="tiny">데이터 저장</p><strong>이 계정 전용</strong></div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
 function renderSettings() {
   return `
     <div class="stack">
       <section class="settings-grid">
-        <article class="panel">
+        ${renderSettingsProfilePanel()}
+        <article class="panel" hidden>
           <div class="panel-header tight"><h2 class="panel-title">프로필 정보</h2></div>
           <div class="profile">
             <div><div class="avatar">투자<br>일지</div><button class="btn primary" type="button" style="margin-top:22px">프로필 수정</button></div>

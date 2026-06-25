@@ -227,6 +227,26 @@ function renderDashboardHoldingRows() {
     );
 }
 
+function renderDashboardMemoSummary() {
+  const [memo] = typeof getUserMemos === "function" ? getUserMemos() : [];
+  const title = memo?.title || "저장된 메모가 없습니다.";
+  const body = memo?.body || memo?.content || "메모를 작성하면 이 계정의 대시보드에 표시됩니다.";
+  const actionLabel = memo ? "메모 수정" : "메모 작성";
+
+  return `
+    <article class="panel">
+      <div class="list-row">
+        <span class="list-icon">${icon("memo")}</span>
+        <div>
+          <p class="list-title">${escapeHtml(title)}</p>
+          <p class="list-sub">${escapeHtml(body)}</p>
+        </div>
+        <button class="mini-action" type="button" data-route="memo" aria-label="${actionLabel}">${memo ? icon("edit") : icon("plus")}</button>
+      </div>
+    </article>
+  `;
+}
+
 function renderDashboard() {
   const cashBalance = getAssetCashBalance();
   const totalAssets = getAssetTotalValue();
@@ -318,7 +338,8 @@ function renderDashboard() {
       </section>
 
       <section class="bottom-grid">
-        <article class="panel">
+        ${renderDashboardMemoSummary()}
+        <article class="panel" hidden>
           <div class="list-row">
             <span class="list-icon">${icon("memo")}</span>
             <div>

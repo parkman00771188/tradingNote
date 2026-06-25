@@ -1,15 +1,21 @@
 function renderTable(headers, rows) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+
   return `
     <div class="table-wrap">
       <table>
         <thead><tr>${headers.map((head) => `<th>${head}</th>`).join("")}</tr></thead>
-        <tbody>${rows
-          .map(
-            (row) => `
+        <tbody>${
+          safeRows.length
+            ? safeRows
+              .map(
+                (row) => `
               <tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>
             `
-          )
-          .join("")}</tbody>
+              )
+              .join("")
+            : `<tr><td class="table-empty-cell" colspan="${headers.length}">저장된 데이터가 없습니다.</td></tr>`
+        }</tbody>
       </table>
     </div>
   `;

@@ -1199,6 +1199,11 @@
     display: none;
   }
 
+  .empty-state {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
   .metric-grid,
   .metric-grid.three,
   .metric-grid.five {

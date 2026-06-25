@@ -1,4 +1,19 @@
 function renderCalendar() {
+  if (typeof trades !== "undefined" && !trades.length) {
+    return `
+      <div class="stack">
+        <article class="panel empty-state">
+          <span class="status-icon">${icon("calendar")}</span>
+          <div>
+            <strong>캘린더 데이터가 없습니다.</strong>
+            <p>매매 기록을 저장하면 일자별 손익과 일정이 이 계정에 맞게 표시됩니다.</p>
+          </div>
+          <button class="btn primary" type="button" data-route="journalWrite">${icon("plus")}매매 기록 작성</button>
+        </article>
+      </div>
+    `;
+  }
+
   const mobileCalendarDays = [
     ["26", "+50K", "red", true], ["27", "-26K", "blue", true], ["28", "+15K", "red", true], ["29", "-30K", "blue", true], ["30", "+65K", "red", true], ["31", "-8K", "blue", true], ["1", "0", "", false],
     ["2", "-110K", "blue", false], ["3", "+120K", "red", false], ["4", "+320K", "red", false], ["5", "+85K", "", false], ["6", "-210K", "blue", false], ["7", "+60K", "red", false], ["8", "0", "", false],

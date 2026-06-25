@@ -34,13 +34,16 @@ var driveState = {
 };
 var driveAccessToken = "";
 var driveAssetSaveTimer = 0;
+var userDataServerLoadedFor = "";
+var userDataServerLoadingFor = "";
+var userDataServerSaveTimer = 0;
 var authState = {
   checked: false,
   checking: false,
   authenticated: false,
   user: null
 };
-var assetCashBalance = 8480000;
+var assetCashBalance = 0;
 var assetCashMode = "deposit";
 var assetCashError = "";
 var assetCashMessage = "";
@@ -64,6 +67,9 @@ const assetSettingsDotGap = 14;
 const assetSettingsDotActiveWidth = 34;
 const authRequiredRoutes = new Set(["dashboard", "journal", "journalWrite", "stock", "performance", "assets", "memo", "calendar", "settings"]);
 const assetStorageKey = "trading-note-assets-v1";
+const memoStorageKey = "trading-note-memos-v1";
+var userDataInitializedFor = "";
+var userMemos = [];
 const assetXlsxLibraryUrl = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
 var assetXlsxLibraryPromise = null;
 const googleDriveFileScope = "https://www.googleapis.com/auth/drive.file";
@@ -172,6 +178,156 @@ function renderUserAvatar(user = getCurrentUser(), className = "user-avatar") {
   return `<span class="${className}" aria-hidden="true">${escapeHtml(getUserInitial(user))}</span>`;
 }
 
+function normalizeUserStorageId(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9@._-]/g, "_");
+}
+
+function getCurrentUserStorageId() {
+  const user = getCurrentUser();
+  return normalizeUserStorageId(user?.email || user?.name || "");
+}
+
+function getUserScopedStorageKey(baseKey) {
+  const userId = getCurrentUserStorageId();
+  return userId ? `${baseKey}:${userId}` : "";
+}
+
+function clearRuntimeUserData() {
+  assetCashBalance = 0;
+  userMemos = [];
+
+  if (typeof holdings !== "undefined") holdings.splice(0, holdings.length);
+  if (typeof watchList !== "undefined") watchList.splice(0, watchList.length);
+  if (typeof trades !== "undefined") trades.splice(0, trades.length);
+  if (typeof journalSelectedTradeIds !== "undefined") journalSelectedTradeIds.clear();
+  if (typeof journalDeletedTradeIds !== "undefined") journalDeletedTradeIds.clear();
+  if (typeof assetTrendTargets !== "undefined") assetTrendTargets = [];
+}
+
+function clearAssetHoldingsRuntime() {
+  if (typeof holdings !== "undefined") holdings.splice(0, holdings.length);
+  if (typeof watchList !== "undefined") watchList.splice(0, watchList.length);
+  assetSettingsError = "";
+  assetSettingsMessage = "";
+}
+
+function getUserMemos() {
+  return userMemos.slice();
+}
+
+function hasAssetSnapshotData(snapshot = {}) {
+  return Number(snapshot.cashBalance || 0) > 0 || (Array.isArray(snapshot.holdings) && snapshot.holdings.length > 0);
+}
+
+function applyUserAssetSnapshot(snapshot = {}) {
+  assetCashBalance = Math.max(0, Math.round(Number(snapshot.cashBalance) || 0));
+
+  if (Array.isArray(snapshot.holdings) && snapshot.holdings.length) {
+    replaceAssetHoldings(snapshot.holdings);
+  } else {
+    clearAssetHoldingsRuntime();
+  }
+}
+
+function scheduleUserDataSave() {
+  if (!authState.authenticated) return;
+  if (userDataServerSaveTimer) window.clearTimeout(userDataServerSaveTimer);
+  userDataServerSaveTimer = window.setTimeout(() => {
+    userDataServerSaveTimer = 0;
+    saveUserAssetStateToServer();
+  }, 700);
+}
+
+async function saveUserAssetStateToServer() {
+  if (!authState.authenticated) return;
+
+  try {
+    await fetch("/api/data", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        action: "save_assets",
+        assets: getAssetDriveSnapshot()
+      })
+    });
+  } catch (error) {
+    console.warn("User asset data could not be saved to the server.", error);
+  }
+}
+
+async function loadUserDataFromServer(userId = getCurrentUserStorageId()) {
+  if (!authState.authenticated || !userId) return;
+  if (userDataServerLoadedFor === userId || userDataServerLoadingFor === userId) return;
+
+  userDataServerLoadingFor = userId;
+  const localAssetSnapshot = getAssetDriveSnapshot();
+
+  try {
+    const response = await fetch("/api/data", {
+      credentials: "include",
+      headers: { Accept: "application/json" }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.ok) return;
+    if (getCurrentUserStorageId() !== userId) return;
+
+    const remoteAssets = payload.data?.assets || {};
+    const remoteHasAssets = hasAssetSnapshotData(remoteAssets);
+    const localHasAssets = hasAssetSnapshotData(localAssetSnapshot);
+
+    if (remoteHasAssets || !localHasAssets) {
+      applyUserAssetSnapshot(remoteAssets);
+      saveAssetStateToStorage({ syncRemote: false });
+      render();
+    } else {
+      saveUserAssetStateToServer();
+    }
+
+    userDataServerLoadedFor = userId;
+  } catch (error) {
+    console.warn("User data could not be loaded from the server.", error);
+  } finally {
+    if (userDataServerLoadingFor === userId) userDataServerLoadingFor = "";
+  }
+}
+
+function loadMemoStateFromStorage() {
+  userMemos = [];
+  if (typeof localStorage === "undefined") return;
+
+  const storageKey = getUserScopedStorageKey(memoStorageKey);
+  if (!storageKey) return;
+
+  try {
+    const rawState = localStorage.getItem(storageKey);
+    if (!rawState) return;
+
+    const state = JSON.parse(rawState);
+    userMemos = Array.isArray(state?.memos) ? state.memos : [];
+  } catch (error) {
+    console.warn("Saved memo data could not be loaded.", error);
+  }
+}
+
+function initializeUserDataState({ force = false } = {}) {
+  const userId = getCurrentUserStorageId();
+  if (!userId) return;
+  if (!force && userDataInitializedFor === userId) return;
+
+  userDataInitializedFor = userId;
+  clearRuntimeUserData();
+  loadAssetStateFromStorage();
+  loadMemoStateFromStorage();
+  loadUserDataFromServer(userId);
+}
+
 function renderSidebarUser() {
   const root = document.querySelector("#sidebarUserRoot");
   if (!root) return;
@@ -220,6 +376,8 @@ function setAuthenticatedUser(user) {
   } catch (error) {
     console.warn("로그인 사용자 정보를 브라우저 저장소에 저장하지 못했습니다.", error);
   }
+
+  initializeUserDataState({ force: true });
 }
 
 function clearAuthenticatedUser() {
@@ -235,6 +393,13 @@ function clearAuthenticatedUser() {
   } catch (error) {
     console.warn("로그인 사용자 정보를 브라우저 저장소에서 제거하지 못했습니다.", error);
   }
+
+  userDataInitializedFor = "";
+  userDataServerLoadedFor = "";
+  userDataServerLoadingFor = "";
+  if (userDataServerSaveTimer) window.clearTimeout(userDataServerSaveTimer);
+  userDataServerSaveTimer = 0;
+  clearRuntimeUserData();
 }
 
 function isAuthRequiredRoute(route) {
@@ -433,6 +598,8 @@ function replaceAssetHoldings(rows) {
     })
   );
 
+  if (typeof watchList !== "undefined") watchList.splice(0, watchList.length);
+
   normalizedRows.forEach((row) => {
     const watchRow = typeof findWatchListRow === "function" ? findWatchListRow(row.name, row.code) : null;
     if (watchRow) {
@@ -465,19 +632,25 @@ function getAssetRowsForStorage() {
   }));
 }
 
-function saveAssetStateToStorage() {
+function saveAssetStateToStorage({ syncRemote = true } = {}) {
   if (typeof localStorage === "undefined") return;
 
   try {
+    const storageKey = getUserScopedStorageKey(assetStorageKey);
+    if (!storageKey) return;
+
     localStorage.setItem(
-      assetStorageKey,
+      storageKey,
       JSON.stringify({
         version: 1,
         cashBalance: assetCashBalance,
         holdings: getAssetRowsForStorage()
       })
     );
-    scheduleDriveAssetSave();
+    if (syncRemote) {
+      scheduleUserDataSave();
+      scheduleDriveAssetSave();
+    }
   } catch (error) {
     console.warn("자산 데이터를 브라우저 저장소에 저장하지 못했습니다.", error);
   }
@@ -487,7 +660,10 @@ function loadAssetStateFromStorage() {
   if (typeof localStorage === "undefined") return;
 
   try {
-    const rawState = localStorage.getItem(assetStorageKey);
+    const storageKey = getUserScopedStorageKey(assetStorageKey);
+    if (!storageKey) return;
+
+    const rawState = localStorage.getItem(storageKey);
     if (!rawState) return;
 
     const state = JSON.parse(rawState);
@@ -495,8 +671,12 @@ function loadAssetStateFromStorage() {
       assetCashBalance = Math.max(0, Math.round(Number(state.cashBalance)));
     }
 
-    if (Array.isArray(state.holdings) && state.holdings.length) {
-      replaceAssetHoldings(state.holdings);
+    if (Array.isArray(state.holdings)) {
+      if (state.holdings.length) {
+        replaceAssetHoldings(state.holdings);
+      } else {
+        clearAssetHoldingsRuntime();
+      }
       assetSettingsError = "";
       assetSettingsMessage = "";
     }
@@ -1510,6 +1690,13 @@ function applyAssetSettingsEdit() {
   const rows = assetSettingsDrafts
     .filter((item) => !isEmptyAssetSettingsDraft(item))
     .map((item) => normalizeAssetSettingsRow(item));
+
+  if (!rows.length) {
+    clearAssetHoldingsRuntime();
+    saveAssetStateToStorage();
+    cancelAssetSettingsEdit();
+    return true;
+  }
 
   if (!replaceAssetHoldings(rows)) return false;
 
@@ -3102,6 +3289,6 @@ window.addEventListener("resize", () => {
 });
 window.visualViewport?.addEventListener("resize", scheduleMobileViewportInset, { passive: true });
 window.visualViewport?.addEventListener("scroll", scheduleMobileViewportInset, { passive: true });
-loadAssetStateFromStorage();
+initializeUserDataState();
 updateMobileViewportInset();
 render();

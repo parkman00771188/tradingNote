@@ -1,4 +1,19 @@
 function renderPerformance() {
+  if (typeof trades !== "undefined" && !trades.length) {
+    return `
+      <div class="stack">
+        <article class="panel empty-state">
+          <span class="status-icon">${icon("performance")}</span>
+          <div>
+            <strong>성과 데이터가 없습니다.</strong>
+            <p>매매 기록을 저장하면 이 계정의 성과 분석이 표시됩니다.</p>
+          </div>
+          <button class="btn primary" type="button" data-route="journalWrite">${icon("plus")}매매 기록 작성</button>
+        </article>
+      </div>
+    `;
+  }
+
   return `
     <div class="stack">
       <section class="metric-grid five">

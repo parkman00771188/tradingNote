@@ -11,6 +11,20 @@ function renderStockWatchRows() {
 }
 
 function renderStock() {
+  if (typeof watchList !== "undefined" && !watchList.length) {
+    return `
+      <div class="stack">
+        <article class="panel empty-state">
+          <span class="status-icon">${icon("chart")}</span>
+          <div>
+            <strong>종목 데이터가 없습니다.</strong>
+            <p>자산 설정에서 보유 종목을 저장하면 이 계정의 종목 정보가 표시됩니다.</p>
+          </div>
+          <button class="btn primary" type="button" data-modal="assetSettings">${icon("plus")}자산 설정</button>
+        </article>
+      </div>
+    `;
+  }
   const heroStock = typeof getWatchStock === "function" ? getWatchStock("삼성전자", "005930") : null;
   const heroPrice = heroStock ? heroStock.priceText : "346,500";
   const heroChange = heroStock && heroStock.change ? `${heroStock.change} (${heroStock.rate})` : "+3,500 (+1.02%)";

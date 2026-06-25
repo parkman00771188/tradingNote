@@ -349,7 +349,7 @@ function renderAssets() {
   const dailyChange = typeof getHoldingDailyChange === "function" ? getHoldingDailyChange() : 0;
   const dailyChangeRate = typeof getHoldingDailyChangeRate === "function" ? getHoldingDailyChangeRate() : 0;
   const costBasis = typeof getHoldingTotalCostBasis === "function" ? getHoldingTotalCostBasis() : 0;
-  const realizedProfit = 1250000;
+  const realizedProfit = 0;
   const allocationDiff = stockRatio - 90;
   const holdingSegments = getAssetHoldingSegments(holdingData);
   const leadingHolding = holdingSegments[0] || { label: "-", value: 0 };
