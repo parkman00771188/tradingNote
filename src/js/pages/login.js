@@ -5,6 +5,9 @@ var googleTokenClient = null;
 var loginMessage = "";
 var loginMessageTone = "";
 var loginHydrationToken = 0;
+var loginGoogleClientId = "";
+var googleRedirectLoginInProgress = false;
+const googleRedirectStateKey = "trading-note-google-redirect-state";
 
 function googleLogo() {
   return `
@@ -52,6 +55,133 @@ function loadGoogleIdentityScript() {
   });
 
   return googleIdentityScriptPromise;
+}
+
+function shouldUseGoogleRedirectLogin() {
+  const userAgent = navigator.userAgent || "";
+  const mobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+  const ipadDesktopMode = /Macintosh/i.test(userAgent) && Number(navigator.maxTouchPoints || 0) > 1;
+  const coarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches;
+  const tabletViewport = window.matchMedia?.("(max-width: 1024px)")?.matches;
+
+  return Boolean(mobileUserAgent || ipadDesktopMode || (coarsePointer && tabletViewport));
+}
+
+function createGoogleRedirectState() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function writeGoogleRedirectState(state) {
+  const value = JSON.stringify({ state, createdAt: Date.now() });
+  try {
+    sessionStorage.setItem(googleRedirectStateKey, value);
+  } catch (error) {
+    localStorage.setItem(googleRedirectStateKey, value);
+  }
+}
+
+function readGoogleRedirectState() {
+  const read = (storage) => {
+    try {
+      return JSON.parse(storage.getItem(googleRedirectStateKey) || "null");
+    } catch (error) {
+      return null;
+    }
+  };
+
+  return read(sessionStorage) || read(localStorage);
+}
+
+function clearGoogleRedirectState() {
+  try {
+    sessionStorage.removeItem(googleRedirectStateKey);
+  } catch (error) {}
+  try {
+    localStorage.removeItem(googleRedirectStateKey);
+  } catch (error) {}
+}
+
+function buildGoogleRedirectUrl(clientId) {
+  const state = createGoogleRedirectState();
+  writeGoogleRedirectState(state);
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: window.location.origin,
+    response_type: "token",
+    scope: "openid email profile",
+    include_granted_scopes: "true",
+    prompt: "select_account",
+    state
+  });
+
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+function startGoogleRedirectLogin(clientId = loginGoogleClientId) {
+  if (!clientId) {
+    setLoginMessage("Google OAuth Client ID를 확인하지 못했습니다.", "error");
+    return;
+  }
+
+  googleRedirectLoginInProgress = true;
+  setLoginMessage("Google 계정 선택 화면으로 이동합니다.", "loading");
+  window.location.assign(buildGoogleRedirectUrl(clientId));
+}
+
+function getGoogleRedirectParams() {
+  const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
+  if (!hash || (!hash.includes("access_token=") && !hash.includes("error="))) return null;
+  const params = new URLSearchParams(hash);
+  if (!params.has("access_token") && !params.has("error")) return null;
+  return params;
+}
+
+function processGoogleRedirectLoginResponse() {
+  const params = getGoogleRedirectParams();
+  if (!params) return false;
+
+  googleRedirectLoginInProgress = true;
+  window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#login`);
+
+  window.setTimeout(async () => {
+    const savedState = readGoogleRedirectState();
+    clearGoogleRedirectState();
+    const isFreshState = savedState?.createdAt && Date.now() - Number(savedState.createdAt) < 10 * 60 * 1000;
+
+    if (!savedState?.state || savedState.state !== (params.get("state") || "") || !isFreshState) {
+      googleRedirectLoginInProgress = false;
+      setLoginMessage("Google 로그인 상태 확인에 실패했습니다. 다시 시도해주세요.", "error");
+      hydrateLoginPage();
+      return;
+    }
+
+    if (params.get("error")) {
+      googleRedirectLoginInProgress = false;
+      setLoginMessage(params.get("error_description") || "Google 계정 선택이 취소되었습니다.", "error");
+      hydrateLoginPage();
+      return;
+    }
+
+    const accessToken = params.get("access_token");
+    if (!accessToken) {
+      googleRedirectLoginInProgress = false;
+      setLoginMessage("Google 로그인 토큰을 받지 못했습니다. 다시 시도해주세요.", "error");
+      hydrateLoginPage();
+      return;
+    }
+
+    await completeGoogleLogin({
+      action: "google_access_token",
+      accessToken
+    });
+    googleRedirectLoginInProgress = false;
+    if (window.location.hash === "#login") hydrateLoginPage();
+  }, 0);
+
+  return true;
 }
 
 async function fetchLoginConfig() {
@@ -138,6 +268,11 @@ function bindGoogleLoginButton(container) {
   if (!button || button.disabled) return;
 
   button.addEventListener("click", () => {
+    if (shouldUseGoogleRedirectLogin()) {
+      startGoogleRedirectLogin();
+      return;
+    }
+
     if (!googleTokenClient) {
       setLoginMessage("Google 로그인을 아직 준비 중입니다. 잠시 후 다시 눌러주세요.", "loading");
       return;
@@ -158,6 +293,7 @@ async function hydrateLoginPage() {
   try {
     const config = await fetchLoginConfig();
     if (token !== loginHydrationToken) return;
+    loginGoogleClientId = config.googleClientId || "";
 
     if (!config.googleReady || !config.googleClientId) {
       container.innerHTML = renderFallbackGoogleButton(true);
@@ -168,6 +304,19 @@ async function hydrateLoginPage() {
     if (!config.authReady) {
       container.innerHTML = renderFallbackGoogleButton(true);
       setLoginMessage("Google 로그인 서버 설정이 아직 완료되지 않았습니다. AUTH_ENCRYPTION_KEY, AUTH_SESSION_SECRET, USERS_KV를 확인해주세요.", "error");
+      return;
+    }
+
+    if (googleRedirectLoginInProgress) {
+      container.innerHTML = renderFallbackGoogleButton(true);
+      setLoginMessage("Google 계정을 확인하고 있습니다.", "loading");
+      return;
+    }
+
+    if (shouldUseGoogleRedirectLogin()) {
+      container.innerHTML = renderFallbackGoogleButton(false);
+      bindGoogleLoginButton(container);
+      setLoginMessage("", "");
       return;
     }
 
