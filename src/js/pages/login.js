@@ -17,6 +17,14 @@ function googleLogo() {
   `;
 }
 
+function appleLogo() {
+  return `
+    <svg class="login-provider-icon apple" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="currentColor" d="M17.05 12.38c-.03-2.02 1.66-2.99 1.73-3.04-.94-1.37-2.4-1.56-2.92-1.58-1.24-.13-2.43.73-3.06.73-.63 0-1.6-.71-2.63-.69-1.35.02-2.6.79-3.29 2-1.4 2.43-.36 6.03 1 8 .67.97 1.47 2.06 2.52 2.02 1.01-.04 1.39-.65 2.61-.65 1.22 0 1.56.65 2.63.63 1.09-.02 1.78-.99 2.44-1.96.77-1.12 1.08-2.2 1.1-2.26-.02-.01-2.11-.81-2.13-3.2ZM15.05 6.45c.55-.67.93-1.6.82-2.53-.8.03-1.77.53-2.35 1.2-.51.59-.97 1.54-.85 2.45.89.07 1.81-.45 2.38-1.12Z"/>
+    </svg>
+  `;
+}
+
 function setLoginMessage(message, tone = "") {
   loginMessage = message;
   loginMessageTone = tone;
@@ -212,7 +220,7 @@ function renderLogin() {
             ${renderFallbackGoogleButton(true)}
           </div>
           <button class="login-social disabled" type="button" disabled aria-disabled="true">
-            <span class="login-provider-icon apple">&#xF8FF;</span>
+            ${appleLogo()}
             <strong>Apple로 계속하기</strong>
           </button>
           <p class="login-message ${loginMessageTone}" data-login-message>${loginMessage}</p>

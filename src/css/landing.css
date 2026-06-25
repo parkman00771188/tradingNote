@@ -215,8 +215,7 @@ body[data-route="login"] .page-content {
 }
 
 .login-provider-icon.apple {
-  color: #111827;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  color: currentColor;
 }
 
 .login-social strong {
