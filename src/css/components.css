@@ -4065,6 +4065,7 @@ body.modal-open {
 }
 
 .asset-settings-empty-state {
+  appearance: none;
   display: grid;
   place-items: center;
   gap: 12px;
@@ -4077,7 +4078,19 @@ body.modal-open {
     #f8fbff;
   border: 1px dashed #b8d2ff;
   border-radius: 24px;
+  font: inherit;
   scroll-snap-align: center;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.asset-settings-empty-state:hover {
+  border-color: var(--blue);
+  box-shadow: 0 18px 44px rgba(36, 116, 242, 0.12);
+  transform: translateY(-2px);
 }
 
 .asset-settings-empty-state > span {
@@ -4108,24 +4121,14 @@ body.modal-open {
   font-weight: 900;
 }
 
-.asset-settings-empty-state p {
+.asset-settings-empty-state em {
   max-width: 320px;
-  margin: -4px 0 8px;
+  margin: -4px 0 0;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
+  font-style: normal;
   font-weight: 750;
-}
-
-.asset-settings-empty-state .btn {
-  min-height: 46px;
-  padding: 0 18px;
-  border-radius: 14px;
-}
-
-.asset-settings-empty-state .btn svg {
-  width: 18px;
-  height: 18px;
 }
 
 .asset-settings-display-card {

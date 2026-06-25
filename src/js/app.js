@@ -1593,8 +1593,7 @@ function updateAssetPriceDisplayCurrency(rowId, currency) {
   assetSettingsMessage = "";
 }
 
-function beginAssetSettingsEdit(options = {}) {
-  const shouldCreateEmptyDraft = Boolean(options.createEmptyDraft);
+function beginAssetSettingsEdit() {
   const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
   assetSettingsDrafts = holdingData.map((item) => createAssetSettingsDraft(item));
   assetSettingsError = "";
@@ -1605,11 +1604,6 @@ function beginAssetSettingsEdit(options = {}) {
   assetSettingsMotion = null;
   assetSettingsPendingRemoveId = null;
   assetSettingsDeleteTargetId = "";
-  if (!assetSettingsDrafts.length && shouldCreateEmptyDraft) {
-    const draft = createAssetSettingsDraft();
-    assetSettingsDrafts.push(draft);
-    assetSettingsEditingId = draft.id;
-  }
   resetAssetMarketSearch();
 }
 
@@ -2395,12 +2389,11 @@ function renderAssetSettingsSlideDots(total, activeIndex) {
 
 function renderAssetSettingsEmptyState() {
   return `
-    <div class="asset-settings-empty-state">
+    <button class="asset-settings-empty-state" type="button" data-asset-settings-add aria-label="자산 추가">
       <span>${icon("plus")}</span>
-      <strong>자산을 추가하세요</strong>
-      <p>상단의 자산 추가 버튼을 누르면 종목 검색과 보유 수량을 입력할 수 있습니다.</p>
-      <button class="btn primary" type="button" data-asset-settings-add>${icon("plus")}자산 추가</button>
-    </div>
+      <strong>자산 추가</strong>
+      <em>새 보유 자산을 추가합니다.</em>
+    </button>
   `;
 }
 
@@ -3075,7 +3068,7 @@ document.addEventListener("click", (event) => {
       beginAssetTrendTargetEdit();
     }
     if (activeModal === "assetSettings") {
-      beginAssetSettingsEdit({ createEmptyDraft: true });
+      beginAssetSettingsEdit();
     }
     renderModal();
     hydrateIcons(document);
@@ -3387,7 +3380,7 @@ document.addEventListener("click", (event) => {
 
     const assetSettingsCancel = event.target.closest("[data-asset-settings-cancel]");
     if (assetSettingsCancel && activeModal === "assetSettings") {
-      beginAssetSettingsEdit({ createEmptyDraft: true });
+      beginAssetSettingsEdit();
       renderModal();
       hydrateIcons(document);
       return;
