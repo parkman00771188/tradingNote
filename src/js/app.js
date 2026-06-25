@@ -34,6 +34,7 @@ var databaseState = {
 var userDataServerLoadedFor = "";
 var userDataServerLoadingFor = "";
 var userDataServerSaveTimer = 0;
+var pendingAssetStorageCleanupKey = "";
 var authState = {
   checked: false,
   checking: false,
@@ -271,6 +272,8 @@ async function saveUserAssetStateToServer() {
         message: "Cloudflare D1에 자동 저장되었습니다.",
         error: ""
       });
+      clearPlainAssetStateFromStorage(pendingAssetStorageCleanupKey || undefined);
+      pendingAssetStorageCleanupKey = "";
     }
   } catch (error) {
     console.warn("User asset data could not be saved to the server.", error);
@@ -414,6 +417,7 @@ function clearAuthenticatedUser() {
   userDataServerLoadingFor = "";
   if (userDataServerSaveTimer) window.clearTimeout(userDataServerSaveTimer);
   userDataServerSaveTimer = 0;
+  pendingAssetStorageCleanupKey = "";
   clearRuntimeUserData();
 }
 
@@ -633,38 +637,25 @@ function replaceAssetHoldings(rows) {
   return true;
 }
 
-function getAssetRowsForStorage() {
-  const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
-  return holdingData.map((item) => ({
-    name: item.name,
-    code: item.code,
-    quantity: item.quantity,
-    averagePrice: item.averagePrice,
-    currentPrice: item.currentPrice,
-    priceInputMode: "full"
-  }));
+function clearPlainAssetStateFromStorage(storageKey = getUserScopedStorageKey(assetStorageKey)) {
+  if (typeof localStorage === "undefined" || !storageKey) return;
+
+  try {
+    localStorage.removeItem(storageKey);
+  } catch (error) {
+    console.warn("브라우저의 평문 자산 캐시를 제거하지 못했습니다.", error);
+  }
 }
 
 function saveAssetStateToStorage({ syncRemote = true } = {}) {
-  if (typeof localStorage === "undefined") return;
+  clearPlainAssetStateFromStorage();
+  if (pendingAssetStorageCleanupKey) {
+    clearPlainAssetStateFromStorage(pendingAssetStorageCleanupKey);
+    pendingAssetStorageCleanupKey = "";
+  }
 
-  try {
-    const storageKey = getUserScopedStorageKey(assetStorageKey);
-    if (!storageKey) return;
-
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify({
-        version: 1,
-        cashBalance: assetCashBalance,
-        holdings: getAssetRowsForStorage()
-      })
-    );
-    if (syncRemote) {
-      scheduleUserDataSave();
-    }
-  } catch (error) {
-    console.warn("자산 데이터를 브라우저 저장소에 저장하지 못했습니다.", error);
+  if (syncRemote) {
+    scheduleUserDataSave();
   }
 }
 
@@ -679,6 +670,7 @@ function loadAssetStateFromStorage() {
     if (!rawState) return;
 
     const state = JSON.parse(rawState);
+    pendingAssetStorageCleanupKey = storageKey;
     if (Number.isFinite(Number(state.cashBalance))) {
       assetCashBalance = Math.max(0, Math.round(Number(state.cashBalance)));
     }
