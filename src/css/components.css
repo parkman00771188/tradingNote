@@ -4271,6 +4271,160 @@ body.modal-open {
   font-weight: 850;
 }
 
+.asset-market-search {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.asset-market-search-box {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 12px;
+  background: #ffffff;
+  border: 1px solid #d9e4f2;
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(23, 68, 140, 0.06);
+}
+
+.asset-market-search-box > span {
+  display: grid;
+  place-items: center;
+  color: var(--blue);
+}
+
+.asset-market-search-box svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.asset-market-search-input.asset-settings-title-input {
+  height: 44px;
+  font-size: 22px;
+}
+
+.asset-market-search-panel {
+  min-width: 0;
+}
+
+.asset-market-search-results {
+  display: grid;
+  max-height: 214px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #dbe6f4;
+  border-radius: 16px;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.1);
+}
+
+.asset-market-search-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 10px 14px;
+  color: #172033;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #edf2f7;
+  text-align: left;
+}
+
+.asset-market-search-result:last-child {
+  border-bottom: 0;
+}
+
+.asset-market-search-result:hover,
+.asset-market-search-result:focus-visible {
+  background: #f5f9ff;
+  outline: 0;
+}
+
+.asset-market-search-result span,
+.asset-market-search-result strong,
+.asset-market-search-result em {
+  min-width: 0;
+}
+
+.asset-market-search-result span {
+  display: grid;
+  gap: 5px;
+}
+
+.asset-market-search-result strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-market-search-result em {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-market-search-result b {
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.asset-market-search-state {
+  padding: 12px 14px;
+  color: #64748b;
+  background: #f8fbff;
+  border: 1px solid #dbe6f4;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 800;
+}
+
+.asset-market-search-state.error {
+  color: var(--red);
+  background: #fff5f5;
+  border-color: #ffd2d2;
+}
+
+.asset-market-code-field {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 12px;
+  background: #ffffff;
+  border: 1px solid #e1e8f2;
+  border-radius: 14px;
+}
+
+.asset-market-code-field span {
+  color: #7b8491;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.asset-market-code-field .asset-settings-code-input {
+  font-size: 15px;
+}
+
 .asset-settings-value-panel {
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr);

@@ -946,6 +946,40 @@
       line-height: 1.06;
     }
 
+    .asset-market-search-box {
+      min-height: 42px;
+      padding: 0 10px;
+      border-radius: 14px;
+    }
+
+    .asset-market-search-input.asset-settings-title-input {
+      height: 40px;
+      font-size: 18px;
+    }
+
+    .asset-market-search-results {
+      max-height: 184px;
+      border-radius: 14px;
+    }
+
+    .asset-market-search-result {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 5px;
+      min-height: 58px;
+      padding: 10px 12px;
+    }
+
+    .asset-market-search-result b {
+      justify-self: start;
+      font-size: 12px;
+    }
+
+    .asset-market-code-field {
+      grid-template-columns: 68px minmax(0, 1fr);
+      min-height: 40px;
+      border-radius: 12px;
+    }
+
     .asset-settings-title-wrap p {
       font-size: 12px;
     }

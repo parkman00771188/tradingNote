@@ -61,6 +61,15 @@ var assetSettingsSlideFrame = null;
 var assetSettingsMotion = null;
 var assetSettingsMotionTimer = 0;
 var assetSettingsPendingRemoveId = null;
+var assetMarketSearch = {
+  rowId: "",
+  query: "",
+  loading: false,
+  results: [],
+  error: "",
+  requestId: 0
+};
+var assetMarketSearchTimer = 0;
 var settingsActiveSection = "broker";
 const assetSettingsVisibleDotLimit = 5;
 const assetSettingsDotSize = 10;
@@ -1531,6 +1540,7 @@ function beginAssetSettingsEdit() {
   assetSettingsActiveIndex = 0;
   assetSettingsMotion = null;
   assetSettingsPendingRemoveId = null;
+  resetAssetMarketSearch();
 }
 
 function cancelAssetSettingsEdit() {
@@ -1544,6 +1554,7 @@ function cancelAssetSettingsEdit() {
   assetSettingsPendingRemoveId = null;
   if (assetSettingsMotionTimer) window.clearTimeout(assetSettingsMotionTimer);
   assetSettingsMotionTimer = 0;
+  resetAssetMarketSearch();
 }
 
 function addAssetSettingsDraft() {
@@ -1555,6 +1566,7 @@ function addAssetSettingsDraft() {
   assetSettingsOpenMenuId = null;
   assetSettingsEditingId = draft.id;
   assetSettingsActiveIndex = insertIndex;
+  resetAssetMarketSearch(draft.id);
   assetSettingsMotion = {
     type: "add",
     id: draft.id,
@@ -1569,6 +1581,7 @@ function removeAssetSettingsDraft(rowId) {
   assetSettingsError = "";
   assetSettingsMessage = "";
   assetSettingsOpenMenuId = null;
+  if (assetMarketSearch.rowId === rowId) resetAssetMarketSearch();
   if (!assetSettingsDrafts.length) {
     const draft = createAssetSettingsDraft();
     assetSettingsDrafts.push(draft);
@@ -1603,6 +1616,155 @@ function updateAssetSettingsDraft(rowId, field, value) {
   });
   assetSettingsError = "";
   assetSettingsMessage = "";
+}
+
+function patchAssetSettingsDraft(rowId, patch = {}) {
+  assetSettingsDrafts = assetSettingsDrafts.map((item) =>
+    item.id === rowId ? { ...item, ...patch } : item
+  );
+  assetSettingsError = "";
+  assetSettingsMessage = "";
+}
+
+function resetAssetMarketSearch(rowId = "") {
+  if (assetMarketSearchTimer) window.clearTimeout(assetMarketSearchTimer);
+  assetMarketSearchTimer = 0;
+  assetMarketSearch = {
+    rowId,
+    query: "",
+    loading: false,
+    results: [],
+    error: "",
+    requestId: assetMarketSearch.requestId + 1
+  };
+}
+
+function formatAssetMarketPrice(result) {
+  const price = Number(result?.currentPrice || 0);
+  if (!price) return "";
+  const currency = result.currency || "";
+  const formatted = currency === "KRW"
+    ? `${formatMarketNumber(price)}원`
+    : `${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}${currency ? ` ${currency}` : ""}`;
+  return formatted;
+}
+
+function renderAssetMarketSearchPanel(rowId) {
+  if (assetMarketSearch.rowId !== rowId) return "";
+
+  const query = String(assetMarketSearch.query || "").trim();
+  if (assetMarketSearch.loading) {
+    return `<div class="asset-market-search-state">종목을 검색하고 있습니다.</div>`;
+  }
+
+  if (assetMarketSearch.error) {
+    return `<div class="asset-market-search-state error">${escapeChartText(assetMarketSearch.error)}</div>`;
+  }
+
+  if (!query || query.length < 2) {
+    return "";
+  }
+
+  if (!assetMarketSearch.results.length) {
+    return `<div class="asset-market-search-state">검색 결과가 없습니다. 종목명이나 6자리 코드를 입력해보세요.</div>`;
+  }
+
+  return `
+    <div class="asset-market-search-results" role="listbox" aria-label="종목 검색 결과">
+      ${assetMarketSearch.results.map((result, index) => {
+        const priceText = formatAssetMarketPrice(result);
+        const marketText = [result.symbol, result.market || result.exchange, result.source]
+          .filter(Boolean)
+          .join(" · ");
+        return `
+          <button class="asset-market-search-result" type="button" role="option" data-asset-market-result="${index}" data-asset-setting-id="${rowId}">
+            <span>
+              <strong>${escapeChartText(result.name || result.symbol || result.code)}</strong>
+              <em>${escapeChartText(marketText || result.code || "")}</em>
+            </span>
+            ${priceText ? `<b>${escapeChartText(priceText)}</b>` : ""}
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function updateAssetMarketSearchPanel(rowId) {
+  const panel = document.querySelector(`[data-asset-market-search-panel="${rowId}"]`);
+  if (!panel) return;
+  panel.innerHTML = renderAssetMarketSearchPanel(rowId);
+}
+
+async function runAssetMarketSearch(rowId, query, requestId) {
+  try {
+    const response = await fetch(`/api/markets?action=search&q=${encodeURIComponent(query)}`, {
+      credentials: "include",
+      headers: { Accept: "application/json" }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (assetMarketSearch.requestId !== requestId || assetMarketSearch.rowId !== rowId) return;
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.error || "종목 검색에 실패했습니다.");
+    }
+
+    assetMarketSearch.loading = false;
+    assetMarketSearch.results = Array.isArray(payload.results) ? payload.results : [];
+    assetMarketSearch.error = "";
+    updateAssetMarketSearchPanel(rowId);
+  } catch (error) {
+    if (assetMarketSearch.requestId !== requestId || assetMarketSearch.rowId !== rowId) return;
+    assetMarketSearch.loading = false;
+    assetMarketSearch.results = [];
+    assetMarketSearch.error = error?.message || "종목 검색에 실패했습니다.";
+    updateAssetMarketSearchPanel(rowId);
+  }
+}
+
+function scheduleAssetMarketSearch(rowId, query) {
+  const nextQuery = String(query || "").trim();
+  if (assetMarketSearchTimer) window.clearTimeout(assetMarketSearchTimer);
+
+  const requestId = assetMarketSearch.requestId + 1;
+  assetMarketSearch = {
+    rowId,
+    query: nextQuery,
+    loading: nextQuery.length >= 2,
+    results: [],
+    error: "",
+    requestId
+  };
+  updateAssetMarketSearchPanel(rowId);
+
+  if (nextQuery.length < 2) return;
+
+  assetMarketSearchTimer = window.setTimeout(() => {
+    assetMarketSearchTimer = 0;
+    runAssetMarketSearch(rowId, nextQuery, requestId);
+  }, 260);
+}
+
+function applyAssetMarketResult(rowId, resultIndex) {
+  const result = assetMarketSearch.rowId === rowId
+    ? assetMarketSearch.results[Number(resultIndex)]
+    : null;
+  if (!result) return false;
+
+  const currentDraft = assetSettingsDrafts.find((item) => item.id === rowId) || {};
+  const currentPrice = result.currency === "KRW" && Number(result.currentPrice || 0) > 0
+    ? Math.round(Number(result.currentPrice))
+    : currentDraft.currentPrice;
+
+  patchAssetSettingsDraft(rowId, {
+    name: result.name || currentDraft.name || result.symbol || "",
+    code: result.code || result.symbol || currentDraft.code || "",
+    currentPrice: Math.max(0, Number(currentPrice) || 0)
+  });
+
+  assetSettingsEditingId = rowId;
+  assetSettingsOpenMenuId = null;
+  resetAssetMarketSearch(rowId);
+  return true;
 }
 
 function isEmptyAssetSettingsDraft(item) {
@@ -1836,6 +1998,7 @@ function renderAssetSettingsCardView(item, index) {
   const readOnlyAttr = isEditing ? "" : `readonly aria-readonly="true" tabindex="-1"`;
   const categoryLabel = "국내 주식";
   const motionClass = getAssetSettingsCardMotionClass(item, index);
+  const searchPanel = renderAssetMarketSearchPanel(item.id);
 
   return `
     <article class="asset-settings-card asset-settings-display-card ${isEditing ? "is-editing" : ""} ${motionClass}" data-asset-setting-card="${item.id}">
@@ -1853,7 +2016,21 @@ function renderAssetSettingsCardView(item, index) {
         <span class="asset-settings-sector-chip domestic">${categoryLabel}</span>
       </div>
       <div class="asset-settings-title-wrap">
-        <input class="asset-settings-title-input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="새 자산" data-asset-setting-field="name" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
+        ${
+          isEditing
+            ? `<div class="asset-market-search">
+                <div class="asset-market-search-box">
+                  <span aria-hidden="true">${icon("search")}</span>
+                  <input class="asset-settings-title-input asset-market-search-input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="종목명 또는 코드 검색" data-asset-setting-field="name" data-asset-setting-id="${item.id}" data-asset-market-search-input>
+                </div>
+                <div class="asset-market-search-panel" data-asset-market-search-panel="${item.id}">${searchPanel}</div>
+              </div>
+              <label class="asset-market-code-field">
+                <span>종목코드</span>
+                <input class="asset-settings-code-input" type="text" value="${escapeChartText(item.code)}" autocomplete="off" placeholder="005930 또는 AAPL" data-asset-setting-field="code" data-asset-setting-id="${item.id}">
+              </label>`
+            : `<input class="asset-settings-title-input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="새 자산" data-asset-setting-field="name" data-asset-setting-id="${item.id}" ${readOnlyAttr}>`
+        }
         <p>${escapeChartText(codeMeta)}</p>
       </div>
 
@@ -1866,7 +2043,7 @@ function renderAssetSettingsCardView(item, index) {
           : ""
       }
 
-      <div class="asset-settings-tile-grid ${isQuantityOnly ? "is-single" : ""}">
+      <div class="asset-settings-tile-grid">
         <label class="asset-settings-tile">
           <span class="asset-settings-tile-icon" aria-hidden="true">${icon("wallet")}</span>
           <span>보유 수량</span>
@@ -1877,7 +2054,14 @@ function renderAssetSettingsCardView(item, index) {
         </label>
         ${
           isQuantityOnly
-            ? ""
+            ? `<label class="asset-settings-tile">
+                <span class="asset-settings-tile-icon" aria-hidden="true">${icon("chart")}</span>
+                <span>현재가</span>
+                <div class="asset-settings-tile-input">
+                  <input type="text" value="${item.currentPrice ? formatMarketNumber(item.currentPrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="currentPrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
+                  <em>원</em>
+                </div>
+              </label>`
             : `<label class="asset-settings-tile">
                 <span class="asset-settings-tile-icon" aria-hidden="true">${icon("performance")}</span>
                 <span>매수평균가</span>
@@ -2894,6 +3078,19 @@ document.addEventListener("click", (event) => {
       return;
     }
 
+    const assetMarketResult = event.target.closest("[data-asset-market-result]");
+    if (assetMarketResult && activeModal === "assetSettings") {
+      syncAssetSettingsActiveIndexFromDom();
+      const rowId = assetMarketResult.dataset.assetSettingId;
+      if (applyAssetMarketResult(rowId, assetMarketResult.dataset.assetMarketResult)) {
+        renderModal();
+        hydrateIcons(document);
+        const card = document.querySelector(`[data-asset-setting-card="${rowId}"]`);
+        card?.querySelector("[data-asset-setting-field='quantity']")?.focus();
+      }
+      return;
+    }
+
     const assetSettingsAdd = event.target.closest("[data-asset-settings-add]");
     if (assetSettingsAdd && activeModal === "assetSettings") {
       syncAssetSettingsActiveIndexFromDom();
@@ -3175,11 +3372,15 @@ document.addEventListener("input", (event) => {
   const assetSettingField = event.target.closest("[data-asset-setting-field]");
   if (assetSettingField && activeModal === "assetSettings") {
     const rowId = assetSettingField.dataset.assetSettingId;
+    const fieldName = assetSettingField.dataset.assetSettingField;
     updateAssetSettingsDraft(
       rowId,
-      assetSettingField.dataset.assetSettingField,
+      fieldName,
       assetSettingField.value
     );
+    if (fieldName === "name" || fieldName === "code") {
+      scheduleAssetMarketSearch(rowId, assetSettingField.value);
+    }
     updateAssetSettingsCardPreview(rowId);
     return;
   }
