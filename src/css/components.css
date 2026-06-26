@@ -6361,9 +6361,25 @@ body.modal-open {
 }
 
 .calendar-day-modal {
-  width: min(760px, calc(100vw - 32px));
-  max-height: min(760px, calc(100vh - 48px));
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(800px, calc(100vh - 48px));
   background: white;
+}
+
+.calendar-day-modal .modal-header {
+  background: white;
+}
+
+.calendar-day-modal .eyebrow {
+  color: var(--blue);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.calendar-day-modal .modal-body {
+  display: grid;
+  gap: 14px;
+  background: #ffffff;
 }
 
 .calendar-day-records {
@@ -6371,20 +6387,110 @@ body.modal-open {
   gap: 12px;
 }
 
+.calendar-day-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid #e5edf8;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+}
+
+.calendar-day-summary-card {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-width: 0;
+  min-height: 118px;
+  padding: 14px 10px;
+  border-right: 1px solid #eef2f7;
+  text-align: center;
+}
+
+.calendar-day-summary-card:last-child {
+  border-right: 0;
+}
+
+.calendar-day-summary-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 7px;
+}
+
+.calendar-day-summary-icon svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 1.9;
+}
+
+.calendar-day-summary-card.buy .calendar-day-summary-icon,
+.calendar-day-summary-card.buy strong {
+  color: var(--red);
+}
+
+.calendar-day-summary-card.sell .calendar-day-summary-icon,
+.calendar-day-summary-card.sell strong {
+  color: var(--blue);
+}
+
+.calendar-day-summary-card.profit .calendar-day-summary-icon {
+  color: #16a34a;
+}
+
+.calendar-day-summary-card.count .calendar-day-summary-icon {
+  color: #64748b;
+}
+
+.calendar-day-summary-card em {
+  margin: 0 0 6px;
+  color: #64748b;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.calendar-day-summary-card strong {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  color: #111827;
+  overflow-wrap: anywhere;
+  font-size: 18px;
+  line-height: 1.16;
+  font-weight: 950;
+}
+
+.calendar-day-summary-card strong.text-red {
+  color: var(--red);
+}
+
+.calendar-day-summary-card strong.text-blue {
+  color: var(--blue);
+}
+
+.calendar-day-summary-card small {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 750;
+}
+
 .calendar-day-record {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
+  gap: 10px;
   align-items: start;
   overflow: hidden;
-  padding: 18px;
-  border: 1px solid #dde7f4;
-  border-radius: 16px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.98)),
-    #ffffff;
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+  padding: 15px 12px 14px 18px;
+  border: 1px solid #e5edf8;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.045);
 }
 
 .calendar-day-record::before {
@@ -6403,38 +6509,24 @@ body.modal-open {
   min-width: 0;
 }
 
-.calendar-day-record-head {
+.calendar-day-record-top {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
   min-width: 0;
-}
-
-.calendar-day-record-symbol {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  color: white;
-  background: linear-gradient(135deg, #2474f2, #22c55e);
-  border-radius: 16px;
-  font-size: 17px;
-  font-weight: 950;
-  letter-spacing: 0;
-  box-shadow: 0 10px 24px rgba(36, 116, 242, 0.18);
 }
 
 .calendar-day-record-title {
   min-width: 0;
 }
 
-.calendar-day-record-title > div {
+.calendar-day-record-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 6px;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 7px;
 }
 
 .calendar-day-record-sync {
@@ -6454,8 +6546,8 @@ body.modal-open {
   display: block;
   color: var(--text);
   overflow: hidden;
-  font-size: 19px;
-  line-height: 1.12;
+  font-size: 18px;
+  line-height: 1.15;
   font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6470,27 +6562,46 @@ body.modal-open {
   font-weight: 750;
 }
 
-.calendar-day-record-total {
-  min-width: 128px;
-  padding: 11px 13px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
+.calendar-day-record-amount {
+  min-width: 132px;
   text-align: right;
 }
 
-.calendar-day-record-total em,
-.calendar-day-record-total b {
+.calendar-day-record-amount b,
+.calendar-day-record-amount span {
   display: block;
 }
 
-.calendar-day-record-total b {
-  margin-top: 5px;
+.calendar-day-record-amount b {
   color: #0f172a;
   font-size: 18px;
   line-height: 1.1;
   font-weight: 950;
   white-space: nowrap;
+}
+
+.calendar-day-record.buy .calendar-day-record-amount b {
+  color: var(--red);
+}
+
+.calendar-day-record.sell .calendar-day-record-amount b {
+  color: var(--blue);
+}
+
+.calendar-day-record-amount span {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.calendar-day-record-amount span.text-red {
+  color: var(--red);
+}
+
+.calendar-day-record-amount span.text-blue {
+  color: var(--blue);
 }
 
 .calendar-day-record b {
@@ -6509,17 +6620,17 @@ body.modal-open {
 
 .calendar-day-record-meta {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 9px;
-  margin-top: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+  margin-top: 13px;
 }
 
 .calendar-day-record-meta > span {
   min-width: 0;
-  padding: 12px;
-  background: #f8fbff;
-  border: 1px solid #e5edf8;
-  border-radius: 12px;
+  padding: 10px;
+  background: #fbfdff;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
 }
 
 .calendar-day-record-meta em,
@@ -6530,15 +6641,15 @@ body.modal-open {
 .calendar-day-record-meta em {
   margin: 0 0 4px;
   color: #64748b;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .calendar-day-record-note {
-  margin-top: 10px;
-  padding: 12px;
+  margin-top: 8px;
+  padding: 10px;
   background: #fff;
   border: 1px dashed #cbd5e1;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .calendar-day-record-note em,
@@ -6561,6 +6672,10 @@ body.modal-open {
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
+}
+
+.calendar-day-record-actions {
+  padding-top: 1px;
 }
 
 .mini-action.danger {

@@ -1209,27 +1209,38 @@
     padding: 14px 16px 16px;
   }
 
+  .calendar-day-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .calendar-day-summary-card:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .calendar-day-summary-card:nth-child(-n + 2) {
+    border-bottom: 1px solid #eef2f7;
+  }
+
   .calendar-day-record {
     grid-template-columns: minmax(0, 1fr);
     padding: 13px;
   }
 
-  .calendar-day-record-head {
-    grid-template-columns: 46px minmax(0, 1fr);
-    gap: 11px;
-  }
-
-  .calendar-day-record-symbol {
-    width: 46px;
-    height: 46px;
-    border-radius: 14px;
-    font-size: 15px;
-  }
-
-  .calendar-day-record-total {
+  .calendar-day-record-top {
     grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
     min-width: 0;
     text-align: left;
+  }
+
+  .calendar-day-record-amount {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .calendar-day-record-amount b,
+  .calendar-day-record-amount span {
+    white-space: normal;
   }
 
   .calendar-day-record-meta {

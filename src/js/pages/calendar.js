@@ -156,12 +156,6 @@ function renderCalendarTradeTypeBadge(row) {
   return `<span class="trade-type ${sell ? "sell" : "buy"}">${sell ? "매도" : "매수"}</span>`;
 }
 
-function getCalendarRecordInitials(row) {
-  const name = String(row?.[1] || "?").trim();
-  if (!name) return "?";
-  return name.replace(/\s+/g, "").slice(0, 2);
-}
-
 function getCalendarRecordResultClass(row) {
   const profitText = String(row?.[6] || "").trim();
   if (/^-\s*[1-9]/.test(profitText)) return "text-blue";
@@ -169,9 +163,124 @@ function getCalendarRecordResultClass(row) {
   return "";
 }
 
+function getCalendarDaySummary(rows) {
+  return rows.reduce(
+    (summary, row) => {
+      const sell = isCalendarSellRow(row);
+      const total = getCalendarTradeTotal(row);
+      const profit = parseCalendarTradeProfit(row?.[6]);
+
+      if (sell) {
+        summary.sellTotal += total;
+        summary.sellCount += 1;
+      } else {
+        summary.buyTotal += total;
+        summary.buyCount += 1;
+      }
+
+      summary.profit += profit;
+      summary.tradeCount += 1;
+      return summary;
+    },
+    { buyTotal: 0, sellTotal: 0, profit: 0, tradeCount: 0, buyCount: 0, sellCount: 0 }
+  );
+}
+
+function formatCalendarSignedKRW(value) {
+  const amount = Math.round(Number(value) || 0);
+  if (typeof formatSignedMarketNumber === "function") return `${formatSignedMarketNumber(amount)}원`;
+  const sign = amount >= 0 ? "+" : "-";
+  return `${sign}${Math.abs(amount).toLocaleString()}원`;
+}
+
+function getCalendarSummaryTone(value) {
+  const amount = Number(value) || 0;
+  if (amount > 0) return "text-red";
+  if (amount < 0) return "text-blue";
+  return "";
+}
+
+function renderCalendarDaySummary(summary) {
+  const profitClass = getCalendarSummaryTone(summary.profit);
+  return `
+    <div class="calendar-day-summary-grid" aria-label="일자 매매 요약">
+      <article class="calendar-day-summary-card buy">
+        <span class="calendar-day-summary-icon">${icon("coin")}</span>
+        <em>총 매수금액</em>
+        <strong>${formatKRW(summary.buyTotal)}</strong>
+      </article>
+      <article class="calendar-day-summary-card sell">
+        <span class="calendar-day-summary-icon">${icon("coin")}</span>
+        <em>총 매도금액</em>
+        <strong>${formatKRW(summary.sellTotal)}</strong>
+      </article>
+      <article class="calendar-day-summary-card profit">
+        <span class="calendar-day-summary-icon">${icon("trend")}</span>
+        <em>순손익</em>
+        <strong class="${profitClass}">${formatCalendarSignedKRW(summary.profit)}</strong>
+      </article>
+      <article class="calendar-day-summary-card count">
+        <span class="calendar-day-summary-icon">${icon("journal")}</span>
+        <em>거래 건수</em>
+        <strong>${summary.tradeCount.toLocaleString()}건</strong>
+        <small>매수 ${summary.buyCount.toLocaleString()} / 매도 ${summary.sellCount.toLocaleString()}</small>
+      </article>
+    </div>
+  `;
+}
+
+function renderCalendarDayRecordCard(row, dateValue) {
+  const recordId = row[12] || "";
+  const sell = isCalendarSellRow(row);
+  const priceLabel = sell ? "매도가" : "매수가";
+  const amountLabel = sell ? "매도금액" : "매수금액";
+  const codeText = String(row[11] || "").trim();
+  const resultClass = getCalendarRecordResultClass(row);
+  const syncLabel = recordId ? "자산 반영" : "샘플 기록";
+  const memoText = String(row[9] || "").trim();
+  const profitText = row[6] || "+0";
+  const rateText = row[7] || "+0.00%";
+
+  return `
+    <article class="calendar-day-record ${sell ? "sell" : "buy"}">
+      <div class="calendar-day-record-main">
+        <div class="calendar-day-record-top">
+          <div class="calendar-day-record-title">
+            <div class="calendar-day-record-badges">
+              ${renderCalendarTradeTypeBadge(row)}
+              <span class="calendar-day-record-sync">${syncLabel}</span>
+            </div>
+            <strong>${escapeChartText(row[1] || "-")}</strong>
+            <p>${escapeChartText([codeText, dateValue].filter(Boolean).join(" · "))}</p>
+          </div>
+          <div class="calendar-day-record-amount">
+            <b>${formatKRW(getCalendarTradeTotal(row))}</b>
+            <span class="${resultClass}">${escapeChartText(profitText)} (${escapeChartText(rateText)})</span>
+          </div>
+        </div>
+        <div class="calendar-day-record-meta">
+          <span><em>수량</em><b>${escapeChartText(row[3] || "0")}주</b></span>
+          <span><em>${priceLabel}</em><b>${escapeChartText(getCalendarTradePrice(row) || "-")}원</b></span>
+          <span><em>수익률</em><b class="${resultClass}">${escapeChartText(rateText)}</b></span>
+          <span><em>${amountLabel}</em><b>${formatKRW(getCalendarTradeTotal(row))}</b></span>
+          <span><em>자산반영</em><b>${syncLabel}</b></span>
+        </div>
+        ${memoText ? `<div class="calendar-day-record-note"><em>메모</em><b>${escapeChartText(memoText)}</b></div>` : ""}
+      </div>
+      ${recordId ? `
+        <div class="calendar-day-record-actions">
+          <button class="mini-action" type="button" data-calendar-edit-journal="${recordId}" aria-label="수정">${icon("edit")}</button>
+          <button class="mini-action danger" type="button" data-calendar-delete-journal="${recordId}" aria-label="삭제">${icon("trash")}</button>
+        </div>
+      ` : ""}
+    </article>
+  `;
+}
+
 function renderCalendarDayDetailModal() {
   const dateValue = calendarDayDetailDate || formatCalendarDateValue(calendarSelectedDate);
   const rows = getCalendarRowsForDateValue(dateValue);
+  const summary = getCalendarDaySummary(rows);
 
   return `
     <div class="modal-backdrop">
@@ -186,49 +295,8 @@ function renderCalendarDayDetailModal() {
         <div class="modal-body">
           ${rows.length
             ? `<div class="calendar-day-records">
-                ${rows.map((row) => {
-                  const recordId = row[12] || "";
-                  const sell = isCalendarSellRow(row);
-                  const priceLabel = isCalendarSellRow(row) ? "매도가" : "매수가";
-                  const totalLabel = isCalendarSellRow(row) ? "총 매도금액" : "총 매수금액";
-                  const codeText = String(row[11] || "").trim();
-                  const resultClass = getCalendarRecordResultClass(row);
-                  const syncLabel = recordId ? "자산 반영" : "샘플 기록";
-                  return `
-                    <article class="calendar-day-record ${sell ? "sell" : "buy"}">
-                      <div class="calendar-day-record-main">
-                        <div class="calendar-day-record-head">
-                          <span class="calendar-day-record-symbol" aria-hidden="true">${escapeChartText(getCalendarRecordInitials(row))}</span>
-                          <div class="calendar-day-record-title">
-                            <div>
-                              ${renderCalendarTradeTypeBadge(row)}
-                              <span class="calendar-day-record-sync">${syncLabel}</span>
-                            </div>
-                            <strong>${escapeChartText(row[1] || "-")}</strong>
-                            <p>${escapeChartText([codeText, dateValue].filter(Boolean).join(" · "))}</p>
-                          </div>
-                          <div class="calendar-day-record-total">
-                            <em>${totalLabel}</em>
-                            <b>${formatKRW(getCalendarTradeTotal(row))}</b>
-                          </div>
-                        </div>
-                        <div class="calendar-day-record-meta">
-                          <span><em>수량</em><b>${escapeChartText(row[3] || "0")}주</b></span>
-                          <span><em>${priceLabel}</em><b>${escapeChartText(getCalendarTradePrice(row) || "-")}원</b></span>
-                          <span><em>평가손익</em><b class="${resultClass}">${escapeChartText(row[6] || "+0")}</b></span>
-                          <span><em>수익률</em><b class="${resultClass}">${escapeChartText(row[7] || "+0.00%")}</b></span>
-                        </div>
-                        ${row[9] ? `<div class="calendar-day-record-note"><em>메모</em><b>${escapeChartText(row[9])}</b></div>` : ""}
-                      </div>
-                      ${recordId ? `
-                        <div class="calendar-day-record-actions">
-                          <button class="mini-action" type="button" data-calendar-edit-journal="${recordId}" aria-label="수정">${icon("edit")}</button>
-                          <button class="mini-action danger" type="button" data-calendar-delete-journal="${recordId}" aria-label="삭제">${icon("trash")}</button>
-                        </div>
-                      ` : ""}
-                    </article>
-                  `;
-                }).join("")}
+                ${renderCalendarDaySummary(summary)}
+                ${rows.map((row) => renderCalendarDayRecordCard(row, dateValue)).join("")}
               </div>`
             : `<div class="calendar-day-empty">
                 <span class="status-icon">${icon("calendar")}</span>
