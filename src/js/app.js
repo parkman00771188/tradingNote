@@ -104,6 +104,7 @@ var stockChartState = {
 var stockNewsState = {
   key: "",
   loading: false,
+  loaded: false,
   error: "",
   items: [],
   requestId: 0
@@ -320,6 +321,7 @@ function clearRuntimeUserData() {
   stockNewsState = {
     key: "",
     loading: false,
+    loaded: false,
     error: "",
     items: [],
     requestId: stockNewsState.requestId + 1
@@ -1780,12 +1782,13 @@ async function loadStockNewsForSelection(item = getStockAnalysisSelectedStock(),
   const selected = normalizeStockAnalysisItem(item);
   const key = getStockNewsKey(selected);
   if (!key) return false;
-  if (!force && stockNewsState.key === key && (stockNewsState.loading || stockNewsState.items.length || stockNewsState.error)) return true;
+  if (!force && stockNewsState.key === key && (stockNewsState.loading || stockNewsState.loaded || stockNewsState.items.length || stockNewsState.error)) return true;
 
   const requestId = stockNewsState.requestId + 1;
   stockNewsState = {
     key,
     loading: true,
+    loaded: false,
     error: "",
     items: stockNewsState.key === key ? stockNewsState.items : [],
     requestId
@@ -1812,6 +1815,7 @@ async function loadStockNewsForSelection(item = getStockAnalysisSelectedStock(),
     stockNewsState = {
       key,
       loading: false,
+      loaded: true,
       error: "",
       items: Array.isArray(data.news) ? data.news : [],
       requestId
@@ -1823,6 +1827,7 @@ async function loadStockNewsForSelection(item = getStockAnalysisSelectedStock(),
     stockNewsState = {
       key,
       loading: false,
+      loaded: true,
       error: error?.message || "뉴스를 불러오지 못했습니다.",
       items: [],
       requestId
@@ -1837,7 +1842,7 @@ function ensureStockNewsForSelection() {
   if (!selected) return;
   const key = getStockNewsKey(selected);
   if (!key) return;
-  if (stockNewsState.key === key && (stockNewsState.loading || stockNewsState.items.length || stockNewsState.error)) return;
+  if (stockNewsState.key === key && (stockNewsState.loading || stockNewsState.loaded || stockNewsState.items.length || stockNewsState.error)) return;
   window.setTimeout(() => {
     if (getRoute() === "stock") loadStockNewsForSelection(selected).catch((error) => {
       console.warn("Stock news could not be loaded.", error);
