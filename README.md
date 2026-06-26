@@ -34,7 +34,13 @@ http://127.0.0.1:8788
 http://localhost:8788
 ```
 
-현재 로그인은 popup/token 방식이므로 승인된 리디렉션 URI가 필요하지 않습니다.
+Google OAuth 승인된 리디렉션 URI:
+
+```text
+https://tradingnote.pages.dev/
+```
+
+기본 로그인은 popup/token 방식으로 동작합니다. 일부 모바일/인앱 브라우저에서 Google 인증 스크립트가 차단되면 위 리디렉션 URI를 사용하는 대체 로그인 흐름으로 이어집니다.
 
 ## Cloudflare D1 저장소
 

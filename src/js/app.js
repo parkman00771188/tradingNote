@@ -4786,6 +4786,7 @@ function cancelActiveModalDraft(modalName = activeModal) {
 
 function getRoute() {
   const route = window.location.hash.replace("#", "");
+  if (route.includes("access_token=") || route.includes("error=")) return "login";
   if (!route) return "landing";
   return renderers[route] ? route : "dashboard";
 }

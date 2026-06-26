@@ -6,6 +6,9 @@ var loginMessage = "";
 var loginMessageTone = "";
 var loginHydrationToken = 0;
 var loginGoogleClientId = "";
+var loginGoogleRedirectUrl = "";
+var loginGoogleRedirectHandled = false;
+const googleOAuthStateKey = "trading-note-google-oauth-state";
 
 function googleLogo() {
   return `
@@ -36,23 +39,102 @@ function setLoginMessage(message, tone = "") {
 }
 
 function loadGoogleIdentityScript() {
-  if (window.google?.accounts?.id) return Promise.resolve();
+  if (window.google?.accounts?.id && window.google?.accounts?.oauth2) return Promise.resolve();
   if (googleIdentityScriptPromise) return googleIdentityScriptPromise;
 
   googleIdentityScriptPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
+    let settled = false;
+    const failTimer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      googleIdentityScriptPromise = null;
+      script.remove();
+      reject(new Error("Google 인증 준비가 지연되고 있습니다."));
+    }, 7000);
+
     script.src = googleIdentityScriptUrl;
     script.async = true;
     script.defer = true;
-    script.onload = () => resolve();
+    script.onload = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(failTimer);
+      resolve();
+    };
     script.onerror = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(failTimer);
       googleIdentityScriptPromise = null;
-      reject(new Error("Google 로그인 스크립트를 불러오지 못했습니다."));
+      script.remove();
+      reject(new Error("Google 인증 준비가 지연되고 있습니다."));
     };
     document.head.appendChild(script);
   });
 
   return googleIdentityScriptPromise;
+}
+
+function getGoogleOAuthState() {
+  const bytes = new Uint8Array(16);
+  if (window.crypto?.getRandomValues) {
+    window.crypto.getRandomValues(bytes);
+    return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getGoogleRedirectLoginUrl(clientId) {
+  if (!clientId || window.location.protocol !== "https:") return "";
+  const state = getGoogleOAuthState();
+  try {
+    sessionStorage.setItem(googleOAuthStateKey, state);
+  } catch (error) {
+    console.warn("Google OAuth state could not be stored.", error);
+  }
+
+  const redirectUri = `${window.location.origin}${window.location.pathname}`;
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: "token",
+    scope: "openid email profile",
+    prompt: "select_account",
+    include_granted_scopes: "true",
+    state
+  });
+
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+function consumeGoogleOAuthRedirect() {
+  if (loginGoogleRedirectHandled) return null;
+  const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
+  if (!hash || (!hash.includes("access_token=") && !hash.includes("error="))) return null;
+
+  loginGoogleRedirectHandled = true;
+  const params = new URLSearchParams(hash);
+  const state = params.get("state") || "";
+  let storedState = "";
+  try {
+    storedState = sessionStorage.getItem(googleOAuthStateKey) || "";
+    sessionStorage.removeItem(googleOAuthStateKey);
+  } catch (error) {
+    console.warn("Google OAuth state could not be read.", error);
+  }
+
+  window.history.replaceState(null, "", `${window.location.origin}${window.location.pathname}${window.location.search}#login`);
+
+  if (storedState && state && storedState !== state) {
+    return { error: "Google 로그인 요청을 확인하지 못했습니다. 다시 시도해주세요." };
+  }
+
+  if (params.get("error")) {
+    return { error: params.get("error_description") || "Google 계정 선택이 취소되었습니다." };
+  }
+
+  return { accessToken: params.get("access_token") || "" };
 }
 
 function getProductionLoginUrl() {
@@ -136,7 +218,7 @@ function renderFallbackGoogleButton(disabled = false) {
   return `
     <button class="login-social ${disabled ? "disabled" : ""}" type="button" data-google-login-fallback ${disabled ? "disabled aria-disabled=\"true\"" : ""}>
       ${googleLogo()}
-      <strong>Google로 로그인</strong>
+      <strong>Google로 계속하기</strong>
     </button>
   `;
 }
@@ -146,19 +228,40 @@ function bindGoogleLoginButton(container) {
   if (!button || button.disabled) return;
 
   button.addEventListener("click", () => {
-    if (!googleTokenClient) {
-      setLoginMessage("Google 로그인을 아직 준비 중입니다. 잠시 후 다시 눌러주세요.", "loading");
+    if (googleTokenClient) {
+      setLoginMessage("Google 계정을 선택해주세요.", "loading");
+      googleTokenClient.requestAccessToken({ prompt: "select_account" });
       return;
     }
 
-    setLoginMessage("Google 계정을 선택해주세요.", "loading");
-    googleTokenClient.requestAccessToken({ prompt: "select_account" });
+    if (loginGoogleRedirectUrl) {
+      setLoginMessage("Google 로그인 화면으로 이동합니다.", "loading");
+      window.location.assign(loginGoogleRedirectUrl);
+      return;
+    }
+
+    setLoginMessage("Google 로그인을 준비하고 있습니다. 잠시 후 다시 눌러주세요.", "loading");
+    hydrateLoginPage();
   });
 }
 
 async function hydrateLoginPage() {
   const container = document.querySelector("[data-google-login-button]");
   if (!container) return;
+
+  const redirectResult = consumeGoogleOAuthRedirect();
+  if (redirectResult) {
+    container.innerHTML = renderFallbackGoogleButton(true);
+    if (redirectResult.accessToken) {
+      await completeGoogleLogin({
+        action: "google_access_token",
+        accessToken: redirectResult.accessToken
+      });
+    } else {
+      setLoginMessage(redirectResult.error || "Google 로그인 응답을 확인하지 못했습니다.", "error");
+    }
+    return;
+  }
 
   const productionLoginUrl = getProductionLoginUrl();
   if (productionLoginUrl) {
@@ -175,6 +278,7 @@ async function hydrateLoginPage() {
     const config = await fetchLoginConfig();
     if (token !== loginHydrationToken) return;
     loginGoogleClientId = config.googleClientId || "";
+    loginGoogleRedirectUrl = getGoogleRedirectLoginUrl(loginGoogleClientId);
 
     if (!config.googleReady || !config.googleClientId) {
       container.innerHTML = renderFallbackGoogleButton(true);
@@ -214,10 +318,22 @@ async function hydrateLoginPage() {
     bindGoogleLoginButton(container);
     setLoginMessage("", "");
   } catch (error) {
-    container.innerHTML = renderFallbackGoogleButton(true);
+    googleTokenClient = null;
+    if (loginGoogleRedirectUrl) {
+      container.innerHTML = renderFallbackGoogleButton(false);
+      bindGoogleLoginButton(container);
+      setLoginMessage("", "");
+      return;
+    }
+
+    container.innerHTML = renderFallbackGoogleButton(false);
+    bindGoogleLoginButton(container);
+    const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
     setLoginMessage(
-      `${error?.message || "Google 로그인을 준비하지 못했습니다."} 로컬에서는 npx wrangler pages dev로 실행해야 인증 API가 동작합니다.`,
-      "error"
+      isLocal
+        ? "로컬에서는 npx wrangler pages dev로 실행하면 Google 로그인을 확인할 수 있습니다."
+        : "Google 로그인을 다시 눌러주세요.",
+      isLocal ? "loading" : ""
     );
   }
 }
