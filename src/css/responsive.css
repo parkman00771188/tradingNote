@@ -2071,7 +2071,7 @@
     min-width: 0;
   }
 
-  .asset-mobile-legend > div {
+  .asset-mobile-legend > div:not(.asset-mobile-legend-empty) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 12px;
@@ -2097,6 +2097,20 @@
     font-weight: 520;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+  }
+
+  .asset-mobile-legend-empty {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 12px;
+    color: #6b7280;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(203, 213, 225, 0.75);
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.2;
+    font-weight: 700;
   }
 
   .asset-mobile-benefit {

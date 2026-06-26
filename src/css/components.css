@@ -550,6 +550,19 @@
   font-weight: 800;
 }
 
+.asset-allocation-empty {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(203, 213, 225, 0.76);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 760;
+}
+
 .asset-donut-wrap {
   position: relative;
   display: grid;

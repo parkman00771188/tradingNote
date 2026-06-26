@@ -254,11 +254,12 @@ function miniLineChart(values, label = "+125,000") {
 }
 
 function donutChart(segments, center, small = false) {
-  const total = segments.reduce((sum, item) => sum + item.value, 0);
+  const safeSegments = (Array.isArray(segments) ? segments : []).filter((item) => Number(item.value) > 0);
+  const total = safeSegments.reduce((sum, item) => sum + item.value, 0);
   const radius = 45;
   const circumference = 2 * Math.PI * radius;
   let offset = 0;
-  const circles = segments
+  const circles = total > 0 ? safeSegments
     .map((item) => {
       const dash = (item.value / total) * circumference;
       const tooltip = item.amount ? `${item.label}\n비중: ${item.value}%\n금액: ${item.amount}` : `${item.label || "비중"}\n비중: ${item.value}%`;
@@ -276,7 +277,7 @@ function donutChart(segments, center, small = false) {
       offset += dash;
       return circle;
     })
-    .join("");
+    .join("") : "";
   return `
     <div class="donut ${small ? "small" : ""}">
       <svg viewBox="0 0 120 120" aria-label="비중 도넛 차트">

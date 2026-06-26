@@ -221,7 +221,7 @@ function getAssetPortfolioSegments(holdingData, cashBalance = 0, includeCash = t
       amount: formatKRW(item.amount),
       color: meta.color
     };
-  });
+  }).filter((item) => item.rawValue > 0);
 
   if (includeCash && Number(cashBalance) > 0) {
     rawSegments.push({
@@ -233,6 +233,7 @@ function getAssetPortfolioSegments(holdingData, cashBalance = 0, includeCash = t
   }
 
   const totalValue = rawSegments.reduce((sum, item) => sum + item.rawValue, 0);
+  if (totalValue <= 0) return [];
   return rawSegments.map((item) => ({
     ...item,
     value: totalValue ? Number(((item.rawValue / totalValue) * 100).toFixed(1)) : 0
@@ -285,11 +286,13 @@ function renderMobileAssets({
   portfolioIncludeCash = true
 }) {
   const profitClass = holdingProfit >= 0 ? "text-red" : "text-blue";
-  const visibleSegments = holdingSegments.slice(0, 7);
+  const visibleSegments = holdingSegments.filter((item) => Number(item.value) > 0).slice(0, 7);
+  const visibleWeight = visibleSegments.reduce((sum, item) => sum + item.value, 0);
   const otherWeight = Math.max(0, 100 - visibleSegments.reduce((sum, item) => sum + item.value, 0));
-  const mobileSegments = otherWeight > 0.05
+  const mobileSegments = visibleSegments.length && visibleWeight > 0 && otherWeight > 0.05
     ? [...visibleSegments, { label: "기타", value: Number(otherWeight.toFixed(1)), color: "#cbd5e1", amount: "" }]
     : visibleSegments;
+  const hasPortfolioSegments = mobileSegments.length > 0;
 
   return `
     <div class="asset-mobile-page">
@@ -331,12 +334,14 @@ function renderMobileAssets({
             ${donutChart(mobileSegments, `보유비중<br><strong>(%)</strong>`)}
           </div>
           <div class="asset-mobile-legend">
-            ${mobileSegments.map((item) => `
-              <div>
-                <span><i class="dot" style="background:${item.color}"></i>${item.label}</span>
-                <strong>${item.value.toFixed(1)}%</strong>
-              </div>
-            `).join("")}
+            ${hasPortfolioSegments
+              ? mobileSegments.map((item) => `
+                <div>
+                  <span><i class="dot" style="background:${item.color}"></i>${item.label}</span>
+                  <strong>${item.value.toFixed(1)}%</strong>
+                </div>
+              `).join("")
+              : `<div class="asset-mobile-legend-empty">보유자산이 없습니다.</div>`}
           </div>
         </div>
       </section>
@@ -379,6 +384,7 @@ function renderAssets() {
   const portfolioIncludeCash = typeof getAssetPortfolioIncludeCash === "function" ? getAssetPortfolioIncludeCash() : true;
   const holdingSegments = getAssetPortfolioSegments(holdingData, cashBalance, portfolioIncludeCash);
   const leadingHolding = holdingSegments[0] || { label: "-", value: 0 };
+  const hasPortfolioSegments = holdingSegments.length > 0;
 
   return `
     ${renderMobileAssets({ cashBalance, totalAssets, costBasis, investedValue, holdingProfit, holdingReturn, holdingData, holdingSegments, portfolioIncludeCash })}
@@ -419,12 +425,14 @@ function renderAssets() {
           </div>
           <div class="asset-allocation-content">
             <div class="asset-allocation-legend">
-              ${holdingSegments.map((item) => `
-                <div class="asset-allocation-row">
-                  <span><i class="dot" style="background:${item.color}"></i>${item.label}</span>
-                  <strong>${item.value.toFixed(1)}%</strong>
-                </div>
-              `).join("")}
+              ${hasPortfolioSegments
+                ? holdingSegments.map((item) => `
+                  <div class="asset-allocation-row">
+                    <span><i class="dot" style="background:${item.color}"></i>${item.label}</span>
+                    <strong>${item.value.toFixed(1)}%</strong>
+                  </div>
+                `).join("")
+                : `<div class="asset-allocation-empty">보유자산이 없습니다.</div>`}
             </div>
             <div class="asset-donut-wrap">
               ${donutChart(holdingSegments, `보유 자산<br><small>${portfolioIncludeCash ? "현금 포함" : "평가금액"} 기준</small>`)}
@@ -432,7 +440,7 @@ function renderAssets() {
           </div>
           <div class="asset-allocation-footer">
             <span>기준: ${portfolioIncludeCash ? "현금자산 포함 보유 비중" : "보유 종목 평가금액"}</span>
-            <strong>최대 비중 ${leadingHolding.label} ${leadingHolding.value.toFixed(1)}%</strong>
+            <strong>${hasPortfolioSegments ? `최대 비중 ${leadingHolding.label} ${leadingHolding.value.toFixed(1)}%` : "자산을 추가하면 비중이 표시됩니다."}</strong>
           </div>
         </div>
       </section>
