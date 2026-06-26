@@ -119,7 +119,7 @@ body[data-route="login"] .page-content {
 
 .login-logo {
   display: block;
-  width: 248px;
+  width: 150px;
   height: auto;
   margin: 0 auto 50px;
 }
@@ -956,7 +956,7 @@ body[data-route="login"] .page-content {
   }
 
   .login-logo {
-    width: 218px;
+    width: 132px;
     margin-bottom: 42px;
   }
 
@@ -1188,7 +1188,7 @@ body[data-route="login"] .page-content {
   }
 
   .login-logo {
-    width: 198px;
+    width: 120px;
     margin-bottom: 38px;
   }
 
