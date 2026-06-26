@@ -3183,6 +3183,34 @@ function formatAssetMarketPrice(result) {
   return formatted;
 }
 
+function getAssetFavoriteMarketItems() {
+  return stockFavoriteItems
+    .map((item, index) => ({ item: normalizeStockAnalysisItem(item), index }))
+    .filter(({ item }) => String(item.name || item.code || item.symbol || "").trim())
+    .slice(0, 8);
+}
+
+function renderAssetMarketFavorites(rowId) {
+  const favorites = getAssetFavoriteMarketItems();
+  if (!favorites.length) return "";
+
+  return `
+    <div class="asset-market-favorites" aria-label="즐겨찾기 종목">
+      ${favorites.map(({ item, index }) => {
+        const priceText = formatAssetMarketPrice(item);
+        const metaText = [item.code || item.symbol, getStockMarketLabel(item)].filter(Boolean).join(" · ");
+        return `
+          <button class="asset-market-favorite-chip" type="button" data-asset-market-favorite="${index}" data-asset-setting-id="${rowId}">
+            <strong>${escapeChartText(item.name)}</strong>
+            <span>${escapeChartText(metaText || item.symbol || "")}</span>
+            ${priceText ? `<em>${escapeChartText(priceText)}</em>` : ""}
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
 function renderAssetMarketSearchPanel(rowId) {
   if (assetMarketSearch.rowId !== rowId) return "";
 
@@ -3278,10 +3306,10 @@ function findAssetMarketMetaResult(results = [], item = {}) {
   }) || results[0] || null;
 }
 
-async function fetchAssetMarketMeta(item = {}) {
+async function fetchAssetMarketMeta(item = {}, { force = false } = {}) {
   const cacheKey = getAssetMarketMetaCacheKey(item);
   if (!cacheKey) return null;
-  if (assetMarketMetaCache.has(cacheKey)) return assetMarketMetaCache.get(cacheKey);
+  if (!force && assetMarketMetaCache.has(cacheKey)) return assetMarketMetaCache.get(cacheKey);
 
   const response = await fetch(`/api/markets?action=search&q=${encodeURIComponent(cacheKey)}`, {
     credentials: "include",
@@ -3481,6 +3509,41 @@ function applyAssetMarketResult(rowId, resultIndex) {
   return true;
 }
 
+function applyAssetFavoriteResult(rowId, favoriteIndex) {
+  const favorite = stockFavoriteItems[Number(favoriteIndex)];
+  if (!favorite) return false;
+
+  const currentDraft = assetSettingsDrafts.find((item) => item.id === rowId) || {};
+  const patch = getAssetMarketResultPatch(normalizeStockAnalysisItem(favorite), currentDraft, { includeIdentity: true });
+  if (!Number(currentDraft.averagePrice || 0) && Number(patch.currentPrice || 0)) {
+    patch.averagePrice = patch.currentPrice;
+  }
+  patchAssetSettingsDraft(rowId, patch);
+
+  assetSettingsEditingId = rowId;
+  assetSettingsOpenMenuId = null;
+  resetAssetMarketSearch(rowId);
+  return true;
+}
+
+async function refreshAssetAveragePriceFromMarket(rowId) {
+  const currentDraft = assetSettingsDrafts.find((item) => item.id === rowId);
+  if (!currentDraft || !String(currentDraft.code || currentDraft.name || "").trim()) {
+    throw new Error("먼저 종목을 선택해 주세요.");
+  }
+
+  const result = await fetchAssetMarketMeta(currentDraft, { force: true });
+  if (!result) throw new Error("현재가를 불러오지 못했습니다.");
+
+  const patch = getAssetMarketResultPatch(result, currentDraft, { includeIdentity: true });
+  if (!Number(patch.currentPrice || 0)) throw new Error("현재가를 확인하지 못했습니다.");
+
+  patch.averagePrice = patch.currentPrice;
+  patchAssetSettingsDraft(rowId, patch);
+  assetSettingsMessage = "현재가를 평균단가에 반영했습니다.";
+  return true;
+}
+
 function isEmptyAssetSettingsDraft(item) {
   return !String(item.name || "").trim() &&
     !String(item.code || "").trim() &&
@@ -3497,7 +3560,8 @@ function getAssetSettingsWatchPrice(item) {
 function getAssetSettingsValuationPrice(item, mode = item.priceInputMode) {
   const inputMode = mode === "quantity" ? "quantity" : "full";
   const averagePrice = Math.max(0, Number(item.averagePrice) || 0);
-  if (inputMode === "full") return averagePrice;
+  if (averagePrice) return averagePrice;
+  if (inputMode === "full") return 0;
 
   const watchPrice = getAssetSettingsWatchPrice(item);
   return Math.max(0, watchPrice || Number(item.currentPrice) || averagePrice);
@@ -3837,6 +3901,7 @@ function renderAssetSettingsCardView(item, index) {
   const readOnlyMeta = [displayCode, categoryLabel].filter(Boolean).join(" · ");
   const motionClass = getAssetSettingsCardMotionClass(item, index);
   const searchPanel = renderAssetMarketSearchPanel(item.id);
+  const favoriteList = isEditing ? renderAssetMarketFavorites(item.id) : "";
   if (!isEditing) {
     const quantityText = formatMarketNumber(Number(item.quantity) || 0);
     const priceText = formatMarketNumber(Number(item.currentPrice) || 0);
@@ -3922,6 +3987,7 @@ function renderAssetSettingsCardView(item, index) {
                   <span aria-hidden="true">${icon("search")}</span>
                   <input class="asset-settings-title-input asset-market-search-input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="종목명 또는 코드 검색" data-asset-setting-field="name" data-asset-setting-id="${item.id}" data-asset-market-search-input>
                 </div>
+                ${favoriteList}
                 <div class="asset-market-search-panel" data-asset-market-search-panel="${item.id}">${searchPanel}</div>
               </div>
               <label class="asset-market-code-field">
@@ -3942,17 +4008,17 @@ function renderAssetSettingsCardView(item, index) {
             <em>주</em>
           </div>
         </label>
-        <label class="asset-settings-tile">
+        <div class="asset-settings-tile">
           <span class="asset-settings-tile-icon" aria-hidden="true">${icon("performance")}</span>
           <span class="asset-settings-tile-label">
             <b>평균단가</b>
-            <small>현재가</small>
+            <button type="button" data-asset-current-price-fill="${item.id}" aria-label="현재가 다시 불러오기">현재가</button>
           </span>
           <div class="asset-settings-tile-input">
             <input type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
             <em>원</em>
           </div>
-        </label>
+        </div>
       </div>
 
       <div class="asset-settings-value-panel">
@@ -5204,6 +5270,19 @@ document.addEventListener("click", async (event) => {
       return;
     }
 
+    const assetMarketFavorite = event.target.closest("[data-asset-market-favorite]");
+    if (assetMarketFavorite && activeModal === "assetSettings") {
+      syncAssetSettingsActiveIndexFromDom();
+      const rowId = assetMarketFavorite.dataset.assetSettingId;
+      if (applyAssetFavoriteResult(rowId, assetMarketFavorite.dataset.assetMarketFavorite)) {
+        renderModal();
+        hydrateIcons(document);
+        const card = document.querySelector(`[data-asset-setting-card="${rowId}"]`);
+        card?.querySelector("[data-asset-setting-field='quantity']")?.focus();
+      }
+      return;
+    }
+
     const assetSettingsAdd = event.target.closest("[data-asset-settings-add]");
     if (assetSettingsAdd && activeModal === "assetSettings") {
       syncAssetSettingsActiveIndexFromDom();
@@ -5237,6 +5316,27 @@ document.addEventListener("click", async (event) => {
       hydrateIcons(document);
       const card = document.querySelector(`[data-asset-setting-card="${assetSettingsPriceCurrency.dataset.assetSettingId}"]`);
       card?.querySelector("[data-asset-setting-field='currentPrice']")?.focus();
+      return;
+    }
+
+    const assetCurrentPriceFill = event.target.closest("[data-asset-current-price-fill]");
+    if (assetCurrentPriceFill && activeModal === "assetSettings") {
+      syncAssetSettingsActiveIndexFromDom();
+      const rowId = assetCurrentPriceFill.dataset.assetCurrentPriceFill;
+      assetSettingsError = "";
+      assetSettingsMessage = "현재가를 불러오고 있습니다.";
+      renderModal();
+      hydrateIcons(document);
+      try {
+        await refreshAssetAveragePriceFromMarket(rowId);
+      } catch (error) {
+        assetSettingsError = error?.message || "현재가를 불러오지 못했습니다.";
+        assetSettingsMessage = "";
+      }
+      renderModal();
+      hydrateIcons(document);
+      const card = document.querySelector(`[data-asset-setting-card="${rowId}"]`);
+      card?.querySelector("[data-asset-setting-field='averagePrice']")?.focus();
       return;
     }
 

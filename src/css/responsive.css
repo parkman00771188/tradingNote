@@ -3912,6 +3912,19 @@
     border-radius: 15px;
   }
 
+  .asset-market-favorites {
+    gap: 6px;
+    padding-bottom: 2px;
+  }
+
+  .asset-market-favorite-chip {
+    min-width: 92px;
+    max-width: 124px;
+    min-height: 38px;
+    padding: 6px 9px;
+    border-radius: 12px;
+  }
+
   .asset-market-search-box svg {
     width: 20px;
     height: 20px;
