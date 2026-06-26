@@ -6368,7 +6368,7 @@ body.modal-open {
 
 .calendar-day-modal .modal-body {
   display: grid;
-  gap: 11px;
+  gap: 8px;
   background: #ffffff;
 }
 
@@ -6377,7 +6377,7 @@ body.modal-open {
   grid-template-columns: 38px minmax(0, 1fr) 38px;
   gap: 12px;
   align-items: center;
-  padding: 18px 20px 12px;
+  padding: 14px 18px 8px;
   background: #ffffff;
 }
 
@@ -6463,7 +6463,7 @@ body.modal-open {
 
 .calendar-day-records {
   display: grid;
-  gap: 9px;
+  gap: 6px;
 }
 
 .calendar-day-summary-grid {
@@ -6481,8 +6481,8 @@ body.modal-open {
   justify-items: center;
   align-content: center;
   min-width: 0;
-  min-height: 96px;
-  padding: 10px 6px;
+  min-height: 80px;
+  padding: 7px 5px;
   border-right: 1px solid #eef2f7;
   text-align: center;
 }
@@ -6494,14 +6494,14 @@ body.modal-open {
 .calendar-day-summary-icon {
   display: inline-grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  margin-bottom: 7px;
+  width: 22px;
+  height: 22px;
+  margin-bottom: 5px;
 }
 
 .calendar-day-summary-icon svg {
-  width: 25px;
-  height: 25px;
+  width: 21px;
+  height: 21px;
   stroke: currentColor;
   stroke-width: 1.9;
   stroke-linecap: round;
@@ -6528,9 +6528,9 @@ body.modal-open {
 }
 
 .calendar-day-summary-card em {
-  margin: 0 0 5px;
+  margin: 0 0 4px;
   color: #64748b;
-  font-size: 11px;
+  font-size: 10px;
   font-style: normal;
   font-weight: 800;
 }
@@ -6541,7 +6541,7 @@ body.modal-open {
   max-width: 100%;
   color: #111827;
   overflow-wrap: anywhere;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.16;
   font-weight: 950;
 }
@@ -6555,9 +6555,9 @@ body.modal-open {
 }
 
 .calendar-day-summary-card small {
-  margin-top: 3px;
+  margin-top: 2px;
   color: #64748b;
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1.2;
   font-weight: 750;
 }
@@ -6565,8 +6565,9 @@ body.modal-open {
 .calendar-day-filter-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  gap: 7px;
   align-items: center;
+  margin-top: 2px;
 }
 
 .calendar-day-filter-chip {
@@ -6575,14 +6576,14 @@ body.modal-open {
   justify-content: center;
   gap: 6px;
   min-width: 0;
-  min-height: 38px;
-  padding: 0 10px;
+  min-height: 34px;
+  padding: 0 8px;
   color: #64748b;
   background: #ffffff;
   border: 1px solid #e8eef7;
   border-radius: 999px;
   box-shadow: 0 5px 14px rgba(15, 23, 42, 0.035);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
   white-space: nowrap;
 }
@@ -6658,10 +6659,10 @@ body.modal-open {
   position: relative;
   display: grid;
   grid-template-columns: 74px minmax(0, 1fr) auto;
-  gap: 10px;
+  gap: 8px;
   align-items: start;
   overflow: hidden;
-  padding: 10px 9px 10px 14px;
+  padding: 8px 8px 7px 13px;
   border: 1px solid #e5edf8;
   border-radius: 8px;
   background: #ffffff;
@@ -6686,7 +6687,7 @@ body.modal-open {
 
 .calendar-day-record-side {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   align-content: start;
   min-width: 0;
 }
@@ -6695,7 +6696,7 @@ body.modal-open {
   display: grid;
   justify-items: center;
   min-width: 0;
-  padding: 7px 4px;
+  padding: 5px 3px;
   background: #fbfdff;
   border: 1px solid #edf2f7;
   border-radius: 7px;
@@ -6708,7 +6709,7 @@ body.modal-open {
 }
 
 .calendar-day-record-side em {
-  margin: 0 0 3px;
+  margin: 0 0 2px;
   color: #64748b;
   font-size: 10px;
   font-style: normal;
@@ -6725,7 +6726,7 @@ body.modal-open {
 .calendar-day-record-top {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: 8px;
   align-items: start;
   min-width: 0;
 }
@@ -6759,7 +6760,7 @@ body.modal-open {
   display: block;
   color: var(--text);
   overflow: hidden;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.15;
   font-weight: 900;
   text-overflow: ellipsis;
@@ -6768,7 +6769,7 @@ body.modal-open {
 
 .calendar-day-record p,
 .calendar-day-record em {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--text-muted);
   font-size: 12px;
   font-style: normal;
@@ -6787,7 +6788,7 @@ body.modal-open {
 
 .calendar-day-record-amount b {
   color: #0f172a;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.1;
   font-weight: 950;
   white-space: nowrap;
@@ -6802,7 +6803,7 @@ body.modal-open {
 }
 
 .calendar-day-record-amount span {
-  margin-top: 4px;
+  margin-top: 2px;
   color: #64748b;
   font-size: 12px;
   font-weight: 850;
@@ -6834,14 +6835,14 @@ body.modal-open {
 .calendar-day-record-meta {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 5px;
-  margin-top: 8px;
+  gap: 4px;
+  margin-top: 5px;
 }
 
 .calendar-day-record-meta > span {
   min-width: 0;
-  min-height: 42px;
-  padding: 7px 5px;
+  min-height: 34px;
+  padding: 5px 3px;
   background: #fbfdff;
   border: 1px solid #edf2f7;
   border-radius: 7px;
@@ -6854,14 +6855,14 @@ body.modal-open {
 }
 
 .calendar-day-record-meta em {
-  margin: 0 0 3px;
+  margin: 0 0 2px;
   color: #64748b;
   font-size: 10px;
 }
 
 .calendar-day-record-note {
-  margin-top: 6px;
-  padding: 7px 8px;
+  margin-top: 5px;
+  padding: 6px 7px;
   background: #fff;
   border: 1px dashed #cbd5e1;
   border-radius: 7px;
@@ -6891,13 +6892,13 @@ body.modal-open {
 
 .calendar-day-record-actions {
   display: grid;
-  gap: 5px;
+  gap: 4px;
   padding-top: 0;
 }
 
 .calendar-day-record-actions .mini-action {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 7px;
 }
 

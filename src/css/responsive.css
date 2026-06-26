@@ -355,13 +355,12 @@
   }
 
   .calendar-day-modal {
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    max-height: 100vh;
-    max-height: 100dvh;
-    border: 0;
-    border-radius: 0;
+    width: min(440px, calc(100vw - 24px));
+    height: auto;
+    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
+    border: 1px solid var(--line);
+    border-radius: 16px;
   }
 
   .modal-header {
@@ -1214,14 +1213,14 @@
   }
 
   .calendar-day-modal .modal-body {
-    gap: 10px;
-    padding: 0 14px 18px;
+    gap: 7px;
+    padding: 0 12px 12px;
   }
 
   .calendar-day-appbar {
     grid-template-columns: 36px minmax(0, 1fr) 36px;
-    gap: 10px;
-    padding: 15px 18px 10px;
+    gap: 8px;
+    padding: 12px 14px 7px;
   }
 
   .calendar-day-heading p {
@@ -1237,8 +1236,8 @@
   }
 
   .calendar-day-summary-card {
-    min-height: 92px;
-    padding: 9px 4px;
+    min-height: 76px;
+    padding: 6px 3px;
   }
 
   .calendar-day-summary-card:nth-child(2n) {
@@ -1254,14 +1253,14 @@
   }
 
   .calendar-day-summary-icon {
-    width: 23px;
-    height: 23px;
-    margin-bottom: 6px;
+    width: 20px;
+    height: 20px;
+    margin-bottom: 4px;
   }
 
   .calendar-day-summary-icon svg {
-    width: 22px;
-    height: 22px;
+    width: 19px;
+    height: 19px;
   }
 
   .calendar-day-summary-card em {
@@ -1269,7 +1268,7 @@
   }
 
   .calendar-day-summary-card strong {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .calendar-day-summary-card small {
@@ -1277,14 +1276,15 @@
   }
 
   .calendar-day-filter-row {
-    gap: 7px;
+    gap: 6px;
+    margin-top: 1px;
   }
 
   .calendar-day-filter-chip {
-    gap: 5px;
-    min-height: 36px;
-    padding: 0 8px;
-    font-size: 12px;
+    gap: 4px;
+    min-height: 32px;
+    padding: 0 7px;
+    font-size: 11px;
   }
 
   .calendar-day-filter-chip span {
@@ -1295,16 +1295,16 @@
 
   .calendar-day-record {
     grid-template-columns: 58px minmax(0, 1fr) 30px;
-    gap: 8px;
-    padding: 9px 8px 9px 12px;
+    gap: 6px;
+    padding: 7px 7px 6px 11px;
   }
 
   .calendar-day-record-side {
-    gap: 7px;
+    gap: 5px;
   }
 
   .calendar-day-record-side > span {
-    padding: 6px 3px;
+    padding: 5px 3px;
   }
 
   .calendar-day-record-top {
@@ -1313,7 +1313,7 @@
   }
 
   .calendar-day-record-title strong {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .calendar-day-record-title p {
@@ -1326,7 +1326,7 @@
   }
 
   .calendar-day-record-amount b {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .calendar-day-record-amount span {
@@ -1336,12 +1336,12 @@
 
   .calendar-day-record-meta {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px;
+    gap: 3px;
   }
 
   .calendar-day-record-meta > span {
-    min-height: 39px;
-    padding: 6px 3px;
+    min-height: 32px;
+    padding: 4px 2px;
   }
 
   .calendar-day-record-meta em {
@@ -1357,8 +1357,8 @@
   }
 
   .calendar-day-record-actions .mini-action {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
   }
 
   .journal-write-modal .modal-body {
