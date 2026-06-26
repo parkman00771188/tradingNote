@@ -5014,6 +5014,11 @@ body.modal-open {
   font-size: 16px;
 }
 
+.asset-market-code-field .asset-settings-code-input[readonly] {
+  cursor: default;
+  color: #475569;
+}
+
 .asset-settings-value-panel {
   display: grid;
   grid-template-columns: 46px minmax(0, 1fr);

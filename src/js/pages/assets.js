@@ -299,7 +299,10 @@ function renderMobileAssets({
       <section class="asset-mobile-summary">
         <div class="asset-mobile-summary-head">
           <h2>내 보유자산 <span>${icon("info")}</span></h2>
-          <button class="asset-mobile-settings-button" type="button" data-modal="assetSettings">${icon("settings")}자산 설정</button>
+          <div class="asset-mobile-summary-actions">
+            <button class="asset-mobile-cash-button" type="button" data-modal="assetCash">${icon("wallet")}입/출금</button>
+            <button class="asset-mobile-settings-button" type="button" data-modal="assetSettings">${icon("settings")}자산 설정</button>
+          </div>
         </div>
         <div class="asset-mobile-summary-hero">
           <div>

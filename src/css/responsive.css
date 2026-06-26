@@ -1919,6 +1919,13 @@
     gap: 14px;
   }
 
+  .asset-mobile-summary-actions {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 7px;
+  }
+
   .asset-mobile-summary h2,
   .asset-mobile-section-head h2 {
     display: flex;
@@ -1931,7 +1938,8 @@
     font-weight: 780;
   }
 
-  .asset-mobile-settings-button {
+  .asset-mobile-settings-button,
+  .asset-mobile-cash-button {
     display: inline-flex;
     flex: 0 0 auto;
     align-items: center;
@@ -1950,6 +1958,12 @@
     box-shadow: 0 6px 18px rgba(36, 116, 242, 0.08);
   }
 
+  .asset-mobile-cash-button {
+    color: #0f172a;
+    background: rgba(255, 255, 255, 0.82);
+    border-color: #d9e3f1;
+  }
+
   .asset-mobile-summary h2 span,
   .asset-mobile-section-head span {
     display: inline-grid;
@@ -1959,6 +1973,7 @@
 
   .asset-mobile-summary h2 svg,
   .asset-mobile-settings-button svg,
+  .asset-mobile-cash-button svg,
   .asset-mobile-section-head svg {
     width: 20px;
     height: 20px;
@@ -1967,7 +1982,8 @@
     fill: none;
   }
 
-  .asset-mobile-settings-button svg {
+  .asset-mobile-settings-button svg,
+  .asset-mobile-cash-button svg {
     width: 16px;
     height: 16px;
     stroke-width: 2;
@@ -3572,6 +3588,17 @@
     min-height: 45px;
     padding: 0 14px;
     font-size: 13px;
+  }
+
+  .asset-mobile-summary-actions {
+    gap: 5px;
+  }
+
+  .asset-mobile-settings-button,
+  .asset-mobile-cash-button {
+    min-height: 34px;
+    padding: 0 9px;
+    font-size: 12px;
   }
 
   .mobile-date-pill {

@@ -4007,7 +4007,7 @@ function renderAssetSettingsCardView(item, index) {
               </div>
               <label class="asset-market-code-field">
                 <span>종목코드</span>
-                <input class="asset-settings-code-input" type="text" value="${escapeChartText(item.code)}" autocomplete="off" placeholder="005930 또는 AAPL" data-asset-setting-field="code" data-asset-setting-id="${item.id}">
+                <input class="asset-settings-code-input" type="text" value="${escapeChartText(item.code)}" autocomplete="off" placeholder="종목 선택 시 자동 입력" data-asset-setting-field="code" data-asset-setting-id="${item.id}" readonly aria-readonly="true">
               </label>`
             : `<input class="asset-settings-title-input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="새 자산" data-asset-setting-field="name" data-asset-setting-id="${item.id}" ${readOnlyAttr}>`
         }
