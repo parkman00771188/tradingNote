@@ -596,7 +596,7 @@ function shouldPreferLocalAssetSnapshot(localSnapshot = {}, remoteSnapshot = {})
 }
 
 function shouldAllowEmptyAssetSave(source = "") {
-  return source === "user_clear";
+  return source === "user_clear" || source === "user_cash";
 }
 
 function isUserAssetSaveSource(source = "") {
@@ -5092,7 +5092,7 @@ document.addEventListener("click", async (event) => {
       }
 
       assetCashBalance = assetCashPendingMode === "withdraw" ? assetCashBalance - assetCashPendingAmount : assetCashBalance + assetCashPendingAmount;
-      saveAssetStateToStorage({ source: "user", immediate: true }).catch((error) => {
+      saveAssetStateToStorage({ source: "user_cash", immediate: true }).catch((error) => {
         console.warn("Cash balance could not be saved immediately.", error);
       });
       assetCashError = "";
