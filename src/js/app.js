@@ -129,6 +129,7 @@ var userJournalRecords = [];
 var userJournalServerSaveTimer = 0;
 var userJournalServerSavePendingFor = "";
 var journalEditingRecordId = "";
+var journalWriteReturnToCalendarDay = false;
 var assetPortfolioIncludeCash = true;
 const assetXlsxLibraryUrl = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
 var assetXlsxLibraryPromise = null;
@@ -478,6 +479,27 @@ function getJournalAssetRowsForMutation() {
   }));
 }
 
+function applyJournalAssetRowsForMutation(rows = []) {
+  const nextRows = rows.filter((row) => (Number(row.quantity) || 0) > 0);
+  if (!nextRows.length) {
+    clearAssetHoldingsRuntime();
+    return true;
+  }
+  return replaceAssetHoldings(nextRows);
+}
+
+function getJournalAssetMutationSnapshot() {
+  return {
+    cashBalance: Number(assetCashBalance) || 0,
+    rows: getJournalAssetRowsForMutation()
+  };
+}
+
+function restoreJournalAssetMutationSnapshot(snapshot = {}) {
+  assetCashBalance = Math.max(0, Math.round(Number(snapshot.cashBalance) || 0));
+  applyJournalAssetRowsForMutation(Array.isArray(snapshot.rows) ? snapshot.rows : []);
+}
+
 function findJournalAssetRowIndex(rows = [], record = {}) {
   const code = record.code || record.symbol || "";
   const name = record.name || "";
@@ -526,10 +548,14 @@ function applyJournalRecordAssetEffect(record = {}, direction = 1) {
     rowIndex = rows.length - 1;
   }
 
+  if (rowIndex < 0) return false;
+
   if (rowIndex >= 0) {
     const row = rows[rowIndex];
     const previousQuantity = Number(row.quantity) || 0;
-    const nextQuantity = Math.max(0, previousQuantity + quantityDelta);
+    const rawNextQuantity = previousQuantity + quantityDelta;
+    if (rawNextQuantity < -0.000001) return false;
+    const nextQuantity = Math.max(0, rawNextQuantity);
     if (!isSell && direction > 0 && nextQuantity > 0) {
       const previousCost = Math.max(0, previousQuantity) * (Number(row.averagePrice) || price);
       row.averagePrice = Math.round((previousCost + quantity * price) / nextQuantity);
@@ -539,8 +565,8 @@ function applyJournalRecordAssetEffect(record = {}, direction = 1) {
     row.priceInputMode = row.priceInputMode || "full";
   }
 
+  if (!applyJournalAssetRowsForMutation(rows)) return false;
   assetCashBalance = Math.max(0, Math.round((Number(assetCashBalance) || 0) + cashDelta));
-  replaceAssetHoldings(rows.filter((row) => (Number(row.quantity) || 0) > 0));
   return true;
 }
 
@@ -557,7 +583,11 @@ async function persistJournalAndAssetState() {
 async function deleteJournalRecordById(recordId = "") {
   const record = getJournalRecordById(recordId);
   if (!record) return false;
-  applyJournalRecordAssetEffect(record, -1);
+  const assetSnapshot = getJournalAssetMutationSnapshot();
+  if (!applyJournalRecordAssetEffect(record, -1)) {
+    restoreJournalAssetMutationSnapshot(assetSnapshot);
+    return false;
+  }
   userJournalRecords = userJournalRecords.filter((item) => String(item.id || "") !== String(recordId));
   await persistJournalAndAssetState();
   return true;
@@ -566,9 +596,14 @@ async function deleteJournalRecordById(recordId = "") {
 async function deleteJournalRecordsByIds(recordIds = []) {
   const idSet = new Set(recordIds.map((id) => String(id || "")).filter(Boolean));
   if (!idSet.size) return false;
-  userJournalRecords.forEach((record) => {
-    if (idSet.has(String(record.id || ""))) applyJournalRecordAssetEffect(record, -1);
-  });
+  const assetSnapshot = getJournalAssetMutationSnapshot();
+  for (const record of userJournalRecords) {
+    if (!idSet.has(String(record.id || ""))) continue;
+    if (!applyJournalRecordAssetEffect(record, -1)) {
+      restoreJournalAssetMutationSnapshot(assetSnapshot);
+      return false;
+    }
+  }
   userJournalRecords = userJournalRecords.filter((item) => !idSet.has(String(item.id || "")));
   await persistJournalAndAssetState();
   return true;
@@ -2067,10 +2102,17 @@ async function saveJournalEntryFromForm(form) {
   const editingRecord = getJournalRecordById(form.dataset.journalEditId || journalEditingRecordId || "");
   const record = createJournalRecordFromForm(form);
   if (!record) return false;
+  const assetSnapshot = getJournalAssetMutationSnapshot();
   if (editingRecord) {
-    applyJournalRecordAssetEffect(editingRecord, -1);
+    if (!applyJournalRecordAssetEffect(editingRecord, -1)) {
+      restoreJournalAssetMutationSnapshot(assetSnapshot);
+      return false;
+    }
   }
-  applyJournalRecordAssetEffect(record, 1);
+  if (!applyJournalRecordAssetEffect(record, 1)) {
+    restoreJournalAssetMutationSnapshot(assetSnapshot);
+    return false;
+  }
   userJournalRecords = [record, ...userJournalRecords.filter((item) => item.id !== record.id)].slice(0, 500);
   setJournalEditingRecord("");
   await persistJournalAndAssetState();
@@ -4521,6 +4563,7 @@ function cancelActiveModalDraft(modalName = activeModal) {
   if (modalName === "journalWrite" && typeof clearJournalWriteInitialDate === "function") {
     clearJournalWriteInitialDate();
     setJournalEditingRecord("");
+    journalWriteReturnToCalendarDay = false;
   }
   if (modalName === "journalDateRange") cancelJournalDateRangeEdit();
   if (modalName === "journalStockFilter") cancelJournalStockFilterEdit();
@@ -5156,6 +5199,7 @@ document.addEventListener("click", async (event) => {
     if (calendarWriteJournal && activeModal === "calendarDayDetail") {
       const selectedDate = calendarWriteJournal.dataset.calendarWriteJournal || "";
       setJournalEditingRecord("");
+      journalWriteReturnToCalendarDay = true;
       if (typeof setJournalWriteInitialDate === "function") setJournalWriteInitialDate(selectedDate);
       activeModal = "journalWrite";
       renderModal();
@@ -5165,6 +5209,7 @@ document.addEventListener("click", async (event) => {
 
     const calendarEditJournal = event.target.closest("[data-calendar-edit-journal]");
     if (calendarEditJournal && activeModal === "calendarDayDetail") {
+      journalWriteReturnToCalendarDay = true;
       openJournalRecordEditor(calendarEditJournal.dataset.calendarEditJournal);
       return;
     }
@@ -5184,6 +5229,7 @@ document.addEventListener("click", async (event) => {
     if (modalClose && modalPanel) {
       cancelActiveModalDraft();
       setJournalEditingRecord("");
+      journalWriteReturnToCalendarDay = false;
       activeModal = null;
       assetCashError = "";
       assetCashMessage = "";
@@ -5597,11 +5643,21 @@ document.addEventListener("click", async (event) => {
     const journalEntrySave = event.target.closest("[data-journal-entry-save]");
     if (journalEntrySave) {
       const form = journalEntrySave.closest("[data-journal-entry-form]");
+      const savedJournalDate = form?.querySelector("[data-date-picker]")?.value || "";
+      const returnToCalendarDay = activeModal === "journalWrite" && journalWriteReturnToCalendarDay && savedJournalDate;
       if (form && !updateJournalTradeEstimate(form)) return;
       if (form && !(await saveJournalEntryFromForm(form))) return;
-      activeModal = null;
       setJournalEditingRecord("");
       if (typeof clearJournalWriteInitialDate === "function") clearJournalWriteInitialDate();
+      journalWriteReturnToCalendarDay = false;
+      if (returnToCalendarDay && typeof setCalendarDayDetailDate === "function") {
+        setCalendarDayDetailDate(savedJournalDate);
+        activeModal = "calendarDayDetail";
+        render();
+        hydrateIcons(document);
+        return;
+      }
+      activeModal = null;
       render();
       return;
     }
@@ -5609,6 +5665,7 @@ document.addEventListener("click", async (event) => {
     if (event.target.matches(".modal-backdrop")) {
       cancelActiveModalDraft();
       setJournalEditingRecord("");
+      journalWriteReturnToCalendarDay = false;
       activeModal = null;
       assetCashError = "";
       assetCashMessage = "";

@@ -1214,6 +1214,24 @@
     padding: 13px;
   }
 
+  .calendar-day-record-head {
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 11px;
+  }
+
+  .calendar-day-record-symbol {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    font-size: 15px;
+  }
+
+  .calendar-day-record-total {
+    grid-column: 1 / -1;
+    min-width: 0;
+    text-align: left;
+  }
+
   .calendar-day-record-meta {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;

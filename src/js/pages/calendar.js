@@ -156,6 +156,19 @@ function renderCalendarTradeTypeBadge(row) {
   return `<span class="trade-type ${sell ? "sell" : "buy"}">${sell ? "매도" : "매수"}</span>`;
 }
 
+function getCalendarRecordInitials(row) {
+  const name = String(row?.[1] || "?").trim();
+  if (!name) return "?";
+  return name.replace(/\s+/g, "").slice(0, 2);
+}
+
+function getCalendarRecordResultClass(row) {
+  const profitText = String(row?.[6] || "").trim();
+  if (/^-\s*[1-9]/.test(profitText)) return "text-blue";
+  if (/^\+\s*[1-9]/.test(profitText)) return "text-red";
+  return "";
+}
+
 function renderCalendarDayDetailModal() {
   const dateValue = calendarDayDetailDate || formatCalendarDateValue(calendarSelectedDate);
   const rows = getCalendarRowsForDateValue(dateValue);
@@ -175,20 +188,37 @@ function renderCalendarDayDetailModal() {
             ? `<div class="calendar-day-records">
                 ${rows.map((row) => {
                   const recordId = row[12] || "";
+                  const sell = isCalendarSellRow(row);
                   const priceLabel = isCalendarSellRow(row) ? "매도가" : "매수가";
                   const totalLabel = isCalendarSellRow(row) ? "총 매도금액" : "총 매수금액";
+                  const codeText = String(row[11] || "").trim();
+                  const resultClass = getCalendarRecordResultClass(row);
+                  const syncLabel = recordId ? "자산 반영" : "샘플 기록";
                   return `
-                    <article class="calendar-day-record">
+                    <article class="calendar-day-record ${sell ? "sell" : "buy"}">
                       <div class="calendar-day-record-main">
-                        <strong>${escapeChartText(row[1] || "-")}</strong>
-                        <p>${escapeChartText(row[11] || row[0] || "")}</p>
+                        <div class="calendar-day-record-head">
+                          <span class="calendar-day-record-symbol" aria-hidden="true">${escapeChartText(getCalendarRecordInitials(row))}</span>
+                          <div class="calendar-day-record-title">
+                            <div>
+                              ${renderCalendarTradeTypeBadge(row)}
+                              <span class="calendar-day-record-sync">${syncLabel}</span>
+                            </div>
+                            <strong>${escapeChartText(row[1] || "-")}</strong>
+                            <p>${escapeChartText([codeText, dateValue].filter(Boolean).join(" · "))}</p>
+                          </div>
+                          <div class="calendar-day-record-total">
+                            <em>${totalLabel}</em>
+                            <b>${formatKRW(getCalendarTradeTotal(row))}</b>
+                          </div>
+                        </div>
                         <div class="calendar-day-record-meta">
-                          <span>${renderCalendarTradeTypeBadge(row)}</span>
                           <span><em>수량</em><b>${escapeChartText(row[3] || "0")}주</b></span>
                           <span><em>${priceLabel}</em><b>${escapeChartText(getCalendarTradePrice(row) || "-")}원</b></span>
-                          <span><em>${totalLabel}</em><b>${formatKRW(getCalendarTradeTotal(row))}</b></span>
-                          ${row[9] ? `<span class="calendar-day-record-note"><em>메모</em><b>${escapeChartText(row[9])}</b></span>` : ""}
+                          <span><em>평가손익</em><b class="${resultClass}">${escapeChartText(row[6] || "+0")}</b></span>
+                          <span><em>수익률</em><b class="${resultClass}">${escapeChartText(row[7] || "+0.00%")}</b></span>
                         </div>
+                        ${row[9] ? `<div class="calendar-day-record-note"><em>메모</em><b>${escapeChartText(row[9])}</b></div>` : ""}
                       </div>
                       ${recordId ? `
                         <div class="calendar-day-record-actions">
