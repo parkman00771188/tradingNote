@@ -2974,7 +2974,7 @@
     max-height: calc(100vh - 72px);
     max-height: calc(100dvh - 72px);
     overflow: auto;
-    padding: 86px 26px calc(34px + env(safe-area-inset-bottom));
+    padding: 86px 26px calc(76px + env(safe-area-inset-bottom));
     background: white;
     border-radius: 34px 34px 0 0;
     box-shadow: 0 -22px 64px rgba(15, 23, 42, 0.2);
