@@ -65,6 +65,28 @@ function formatDashboardChartLabel(value) {
   return `${Math.round(value).toLocaleString()}만원`;
 }
 
+function getDashboardTrendChartMax(values = []) {
+  const maxValue = Math.max(...values.map((value) => Number(value) || 0));
+  if (maxValue <= 0) return 100;
+
+  const paddedValue = maxValue * 1.08;
+  const roughStep = paddedValue / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const normalized = roughStep / magnitude;
+  const niceStep = normalized <= 1
+    ? 1
+    : normalized <= 2
+      ? 2
+      : normalized <= 2.5
+        ? 2.5
+        : normalized <= 5
+          ? 5
+          : 10;
+  const step = niceStep * magnitude;
+
+  return Math.max(step * 4, Math.ceil(paddedValue / step) * step);
+}
+
 function getAssetTrendChartData(targetLines = []) {
   const cashBalance = getAssetCashBalance();
   const totalAssets = getAssetTotalValue();
@@ -76,7 +98,7 @@ function getAssetTrendChartData(targetLines = []) {
   const secondaryTrend = buildDashboardTrendValues(principalUnit, [0.96, 0.965, 0.972, 0.978, 0.982, 0.986, 0.99, 0.993, 0.995, 0.997, 0.998, 0.999, 0.998, 0.999, 1, 1]);
   const tertiaryTrend = buildDashboardTrendValues(cashUnit, [1.08, 1.06, 1.04, 1.02, 1.03, 1.01, 1.0, 0.99, 1.0, 0.98, 0.97, 0.96, 0.98, 0.99, 1.01, 1]);
   const targetValues = targetLines.map((line) => Number(line.value) || 0);
-  const chartMax = Math.max(6000, Math.ceil(Math.max(...primaryTrend, ...secondaryTrend, ...tertiaryTrend, ...targetValues) / 1500) * 1500);
+  const chartMax = getDashboardTrendChartMax([...primaryTrend, ...secondaryTrend, ...tertiaryTrend, ...targetValues]);
 
   return {
     totalUnit,
@@ -92,6 +114,7 @@ function getAssetTrendChartData(targetLines = []) {
 function renderAssetTrendChart(options = {}) {
   const { className = "dashboard-asset-chart asset-trend-chart", targetLines = [], compactViewBox = null } = options;
   const trend = getAssetTrendChartData(targetLines);
+  const secondaryBadgeOffsetY = trend.totalUnit >= trend.principalUnit ? 18 : -26;
   const defaultCompactViewBox = {
     width: 352,
     height: 246,
@@ -108,7 +131,7 @@ function renderAssetTrendChart(options = {}) {
     primaryBadgeWidth: 78,
     secondaryBadgeWidth: 76,
     tertiaryBadgeWidth: 62,
-    secondaryBadgeOffsetY: -26,
+    secondaryBadgeOffsetY,
     tertiaryBadgeOffsetY: 6
   };
 
@@ -131,7 +154,7 @@ function renderAssetTrendChart(options = {}) {
     tooltipLabels: ["01/02", "01/12", "01/22", "02/01", "02/11", "02/21", "03/01", "03/11", "03/21", "04/01", "04/11", "04/21", "05/02", "05/12", "05/22", "06/01"],
     className,
     targetLines,
-    desktopViewBox: getDashboardAssetDesktopViewBox(),
+    desktopViewBox: { ...getDashboardAssetDesktopViewBox(), secondaryBadgeOffsetY },
     compactViewBox: compactViewBox || defaultCompactViewBox
   });
 }
