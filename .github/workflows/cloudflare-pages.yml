@@ -24,18 +24,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Prepare static assets
-        run: |
-          rm -rf dist
-          mkdir dist
-          cp index.html styles.css dist/
-          cp -R src dist/src
-
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: 29a0cfebc95500552ba6a11bc5585130
-          wranglerVersion: "4"
-          command: pages deploy dist --project-name=tradingnote --branch=main --commit-hash=${{ github.sha }}
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 29a0cfebc95500552ba6a11bc5585130
+        run: npx wrangler@4 pages deploy . --project-name=tradingnote --branch=main --commit-hash=${{ github.sha }}
