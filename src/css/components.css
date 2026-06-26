@@ -489,6 +489,18 @@
   letter-spacing: 0.02em;
 }
 
+.asset-summary-metric strong.text-red,
+.asset-holdings-table td > strong.text-red,
+.asset-holdings-table td > em.text-red {
+  color: var(--red);
+}
+
+.asset-summary-metric strong.text-blue,
+.asset-holdings-table td > strong.text-blue,
+.asset-holdings-table td > em.text-blue {
+  color: var(--blue);
+}
+
 .asset-daily-change,
 .asset-allocation-footer,
 .asset-table-footer {

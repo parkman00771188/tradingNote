@@ -2048,6 +2048,16 @@
     white-space: nowrap;
   }
 
+  .asset-mobile-summary-grid strong.text-red,
+  .asset-mobile-holding-head > div strong.text-red {
+    color: var(--red);
+  }
+
+  .asset-mobile-summary-grid strong.text-blue,
+  .asset-mobile-holding-head > div strong.text-blue {
+    color: var(--blue);
+  }
+
   .asset-mobile-portfolio {
     padding: 23px 22px 28px;
     background: #f2f4f8;
