@@ -74,6 +74,7 @@ var assetMarketSearch = {
   error: "",
   requestId: 0
 };
+var assetMarketFavoritesOpenId = "";
 var assetMarketSearchTimer = 0;
 var assetMarketMetaCache = new Map();
 var assetPriceRefreshTimer = 0;
@@ -3065,6 +3066,7 @@ function beginAssetSettingsEdit() {
   assetSettingsMotion = null;
   assetSettingsPendingRemoveId = null;
   assetSettingsDeleteTargetId = "";
+  assetMarketFavoritesOpenId = "";
   resetAssetMarketSearch();
   queueAssetSettingsMarketMetaEnrichment();
 }
@@ -3079,6 +3081,7 @@ function cancelAssetSettingsEdit() {
   assetSettingsMotion = null;
   assetSettingsPendingRemoveId = null;
   assetSettingsDeleteTargetId = "";
+  assetMarketFavoritesOpenId = "";
   if (assetSettingsMotionTimer) window.clearTimeout(assetSettingsMotionTimer);
   assetSettingsMotionTimer = 0;
   resetAssetMarketSearch();
@@ -3091,6 +3094,7 @@ function addAssetSettingsDraft() {
   assetSettingsError = "";
   assetSettingsMessage = "";
   assetSettingsOpenMenuId = null;
+  assetMarketFavoritesOpenId = "";
   assetSettingsEditingId = draft.id;
   assetSettingsActiveIndex = insertIndex;
   resetAssetMarketSearch(draft.id);
@@ -3108,6 +3112,7 @@ function removeAssetSettingsDraft(rowId) {
   assetSettingsError = "";
   assetSettingsMessage = "";
   assetSettingsOpenMenuId = null;
+  if (assetMarketFavoritesOpenId === rowId) assetMarketFavoritesOpenId = "";
   if (assetMarketSearch.rowId === rowId) resetAssetMarketSearch();
   if (!assetSettingsDrafts.length) {
     const draft = createAssetSettingsDraft();
@@ -3192,21 +3197,25 @@ function getAssetFavoriteMarketItems() {
 
 function renderAssetMarketFavorites(rowId) {
   const favorites = getAssetFavoriteMarketItems();
-  if (!favorites.length) return "";
+  if (assetMarketFavoritesOpenId !== rowId) return "";
 
   return `
-    <div class="asset-market-favorites" aria-label="즐겨찾기 종목">
-      ${favorites.map(({ item, index }) => {
-        const priceText = formatAssetMarketPrice(item);
-        const metaText = [item.code || item.symbol, getStockMarketLabel(item)].filter(Boolean).join(" · ");
-        return `
-          <button class="asset-market-favorite-chip" type="button" data-asset-market-favorite="${index}" data-asset-setting-id="${rowId}">
-            <strong>${escapeChartText(item.name)}</strong>
-            <span>${escapeChartText(metaText || item.symbol || "")}</span>
-            ${priceText ? `<em>${escapeChartText(priceText)}</em>` : ""}
-          </button>
-        `;
-      }).join("")}
+    <div class="asset-market-favorites-menu" role="listbox" aria-label="즐겨찾기 종목">
+      ${favorites.length
+        ? favorites.map(({ item, index }) => {
+          const priceText = formatAssetMarketPrice(item);
+          const metaText = [item.code || item.symbol, getStockMarketLabel(item)].filter(Boolean).join(" · ");
+          return `
+            <button class="asset-market-favorite-option" type="button" role="option" data-asset-market-favorite="${index}" data-asset-setting-id="${rowId}">
+              <span>
+                <strong>${escapeChartText(item.name)}</strong>
+                <em>${escapeChartText(metaText || item.symbol || "")}</em>
+              </span>
+              ${priceText ? `<b>${escapeChartText(priceText)}</b>` : ""}
+            </button>
+          `;
+        }).join("")
+        : `<div class="asset-market-favorites-empty">즐겨찾기한 종목이 없습니다.</div>`}
     </div>
   `;
 }
@@ -3470,6 +3479,7 @@ function queueStoredAssetMarketPriceRefresh({ delay = 700, syncRemote = true } =
 function scheduleAssetMarketSearch(rowId, query) {
   const nextQuery = String(query || "").trim();
   if (assetMarketSearchTimer) window.clearTimeout(assetMarketSearchTimer);
+  assetMarketFavoritesOpenId = "";
 
   const requestId = assetMarketSearch.requestId + 1;
   assetMarketSearch = {
@@ -3505,6 +3515,7 @@ function applyAssetMarketResult(rowId, resultIndex) {
 
   assetSettingsEditingId = rowId;
   assetSettingsOpenMenuId = null;
+  assetMarketFavoritesOpenId = "";
   resetAssetMarketSearch(rowId);
   return true;
 }
@@ -3522,6 +3533,7 @@ function applyAssetFavoriteResult(rowId, favoriteIndex) {
 
   assetSettingsEditingId = rowId;
   assetSettingsOpenMenuId = null;
+  assetMarketFavoritesOpenId = "";
   resetAssetMarketSearch(rowId);
   return true;
 }
@@ -3902,6 +3914,7 @@ function renderAssetSettingsCardView(item, index) {
   const motionClass = getAssetSettingsCardMotionClass(item, index);
   const searchPanel = renderAssetMarketSearchPanel(item.id);
   const favoriteList = isEditing ? renderAssetMarketFavorites(item.id) : "";
+  const favoriteCount = getAssetFavoriteMarketItems().length;
   if (!isEditing) {
     const quantityText = formatMarketNumber(Number(item.quantity) || 0);
     const priceText = formatMarketNumber(Number(item.currentPrice) || 0);
@@ -3986,6 +3999,7 @@ function renderAssetSettingsCardView(item, index) {
                 <div class="asset-market-search-box">
                   <span aria-hidden="true">${icon("search")}</span>
                   <input class="asset-settings-title-input asset-market-search-input" type="text" value="${escapeChartText(item.name)}" autocomplete="off" placeholder="종목명 또는 코드 검색" data-asset-setting-field="name" data-asset-setting-id="${item.id}" data-asset-market-search-input>
+                  <button class="asset-market-favorite-toggle ${assetMarketFavoritesOpenId === item.id ? "active" : ""}" type="button" data-asset-market-favorite-toggle="${item.id}" aria-label="즐겨찾기 종목 보기" aria-expanded="${assetMarketFavoritesOpenId === item.id ? "true" : "false"}" ${favoriteCount ? "" : "disabled"}>${icon("star")}</button>
                 </div>
                 ${favoriteList}
                 <div class="asset-market-search-panel" data-asset-market-search-panel="${item.id}">${searchPanel}</div>
@@ -5267,6 +5281,16 @@ document.addEventListener("click", async (event) => {
         const card = document.querySelector(`[data-asset-setting-card="${rowId}"]`);
         card?.querySelector("[data-asset-setting-field='quantity']")?.focus();
       }
+      return;
+    }
+
+    const assetMarketFavoriteToggle = event.target.closest("[data-asset-market-favorite-toggle]");
+    if (assetMarketFavoriteToggle && activeModal === "assetSettings") {
+      syncAssetSettingsActiveIndexFromDom();
+      const rowId = assetMarketFavoriteToggle.dataset.assetMarketFavoriteToggle;
+      assetMarketFavoritesOpenId = assetMarketFavoritesOpenId === rowId ? "" : rowId;
+      renderModal();
+      hydrateIcons(document);
       return;
     }
 

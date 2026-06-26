@@ -3906,23 +3906,17 @@
   }
 
   .asset-market-search-box {
-    grid-template-columns: 20px minmax(0, 1fr);
+    grid-template-columns: 20px minmax(0, 1fr) 32px;
     min-height: 44px;
     padding: 0 14px;
     border-radius: 15px;
   }
 
-  .asset-market-favorites {
-    gap: 6px;
-    padding-bottom: 2px;
-  }
-
-  .asset-market-favorite-chip {
-    min-width: 92px;
-    max-width: 124px;
-    min-height: 38px;
-    padding: 6px 9px;
-    border-radius: 12px;
+  .asset-market-favorite-toggle {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    border-radius: 11px;
   }
 
   .asset-market-search-box svg {
