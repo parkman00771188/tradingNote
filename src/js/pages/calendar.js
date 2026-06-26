@@ -1,6 +1,8 @@
 var calendarViewDate = new Date();
 var calendarSelectedDate = new Date();
 var calendarDayDetailDate = "";
+var calendarDayDetailFilter = "all";
+const calendarDayDetailFilterKeys = new Set(["all", "buy", "sell", "synced"]);
 
 function formatCalendarDateValue(date) {
   const year = date.getFullYear();
@@ -44,6 +46,14 @@ function setCalendarSelectedDateValue(value) {
 function setCalendarDayDetailDate(value) {
   if (!setCalendarSelectedDateValue(value)) return false;
   calendarDayDetailDate = value;
+  calendarDayDetailFilter = "all";
+  return true;
+}
+
+function setCalendarDayDetailFilter(value) {
+  const nextFilter = String(value || "all");
+  if (!calendarDayDetailFilterKeys.has(nextFilter)) return false;
+  calendarDayDetailFilter = nextFilter;
   return true;
 }
 
@@ -128,6 +138,14 @@ function formatCalendarDetailDate(value) {
   return `${match[1]}년 ${Number(match[2])}월 ${Number(match[3])}일`;
 }
 
+function formatCalendarDetailDateWithWeekday(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return formatCalendarDetailDate(value);
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+  return `${formatCalendarDetailDate(value)} (${weekdays[date.getDay()]})`;
+}
+
 function isCalendarSellRow(row) {
   const typeText = String(row?.[2] || "");
   return row?.[5] && row[5] !== "-" || typeText.includes("매도") || typeText.includes("留ㅻ룄");
@@ -193,6 +211,18 @@ function formatCalendarSignedKRW(value) {
   return `${sign}${Math.abs(amount).toLocaleString()}원`;
 }
 
+function formatCalendarSignedRateValue(value) {
+  if (typeof formatSignedRate === "function") return formatSignedRate(value);
+  const rate = Number(value) || 0;
+  const sign = rate >= 0 ? "+" : "-";
+  return `${sign}${Math.abs(rate).toFixed(2)}%`;
+}
+
+function formatCalendarProfitDisplay(value) {
+  const text = String(value || "+0").trim();
+  return text.includes("원") ? text : `${text}원`;
+}
+
 function getCalendarSummaryTone(value) {
   const amount = Number(value) || 0;
   if (amount > 0) return "text-red";
@@ -202,6 +232,7 @@ function getCalendarSummaryTone(value) {
 
 function renderCalendarDaySummary(summary) {
   const profitClass = getCalendarSummaryTone(summary.profit);
+  const profitRate = summary.buyTotal ? (summary.profit / summary.buyTotal) * 100 : 0;
   return `
     <div class="calendar-day-summary-grid" aria-label="일자 매매 요약">
       <article class="calendar-day-summary-card buy">
@@ -218,6 +249,7 @@ function renderCalendarDaySummary(summary) {
         <span class="calendar-day-summary-icon">${icon("trend")}</span>
         <em>순손익</em>
         <strong class="${profitClass}">${formatCalendarSignedKRW(summary.profit)}</strong>
+        <small>${formatCalendarSignedRateValue(profitRate)}</small>
       </article>
       <article class="calendar-day-summary-card count">
         <span class="calendar-day-summary-icon">${icon("journal")}</span>
@@ -229,6 +261,33 @@ function renderCalendarDaySummary(summary) {
   `;
 }
 
+function getCalendarFilteredDayRows(rows) {
+  if (calendarDayDetailFilter === "buy") return rows.filter((row) => !isCalendarSellRow(row));
+  if (calendarDayDetailFilter === "sell") return rows.filter((row) => isCalendarSellRow(row));
+  if (calendarDayDetailFilter === "synced") return rows.filter((row) => row?.[12]);
+  return rows;
+}
+
+function renderCalendarDayFilters(summary) {
+  const filters = [
+    { key: "all", label: "전체", count: summary.tradeCount },
+    { key: "buy", label: "매수", count: summary.buyCount },
+    { key: "sell", label: "매도", count: summary.sellCount },
+    { key: "synced", label: "자산반영", count: summary.tradeCount }
+  ];
+
+  return `
+    <div class="calendar-day-filter-row" aria-label="거래 필터">
+      ${filters.map((item) => `
+        <button class="calendar-day-filter-chip ${calendarDayDetailFilter === item.key ? "active" : ""} ${item.key}" type="button" data-calendar-day-filter="${item.key}" aria-pressed="${calendarDayDetailFilter === item.key ? "true" : "false"}">
+          <span aria-hidden="true"></span>
+          ${item.label}
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderCalendarDayRecordCard(row, dateValue) {
   const recordId = row[12] || "";
   const sell = isCalendarSellRow(row);
@@ -236,33 +295,33 @@ function renderCalendarDayRecordCard(row, dateValue) {
   const amountLabel = sell ? "매도금액" : "매수금액";
   const codeText = String(row[11] || "").trim();
   const resultClass = getCalendarRecordResultClass(row);
-  const syncLabel = recordId ? "자산 반영" : "샘플 기록";
+  const syncLabel = recordId ? "반영" : "미반영";
   const memoText = String(row[9] || "").trim();
   const profitText = row[6] || "+0";
   const rateText = row[7] || "+0.00%";
+  const totalText = formatKRW(getCalendarTradeTotal(row));
 
   return `
     <article class="calendar-day-record ${sell ? "sell" : "buy"}">
+      <div class="calendar-day-record-side">
+        ${renderCalendarTradeTypeBadge(row)}
+        <span><em>수량</em><b>${escapeChartText(row[3] || "0")}주</b></span>
+      </div>
       <div class="calendar-day-record-main">
         <div class="calendar-day-record-top">
           <div class="calendar-day-record-title">
-            <div class="calendar-day-record-badges">
-              ${renderCalendarTradeTypeBadge(row)}
-              <span class="calendar-day-record-sync">${syncLabel}</span>
-            </div>
             <strong>${escapeChartText(row[1] || "-")}</strong>
-            <p>${escapeChartText([codeText, dateValue].filter(Boolean).join(" · "))}</p>
+            <p>${escapeChartText(codeText || dateValue)}</p>
           </div>
           <div class="calendar-day-record-amount">
-            <b>${formatKRW(getCalendarTradeTotal(row))}</b>
-            <span class="${resultClass}">${escapeChartText(profitText)} (${escapeChartText(rateText)})</span>
+            <b>${totalText}</b>
+            <span class="${resultClass}">${escapeChartText(formatCalendarProfitDisplay(profitText))} (${escapeChartText(rateText)})</span>
           </div>
         </div>
         <div class="calendar-day-record-meta">
-          <span><em>수량</em><b>${escapeChartText(row[3] || "0")}주</b></span>
           <span><em>${priceLabel}</em><b>${escapeChartText(getCalendarTradePrice(row) || "-")}원</b></span>
           <span><em>수익률</em><b class="${resultClass}">${escapeChartText(rateText)}</b></span>
-          <span><em>${amountLabel}</em><b>${formatKRW(getCalendarTradeTotal(row))}</b></span>
+          <span><em>${amountLabel}</em><b>${totalText}</b></span>
           <span><em>자산반영</em><b>${syncLabel}</b></span>
         </div>
         ${memoText ? `<div class="calendar-day-record-note"><em>메모</em><b>${escapeChartText(memoText)}</b></div>` : ""}
@@ -280,23 +339,29 @@ function renderCalendarDayRecordCard(row, dateValue) {
 function renderCalendarDayDetailModal() {
   const dateValue = calendarDayDetailDate || formatCalendarDateValue(calendarSelectedDate);
   const rows = getCalendarRowsForDateValue(dateValue);
+  const filteredRows = getCalendarFilteredDayRows(rows);
   const summary = getCalendarDaySummary(rows);
 
   return `
     <div class="modal-backdrop">
       <section class="modal-panel calendar-day-modal" role="dialog" aria-modal="true" aria-labelledby="calendarDayModalTitle">
-        <div class="modal-header">
-          <div>
-            <p class="eyebrow">Trading Day</p>
-            <h2 class="modal-title" id="calendarDayModalTitle">${formatCalendarDetailDate(dateValue)}</h2>
+        <div class="calendar-day-appbar">
+          <button class="calendar-day-top-button menu" type="button" data-modal-close aria-label="닫기"><span></span></button>
+          <div class="calendar-day-heading">
+            <p>TRADING DAY</p>
+            <h2 class="modal-title" id="calendarDayModalTitle">${formatCalendarDetailDateWithWeekday(dateValue)} <span>${icon("calendar")}</span></h2>
           </div>
-          <button class="icon-button" type="button" data-modal-close aria-label="닫기">X</button>
+          <button class="calendar-day-top-button close" type="button" data-modal-close aria-label="닫기">X</button>
         </div>
         <div class="modal-body">
           ${rows.length
             ? `<div class="calendar-day-records">
                 ${renderCalendarDaySummary(summary)}
-                ${rows.map((row) => renderCalendarDayRecordCard(row, dateValue)).join("")}
+                ${renderCalendarDayFilters(summary)}
+                ${filteredRows.length
+                  ? filteredRows.map((row) => renderCalendarDayRecordCard(row, dateValue)).join("")
+                  : `<div class="calendar-day-filter-empty">선택한 조건에 해당하는 기록이 없습니다.</div>`
+                }
               </div>`
             : `<div class="calendar-day-empty">
                 <span class="status-icon">${icon("calendar")}</span>
@@ -304,10 +369,13 @@ function renderCalendarDayDetailModal() {
                 <p>이 날짜의 매매 판단과 결과를 기록해두면 캘린더에서 바로 확인할 수 있습니다.</p>
               </div>`
           }
-          <div class="calendar-day-actions">
-            <button class="btn" type="button" data-modal-close>닫기</button>
-            <button class="btn primary" type="button" data-calendar-write-journal="${dateValue}">${icon("plus")}매매일지 기록 작성</button>
-          </div>
+          ${rows.length
+            ? ""
+            : `<div class="calendar-day-actions">
+                <button class="btn" type="button" data-modal-close>닫기</button>
+                <button class="btn primary" type="button" data-calendar-write-journal="${dateValue}">${icon("plus")}매매일지 기록 작성</button>
+              </div>`
+          }
         </div>
       </section>
     </div>

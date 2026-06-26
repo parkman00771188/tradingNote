@@ -5409,6 +5409,16 @@ document.addEventListener("click", async (event) => {
 
     if (handleJournalWriteExtraClick(event)) return;
 
+    const calendarDayFilter = event.target.closest("[data-calendar-day-filter]");
+    if (calendarDayFilter && activeModal === "calendarDayDetail") {
+      const nextFilter = calendarDayFilter.dataset.calendarDayFilter || "all";
+      if (typeof setCalendarDayDetailFilter === "function" && setCalendarDayDetailFilter(nextFilter)) {
+        renderModal();
+        hydrateIcons(document);
+      }
+      return;
+    }
+
     const calendarWriteJournal = event.target.closest("[data-calendar-write-journal]");
     if (calendarWriteJournal && activeModal === "calendarDayDetail") {
       const selectedDate = calendarWriteJournal.dataset.calendarWriteJournal || "";
