@@ -34,6 +34,7 @@ var databaseState = {
 var userDataServerLoadedFor = "";
 var userDataServerLoadingFor = "";
 var userDataServerSaveTimer = 0;
+var userDataServerSavePendingFor = "";
 var pendingAssetStorageCleanupKey = "";
 var authState = {
   checked: false,
@@ -286,6 +287,15 @@ function applyUserAssetSnapshot(snapshot = {}) {
 
 function scheduleUserDataSave() {
   if (!authState.authenticated) return;
+  const userId = getCurrentUserStorageId();
+  if (!userId) return;
+  if (userDataServerLoadedFor !== userId) {
+    userDataServerSavePendingFor = userId;
+    if (userDataServerLoadingFor !== userId) {
+      loadUserDataFromServer(userId);
+    }
+    return;
+  }
   if (userDataServerSaveTimer) window.clearTimeout(userDataServerSaveTimer);
   userDataServerSaveTimer = window.setTimeout(() => {
     userDataServerSaveTimer = 0;
@@ -295,6 +305,15 @@ function scheduleUserDataSave() {
 
 async function saveUserAssetStateToServer() {
   if (!authState.authenticated) return;
+  const userId = getCurrentUserStorageId();
+  if (!userId) return;
+  if (userDataServerLoadedFor !== userId) {
+    userDataServerSavePendingFor = userId;
+    if (userDataServerLoadingFor !== userId) {
+      loadUserDataFromServer(userId);
+    }
+    return;
+  }
 
   try {
     const response = await fetch("/api/data", {
@@ -346,15 +365,20 @@ async function loadUserDataFromServer(userId = getCurrentUserStorageId()) {
     const remoteHasAssets = hasAssetSnapshotData(remoteAssets);
     const localHasAssets = hasAssetSnapshotData(localAssetSnapshot);
 
-    if (remoteHasAssets || !localHasAssets) {
+    if (userDataServerSavePendingFor === userId) {
+      userDataServerLoadedFor = userId;
+      userDataServerSavePendingFor = "";
+      await saveUserAssetStateToServer();
+    } else if (remoteHasAssets || !localHasAssets) {
       applyUserAssetSnapshot(remoteAssets);
       saveAssetStateToStorage({ syncRemote: false });
+      userDataServerLoadedFor = userId;
       render();
     } else {
-      saveUserAssetStateToServer();
+      userDataServerLoadedFor = userId;
+      await saveUserAssetStateToServer();
     }
 
-    userDataServerLoadedFor = userId;
     queueStoredAssetMarketPriceRefresh({ delay: 500, syncRemote: true });
   } catch (error) {
     console.warn("User data could not be loaded from the server.", error);
@@ -392,7 +416,7 @@ function initializeUserDataState({ force = false } = {}) {
   loadAssetStateFromStorage();
   loadMemoStateFromStorage();
   loadUserDataFromServer(userId);
-  queueStoredAssetMarketPriceRefresh({ delay: 1200, syncRemote: true });
+  queueStoredAssetMarketPriceRefresh({ delay: 1200, syncRemote: false });
 }
 
 function renderSidebarUser() {
@@ -464,6 +488,7 @@ function clearAuthenticatedUser() {
   userDataInitializedFor = "";
   userDataServerLoadedFor = "";
   userDataServerLoadingFor = "";
+  userDataServerSavePendingFor = "";
   if (userDataServerSaveTimer) window.clearTimeout(userDataServerSaveTimer);
   userDataServerSaveTimer = 0;
   pendingAssetStorageCleanupKey = "";
@@ -953,6 +978,7 @@ function hydrateDatabaseSettingsPage() {
 
 async function saveDatabaseAssets({ manual = false } = {}) {
   if (!authState.authenticated || databaseState.saving) return;
+  const userId = getCurrentUserStorageId();
 
   setDatabaseState({
     saving: true,
@@ -963,6 +989,14 @@ async function saveDatabaseAssets({ manual = false } = {}) {
   if (manual && getRoute() === "settings") render();
 
   try {
+    if (userId && userDataServerLoadedFor !== userId) {
+      userDataServerSavePendingFor = userId;
+      await loadUserDataFromServer(userId);
+      if (userDataServerLoadedFor !== userId) {
+        throw new Error("Cloudflare D1 데이터를 먼저 불러오지 못했습니다. 잠시 후 다시 저장해 주세요.");
+      }
+    }
+
     const response = await fetch("/api/data", {
       method: "POST",
       credentials: "include",

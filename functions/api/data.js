@@ -173,6 +173,11 @@ function sanitizeRate(value) {
   return Number.isFinite(number) ? Number(number.toFixed(4)) : 0;
 }
 
+function sanitizeDecimal(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? Number(number.toFixed(8)) : 0;
+}
+
 function sanitizeAssets(input = {}) {
   const holdings = Array.isArray(input.holdings) ? input.holdings.slice(0, 200) : [];
 
@@ -187,6 +192,16 @@ function sanitizeAssets(input = {}) {
       averagePrice: sanitizeNumber(item.averagePrice),
       currentPrice: sanitizeNumber(item.currentPrice),
       priceInputMode: item.priceInputMode === "quantity" ? "quantity" : "full",
+      type: sanitizeText(item.type, 40),
+      quoteType: sanitizeText(item.quoteType, 40),
+      market: sanitizeText(item.market, 40),
+      exchange: sanitizeText(item.exchange, 40),
+      source: sanitizeText(item.source, 40),
+      logoUrl: sanitizeText(item.logoUrl, 300),
+      currency: sanitizeText(item.currency, 12).toUpperCase(),
+      marketPrice: sanitizeDecimal(item.marketPrice),
+      exchangeRateToKrw: sanitizeDecimal(item.exchangeRateToKrw),
+      priceDisplayCurrency: sanitizeText(item.priceDisplayCurrency, 12).toUpperCase(),
       amount: sanitizeNumber(item.amount),
       costBasis: sanitizeNumber(item.costBasis),
       profit: Math.round(Number(item.profit) || 0),
