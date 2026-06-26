@@ -4602,7 +4602,6 @@ function renderMobileSheetLegacy() {
   sheetRoot.innerHTML = `
     <div class="mobile-sheet-backdrop" data-mobile-sheet-close>
       <section class="mobile-more-sheet" role="dialog" aria-modal="true" aria-label="더보기 메뉴">
-        <button class="mobile-sheet-close" type="button" data-mobile-sheet-close aria-label="닫기">X</button>
         <div class="mobile-profile-row">
           ${renderUserAvatar(getCurrentUser(), "mobile-profile-avatar")}
           <div>
@@ -4657,7 +4656,6 @@ function renderMobileSheet() {
     <div class="mobile-sheet-backdrop" data-mobile-sheet-close>
       <section class="mobile-more-sheet" role="dialog" aria-modal="true" aria-label="더보기 메뉴">
         <span class="mobile-sheet-handle" aria-hidden="true">${mobileMoreIcon("drag_handle")}</span>
-        <button class="mobile-sheet-close" type="button" data-mobile-sheet-close aria-label="닫기">${mobileMoreIcon("close")}</button>
         <div class="mobile-profile-row">
           ${renderUserAvatar(getCurrentUser(), "mobile-profile-avatar")}
           <div>
@@ -4674,7 +4672,6 @@ function renderMobileSheet() {
             </button>
           `).join("")}
         </div>
-        <span class="mobile-sheet-home-indicator" aria-hidden="true"></span>
       </section>
     </div>
   `;
@@ -5526,7 +5523,7 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
-  const mobileSheetClose = event.target.closest(".mobile-sheet-close") || event.target.matches(".mobile-sheet-backdrop");
+  const mobileSheetClose = event.target.matches(".mobile-sheet-backdrop");
   if (mobileSheetClose) {
     mobileSheetOpen = false;
     renderMobileSheet();
