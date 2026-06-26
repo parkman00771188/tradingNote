@@ -57,6 +57,8 @@ var assetCashMessage = "";
 var assetCashDraftAmount = "";
 var assetCashPendingAmount = 0;
 var assetCashPendingMode = "deposit";
+var assetTrendRange = "6m";
+var assetTrendHistory = [];
 var assetSettingsDrafts = [];
 var assetSettingsError = "";
 var assetSettingsMessage = "";
@@ -123,6 +125,7 @@ const authRequiredRoutes = new Set(["dashboard", "journal", "journalWrite", "sto
 const assetStorageKey = "trading-note-assets-v1";
 const memoStorageKey = "trading-note-memos-v1";
 const journalRecordsStorageKey = "trading-note-journals-v1";
+const assetTrendRangeKeys = new Set(["1w", "1m", "3m", "6m", "1y"]);
 var userDataInitializedFor = "";
 var userMemos = [];
 var userJournalRecords = [];
@@ -205,6 +208,153 @@ function getAssetInvestedValue() {
 
 function getAssetTotalValue() {
   return getAssetInvestedValue() + assetCashBalance;
+}
+
+function getAssetTrendDateKey(date = new Date()) {
+  const value = date instanceof Date ? date : new Date(date);
+  const safeDate = Number.isNaN(value.getTime()) ? new Date() : value;
+  const year = safeDate.getFullYear();
+  const month = String(safeDate.getMonth() + 1).padStart(2, "0");
+  const day = String(safeDate.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseAssetTrendDateKey(value = "") {
+  const text = String(value || "").trim();
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const time = Date.parse(text);
+  return Number.isFinite(time) ? new Date(time) : null;
+}
+
+function normalizeAssetTrendEntry(entry = {}) {
+  const rawDate = entry.date || entry.savedAt || entry.updatedAt || "";
+  const dateValue = parseAssetTrendDateKey(rawDate);
+  if (!dateValue) return null;
+
+  const totalAssets = Math.max(0, Math.round(Number(
+    entry.totalAssets ?? entry.totalValue ?? entry.total ?? 0
+  ) || 0));
+  const investmentPrincipal = Math.max(0, Math.round(Number(
+    entry.investmentPrincipal ?? entry.principal ?? entry.costBasis ?? 0
+  ) || 0));
+  const cashBalanceValue = Math.max(0, Math.round(Number(
+    entry.cashBalance ?? entry.cash ?? 0
+  ) || 0));
+  if (totalAssets <= 0 && investmentPrincipal <= 0 && cashBalanceValue <= 0) return null;
+
+  const savedAtTime = Date.parse(entry.savedAt || entry.updatedAt || "");
+  return {
+    date: getAssetTrendDateKey(dateValue),
+    savedAt: Number.isFinite(savedAtTime) ? new Date(savedAtTime).toISOString() : dateValue.toISOString(),
+    totalAssets,
+    investmentPrincipal,
+    cashBalance: cashBalanceValue
+  };
+}
+
+function normalizeAssetTrendHistory(history = []) {
+  const byDate = new Map();
+
+  (Array.isArray(history) ? history : []).forEach((entry) => {
+    const normalized = normalizeAssetTrendEntry(entry);
+    if (!normalized) return;
+
+    const previous = byDate.get(normalized.date);
+    const previousTime = Date.parse(previous?.savedAt || "");
+    const nextTime = Date.parse(normalized.savedAt || "");
+    if (!previous || !Number.isFinite(previousTime) || nextTime >= previousTime) {
+      byDate.set(normalized.date, normalized);
+    }
+  });
+
+  return Array.from(byDate.values())
+    .sort((left, right) => String(left.date).localeCompare(String(right.date)))
+    .slice(-730);
+}
+
+function mergeAssetTrendHistories(...histories) {
+  return normalizeAssetTrendHistory(histories.flatMap((history) => Array.isArray(history) ? history : []));
+}
+
+function buildAssetTrendEntryFromSnapshot(snapshot = {}) {
+  const holdingsSnapshot = Array.isArray(snapshot.holdings) ? snapshot.holdings : [];
+  const cashBalanceValue = Math.max(0, Math.round(Number(snapshot.cashBalance) || 0));
+  const investedValue = holdingsSnapshot.reduce((sum, item) => {
+    const amount = Number(item.amount);
+    if (Number.isFinite(amount) && amount > 0) return sum + amount;
+    return sum + (Number(item.quantity) || 0) * (Number(item.currentPrice) || 0);
+  }, 0);
+  const investmentPrincipal = holdingsSnapshot.reduce((sum, item) => {
+    const costBasis = Number(item.costBasis);
+    if (Number.isFinite(costBasis) && costBasis > 0) return sum + costBasis;
+    return sum + (Number(item.quantity) || 0) * (Number(item.averagePrice) || 0);
+  }, 0);
+  const savedAt = snapshot.savedAt || snapshot.updatedAt || new Date().toISOString();
+
+  return normalizeAssetTrendEntry({
+    date: savedAt,
+    savedAt,
+    totalAssets: investedValue + cashBalanceValue,
+    investmentPrincipal,
+    cashBalance: cashBalanceValue
+  });
+}
+
+function getCurrentAssetTrendEntry(savedAt = new Date()) {
+  const savedAtDate = savedAt instanceof Date ? savedAt : new Date(savedAt);
+  const safeDate = Number.isNaN(savedAtDate.getTime()) ? new Date() : savedAtDate;
+  const cashBalanceValue = getAssetCashBalance();
+  const totalAssets = getAssetTotalValue();
+  const investmentPrincipal = typeof getHoldingTotalCostBasis === "function" ? getHoldingTotalCostBasis() : getAssetInvestedValue();
+
+  return normalizeAssetTrendEntry({
+    date: getAssetTrendDateKey(safeDate),
+    savedAt: safeDate.toISOString(),
+    totalAssets,
+    investmentPrincipal,
+    cashBalance: cashBalanceValue
+  });
+}
+
+function getAssetTrendHistoryFromSnapshot(snapshot = {}) {
+  const savedHistory = normalizeAssetTrendHistory(snapshot.trendHistory);
+  const snapshotEntry = buildAssetTrendEntryFromSnapshot(snapshot);
+  return snapshotEntry ? mergeAssetTrendHistories(savedHistory, [snapshotEntry]) : savedHistory;
+}
+
+function applyAssetTrendHistoryFromSnapshot(snapshot = {}) {
+  assetTrendHistory = getAssetTrendHistoryFromSnapshot(snapshot);
+}
+
+function recordAssetTrendSnapshot(savedAt = new Date()) {
+  const currentEntry = getCurrentAssetTrendEntry(savedAt);
+  if (!currentEntry) {
+    assetTrendHistory = [];
+    return assetTrendHistory;
+  }
+
+  assetTrendHistory = mergeAssetTrendHistories(assetTrendHistory, [currentEntry]);
+  return assetTrendHistory;
+}
+
+function getAssetTrendHistory({ includeCurrent = true } = {}) {
+  const currentEntry = includeCurrent ? getCurrentAssetTrendEntry() : null;
+  return currentEntry ? mergeAssetTrendHistories(assetTrendHistory, [currentEntry]) : normalizeAssetTrendHistory(assetTrendHistory);
+}
+
+function getAssetTrendRange() {
+  return assetTrendRangeKeys.has(assetTrendRange) ? assetTrendRange : "6m";
+}
+
+function setAssetTrendRange(nextRange = "6m") {
+  if (!assetTrendRangeKeys.has(nextRange)) return false;
+  assetTrendRange = nextRange;
+  return true;
 }
 
 function parseKRWInput(value) {
@@ -308,6 +458,8 @@ function getUserScopedStorageKey(baseKey) {
 
 function clearRuntimeUserData() {
   assetCashBalance = 0;
+  assetTrendRange = "6m";
+  assetTrendHistory = [];
   userMemos = [];
   userJournalRecords = [];
   journalEditingRecordId = "";
@@ -654,6 +806,7 @@ function clearPendingUserAssetSave() {
 
 function applyUserAssetSnapshot(snapshot = {}) {
   assetCashBalance = Math.max(0, Math.round(Number(snapshot.cashBalance) || 0));
+  applyAssetTrendHistoryFromSnapshot(snapshot);
 
   if (Array.isArray(snapshot.holdings) && snapshot.holdings.length) {
     replaceAssetHoldings(snapshot.holdings);
@@ -700,6 +853,11 @@ async function saveUserAssetStateToServer({ allowEmpty = false, source = "user",
   if (!authState.authenticated) return false;
   const userId = getCurrentUserStorageId();
   if (!userId) return false;
+  if (source === "user_clear") {
+    assetTrendHistory = [];
+  } else {
+    recordAssetTrendSnapshot();
+  }
   const snapshot = getAssetSnapshot();
   if (!hasAssetSnapshotData(snapshot) && !allowEmpty) return false;
 
@@ -795,6 +953,7 @@ async function doLoadUserDataFromServer(userId) {
     const remoteStockFavorites = Array.isArray(payload.data?.stockFavorites) ? payload.data.stockFavorites : [];
     const remoteJournalRecords = Array.isArray(payload.data?.journalRecords) ? payload.data.journalRecords : [];
     const remoteHasAssets = hasAssetSnapshotData(remoteAssets);
+    const remoteAssetTrendHistory = getAssetTrendHistoryFromSnapshot(remoteAssets);
     const pendingAssetSave = userDataServerSavePendingFor === userId;
     const pendingSource = userDataServerSavePendingSource;
     const localAssetSnapshot = pendingAssetSave ? getAssetSnapshot() : localAssetSnapshotAtStart;
@@ -814,6 +973,9 @@ async function doLoadUserDataFromServer(userId) {
       clearPendingUserAssetSave();
 
       if (pendingCanOverwriteRemote && (localHasAssets || pendingAllowsEmpty)) {
+        if (!pendingAllowsEmpty) {
+          assetTrendHistory = mergeAssetTrendHistories(remoteAssetTrendHistory, assetTrendHistory);
+        }
         await saveUserAssetStateToServer({ allowEmpty: pendingAllowsEmpty, source: pendingSource });
       } else {
         applyUserAssetSnapshot(remoteAssets);
@@ -825,6 +987,7 @@ async function doLoadUserDataFromServer(userId) {
       render();
     } else {
       userDataServerLoadedFor = userId;
+      assetTrendHistory = mergeAssetTrendHistories(remoteAssetTrendHistory, assetTrendHistory);
       await saveUserAssetStateToServer({ source: "migration" });
     }
 
@@ -1267,6 +1430,11 @@ function clearPlainAssetStateFromStorage(storageKey = getUserScopedStorageKey(as
 }
 
 function saveAssetStateToStorage({ syncRemote = true, source = "user", immediate = false } = {}) {
+  if (source === "user_clear") {
+    assetTrendHistory = [];
+  } else {
+    recordAssetTrendSnapshot();
+  }
   const snapshot = getAssetSnapshot();
   const storageKey = getUserScopedStorageKey(assetStorageKey);
 
@@ -1305,6 +1473,7 @@ function loadAssetStateFromStorage() {
 
     const state = JSON.parse(rawState);
     pendingAssetStorageCleanupKey = storageKey;
+    applyAssetTrendHistoryFromSnapshot(state);
     if (Number.isFinite(Number(state.cashBalance))) {
       assetCashBalance = Math.max(0, Math.round(Number(state.cashBalance)));
     }
@@ -1375,6 +1544,7 @@ function getAssetSnapshot() {
     version: 1,
     savedAt: new Date().toISOString(),
     cashBalance: assetCashBalance,
+    trendHistory: normalizeAssetTrendHistory(assetTrendHistory),
     holdings: holdingData.map((item) => ({
       name: item.name,
       code: item.code,
@@ -2416,6 +2586,7 @@ async function saveDatabaseAssets({ manual = false } = {}) {
       }
     }
 
+    recordAssetTrendSnapshot();
     const snapshot = getAssetSnapshot();
     if (!hasAssetSnapshotData(snapshot)) {
       throw new Error("현재 화면에 저장할 자산 데이터가 없습니다. 원격 데이터를 먼저 불러온 뒤 다시 시도하세요.");
@@ -5716,6 +5887,14 @@ document.addEventListener("click", async (event) => {
     setJournalEditingRecord("");
     if (getRoute() === "journalWrite") {
       window.location.hash = "#calendar";
+    }
+    return;
+  }
+
+  const assetTrendRangeButton = event.target.closest("[data-asset-trend-range]");
+  if (assetTrendRangeButton) {
+    if (setAssetTrendRange(assetTrendRangeButton.dataset.assetTrendRange)) {
+      render();
     }
     return;
   }

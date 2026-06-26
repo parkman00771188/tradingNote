@@ -87,16 +87,149 @@ function getDashboardTrendChartMax(values = []) {
   return Math.max(step * 4, Math.ceil(paddedValue / step) * step);
 }
 
-function getAssetTrendChartData(targetLines = []) {
+const assetTrendRangeOptions = [
+  { key: "1w", label: "1W", days: 7, points: 8 },
+  { key: "1m", label: "1M", months: 1, points: 10 },
+  { key: "3m", label: "3M", months: 3, points: 12 },
+  { key: "6m", label: "6M", months: 6, points: 16 },
+  { key: "1y", label: "1Y", months: 12, points: 16 }
+];
+
+function getDashboardAssetTrendRangeKey() {
+  const selectedRange = typeof getAssetTrendRange === "function" ? getAssetTrendRange() : "6m";
+  return assetTrendRangeOptions.some((option) => option.key === selectedRange) ? selectedRange : "6m";
+}
+
+function getDashboardAssetTrendRangeOption() {
+  const selectedRange = getDashboardAssetTrendRangeKey();
+  return assetTrendRangeOptions.find((option) => option.key === selectedRange) || assetTrendRangeOptions[3];
+}
+
+function getDashboardStartOfDay(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function shiftDashboardDateByMonths(date, monthDelta) {
+  const targetMonth = date.getMonth() + monthDelta;
+  const target = new Date(date.getFullYear(), targetMonth, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(date.getDate(), lastDay));
+  return getDashboardStartOfDay(target);
+}
+
+function getDashboardAssetTrendStartDate(option, endDate) {
+  if (option.days) {
+    const start = new Date(endDate);
+    start.setDate(start.getDate() - option.days);
+    return getDashboardStartOfDay(start);
+  }
+
+  return shiftDashboardDateByMonths(endDate, -option.months);
+}
+
+function parseDashboardAssetTrendDate(value = "") {
+  const text = String(value || "").trim();
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) return getDashboardStartOfDay(new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+
+  const time = Date.parse(text);
+  return Number.isFinite(time) ? getDashboardStartOfDay(new Date(time)) : null;
+}
+
+function normalizeDashboardAssetTrendEntry(entry = {}) {
+  const date = parseDashboardAssetTrendDate(entry.date || entry.savedAt || entry.updatedAt);
+  if (!date) return null;
+
+  return {
+    date,
+    totalAssets: Math.max(0, Math.round(Number(entry.totalAssets ?? entry.totalValue ?? entry.total ?? 0) || 0)),
+    investmentPrincipal: Math.max(0, Math.round(Number(entry.investmentPrincipal ?? entry.principal ?? entry.costBasis ?? 0) || 0)),
+    cashBalance: Math.max(0, Math.round(Number(entry.cashBalance ?? entry.cash ?? 0) || 0))
+  };
+}
+
+function getDashboardAssetTrendEntries() {
+  const history = typeof getAssetTrendHistory === "function" ? getAssetTrendHistory() : [];
+  const entriesByDate = new Map();
+
+  history
+    .map((entry) => normalizeDashboardAssetTrendEntry(entry))
+    .filter(Boolean)
+    .forEach((entry) => {
+      entriesByDate.set(entry.date.getTime(), entry);
+    });
+
+  const today = getDashboardStartOfDay(new Date());
   const cashBalance = getAssetCashBalance();
   const totalAssets = getAssetTotalValue();
   const investmentPrincipal = typeof getHoldingTotalCostBasis === "function" ? getHoldingTotalCostBasis() : getAssetInvestedValue();
-  const totalUnit = Math.round(totalAssets / 10000);
-  const principalUnit = Math.round(investmentPrincipal / 10000);
-  const cashUnit = Math.round(cashBalance / 10000);
-  const primaryTrend = buildDashboardTrendValues(totalUnit, [0.93, 0.94, 0.955, 0.965, 0.96, 0.972, 0.98, 0.988, 0.982, 0.99, 0.996, 1.003, 0.992, 0.998, 1.006, 1]);
-  const secondaryTrend = buildDashboardTrendValues(principalUnit, [0.96, 0.965, 0.972, 0.978, 0.982, 0.986, 0.99, 0.993, 0.995, 0.997, 0.998, 0.999, 0.998, 0.999, 1, 1]);
-  const tertiaryTrend = buildDashboardTrendValues(cashUnit, [1.08, 1.06, 1.04, 1.02, 1.03, 1.01, 1.0, 0.99, 1.0, 0.98, 0.97, 0.96, 0.98, 0.99, 1.01, 1]);
+  entriesByDate.set(today.getTime(), {
+    date: today,
+    totalAssets,
+    investmentPrincipal,
+    cashBalance
+  });
+
+  return Array.from(entriesByDate.values()).sort((left, right) => left.date.getTime() - right.date.getTime());
+}
+
+function buildDashboardAssetTrendSampleDates(startDate, endDate, count) {
+  const sampleCount = Math.max(2, Number(count) || 2);
+  const startTime = startDate.getTime();
+  const endTime = endDate.getTime();
+  const span = Math.max(0, endTime - startTime);
+
+  return Array.from({ length: sampleCount }, (_, index) => {
+    const time = startTime + (span * index) / (sampleCount - 1);
+    return getDashboardStartOfDay(new Date(time));
+  });
+}
+
+function pickDashboardAssetTrendEntry(entries, sampleDate) {
+  let selected = null;
+  const sampleTime = sampleDate.getTime();
+
+  for (const entry of entries) {
+    if (entry.date.getTime() <= sampleTime) {
+      selected = entry;
+      continue;
+    }
+    break;
+  }
+
+  return selected || entries[0];
+}
+
+function formatDashboardTrendDateLabel(date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${month}/${day}`;
+}
+
+function buildDashboardTrendAxisLabels(sampleDates) {
+  const labelCount = Math.min(6, sampleDates.length);
+  if (labelCount <= 1) return sampleDates.map((date) => formatDashboardTrendDateLabel(date));
+
+  return Array.from({ length: labelCount }, (_, index) => {
+    const dateIndex = Math.round((index * (sampleDates.length - 1)) / (labelCount - 1));
+    return formatDashboardTrendDateLabel(sampleDates[dateIndex]);
+  });
+}
+
+function getAssetTrendChartData(targetLines = []) {
+  const rangeOption = getDashboardAssetTrendRangeOption();
+  const endDate = getDashboardStartOfDay(new Date());
+  const startDate = getDashboardAssetTrendStartDate(rangeOption, endDate);
+  const sampleDates = buildDashboardAssetTrendSampleDates(startDate, endDate, rangeOption.points);
+  const entries = getDashboardAssetTrendEntries();
+  const sampledEntries = sampleDates.map((sampleDate) => pickDashboardAssetTrendEntry(entries, sampleDate));
+  const primaryTrend = sampledEntries.map((entry) => Math.round((entry?.totalAssets || 0) / 10000));
+  const secondaryTrend = sampledEntries.map((entry) => Math.round((entry?.investmentPrincipal || 0) / 10000));
+  const tertiaryTrend = sampledEntries.map((entry) => Math.round((entry?.cashBalance || 0) / 10000));
+  const lastEntry = sampledEntries[sampledEntries.length - 1] || entries[entries.length - 1] || {};
+  const totalUnit = Math.round((lastEntry.totalAssets || 0) / 10000);
+  const principalUnit = Math.round((lastEntry.investmentPrincipal || 0) / 10000);
+  const cashUnit = Math.round((lastEntry.cashBalance || 0) / 10000);
   const targetValues = targetLines.map((line) => Number(line.value) || 0);
   const chartMax = getDashboardTrendChartMax([...primaryTrend, ...secondaryTrend, ...tertiaryTrend, ...targetValues]);
 
@@ -107,6 +240,8 @@ function getAssetTrendChartData(targetLines = []) {
     primaryTrend,
     secondaryTrend,
     tertiaryTrend,
+    labels: buildDashboardTrendAxisLabels(sampleDates),
+    tooltipLabels: sampleDates.map((date) => formatDashboardTrendDateLabel(date)),
     chartMax
   };
 }
@@ -151,7 +286,8 @@ function renderAssetTrendChart(options = {}) {
     secondaryName: "투자원금",
     tertiaryName: "보유현금",
     tertiaryColor: "#2aa7a1",
-    tooltipLabels: ["01/02", "01/12", "01/22", "02/01", "02/11", "02/21", "03/01", "03/11", "03/21", "04/01", "04/11", "04/21", "05/02", "05/12", "05/22", "06/01"],
+    labels: trend.labels,
+    tooltipLabels: trend.tooltipLabels,
     className,
     targetLines,
     desktopViewBox: { ...getDashboardAssetDesktopViewBox(), secondaryBadgeOffsetY },
@@ -187,6 +323,10 @@ function renderAssetTrendPanel(options = {}) {
     tertiaryBadgeOffsetY: 6
   };
   const panelCompactViewBox = compactViewBox || (showTargetSettings ? targetSettingsCompactViewBox : null);
+  const selectedRange = getDashboardAssetTrendRangeKey();
+  const rangeButtons = assetTrendRangeOptions.map((option) => `
+            <button class="${selectedRange === option.key ? "active" : ""}" type="button" data-asset-trend-range="${option.key}" aria-pressed="${selectedRange === option.key ? "true" : "false"}">${option.label}</button>
+          `).join("");
 
   return `
     <article class="panel ${className}">
@@ -194,8 +334,7 @@ function renderAssetTrendPanel(options = {}) {
         <h2 class="panel-title">${title}</h2>
         <div class="header-actions asset-trend-actions">
           <div class="segmented" aria-label="기간 선택">
-            <button type="button">1M</button><button type="button">3M</button><button class="active" type="button">6M</button>
-            <button type="button">1Y</button><button type="button">전체</button>
+            ${rangeButtons}
           </div>
           ${showTargetSettings ? `<button class="mini-action" type="button" data-modal="assetTrendTargets" aria-label="목표가 설정">${icon("settings")}</button>` : ""}
         </div>

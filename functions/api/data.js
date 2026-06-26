@@ -153,6 +153,7 @@ function emptyUserData() {
     updatedAt: "",
     assets: {
       cashBalance: 0,
+      trendHistory: [],
       holdings: []
     },
     stockFavorites: [],
@@ -180,6 +181,43 @@ function sanitizeDecimal(value) {
   return Number.isFinite(number) && number > 0 ? Number(number.toFixed(8)) : 0;
 }
 
+function sanitizeTrendDate(value, fallback = "") {
+  const text = sanitizeText(value, 40);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+
+  const time = Date.parse(text || fallback || "");
+  return Number.isFinite(time) ? new Date(time).toISOString().slice(0, 10) : "";
+}
+
+function sanitizeAssetTrendHistory(input = []) {
+  const byDate = new Map();
+
+  (Array.isArray(input) ? input.slice(-730) : []).forEach((item) => {
+    const savedAt = sanitizeText(item.savedAt || item.updatedAt, 40) || new Date().toISOString();
+    const date = sanitizeTrendDate(item.date, savedAt);
+    const totalAssets = sanitizeNumber(item.totalAssets ?? item.totalValue ?? item.total);
+    const investmentPrincipal = sanitizeNumber(item.investmentPrincipal ?? item.principal ?? item.costBasis);
+    const cashBalance = sanitizeNumber(item.cashBalance ?? item.cash);
+    if (!date || (totalAssets <= 0 && investmentPrincipal <= 0 && cashBalance <= 0)) return;
+
+    const entry = {
+      date,
+      savedAt,
+      totalAssets,
+      investmentPrincipal,
+      cashBalance
+    };
+    const previous = byDate.get(date);
+    if (!previous || Date.parse(entry.savedAt) >= Date.parse(previous.savedAt || "")) {
+      byDate.set(date, entry);
+    }
+  });
+
+  return Array.from(byDate.values())
+    .sort((left, right) => String(left.date).localeCompare(String(right.date)))
+    .slice(-730);
+}
+
 function sanitizeAssets(input = {}) {
   const holdings = Array.isArray(input.holdings) ? input.holdings.slice(0, 200) : [];
 
@@ -187,6 +225,7 @@ function sanitizeAssets(input = {}) {
     version: DATA_VERSION,
     savedAt: sanitizeText(input.savedAt, 40) || new Date().toISOString(),
     cashBalance: sanitizeNumber(input.cashBalance),
+    trendHistory: sanitizeAssetTrendHistory(input.trendHistory),
     holdings: holdings.map((item) => ({
       name: sanitizeText(item.name, 80),
       code: sanitizeText(item.code, 32),
