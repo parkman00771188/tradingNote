@@ -153,34 +153,47 @@ function getJournalFavoriteStocks() {
     .filter((item) => item.name || item.code);
 }
 
+function getJournalHoldingStocks() {
+  if (typeof getHoldingData === "function") {
+    return getHoldingData()
+      .filter((holding) => (Number(holding.quantity) || 0) > 0 || (Number(holding.amount) || 0) > 0)
+      .map((holding) => normalizeJournalStockItem({
+        ...holding,
+        symbol: holding.code || "",
+        price: Number(holding.currentPrice) || Number(holding.averagePrice) || 0,
+        currentPrice: Number(holding.marketPrice) || Number(holding.currentPrice) || 0,
+        currentPriceKrw: Number(holding.currentPrice) || 0,
+        holdingQuantity: Number(holding.quantity) || 0,
+        holdingAmount: Number(holding.amount) || 0
+      }))
+      .filter((item) => item.name || item.code);
+  }
+
+  if (typeof holdings === "undefined" || !Array.isArray(holdings)) return [];
+  return holdings
+    .map(([name, quantityText, amountText]) => {
+      const watch = findJournalWatchStock(name);
+      const quantity = parseKRWInput(quantityText);
+      const amount = parseKRWInput(amountText);
+      return normalizeJournalStockItem({
+        name,
+        code: watch ? watch.code : "",
+        symbol: watch ? watch.code : "",
+        price: watch ? watch.price : Math.round(amount / Math.max(1, quantity)),
+        holdingQuantity: quantity,
+        holdingAmount: amount
+      });
+    })
+    .filter((item) => item.name || item.code);
+}
+
 function getJournalStockByQuery(query, mode = "buy") {
   const universe = getJournalStockOptionsForMode(mode);
   return universe.find((stock) => journalStockMatchesQuery(stock, query)) || null;
 }
 
 function getJournalStockOptionsForMode(mode = "buy") {
-  if (mode === "sell" && typeof getHoldingData === "function") {
-    return getHoldingData().map((holding) => ({
-      name: holding.name,
-      code: holding.code,
-      price: holding.currentPrice,
-      holdingQuantity: holding.quantity,
-      holdingAmount: holding.amount
-    }));
-  }
-
-  if (mode === "sell" && typeof holdings !== "undefined" && Array.isArray(holdings)) {
-    return holdings.map(([name, quantity, amount]) => {
-      const watch = findJournalWatchStock(name);
-      return {
-        name,
-        code: watch ? watch.code : "",
-        price: watch ? watch.price : Math.round(parseKRWInput(amount) / Math.max(1, parseKRWInput(quantity))),
-        holdingQuantity: parseKRWInput(quantity),
-        holdingAmount: parseKRWInput(amount)
-      };
-    });
-  }
+  if (mode === "sell") return getJournalHoldingStocks();
 
   const favorites = getJournalFavoriteStocks();
   if (favorites.length) return favorites;
@@ -532,8 +545,11 @@ function applyJournalQuantityPreset(button) {
   updateJournalTradeEstimate(form);
 }
 
-function renderJournalStockPickerOption(stock, active, index) {
+function renderJournalStockPickerOption(stock, active, index, source = "favorites") {
   const hasHolding = stock.holdingQuantity > 0 || stock.holdingAmount > 0;
+  const isHoldingSource = source === "holdings";
+  const optionClass = isHoldingSource ? "journal-option-holding" : "journal-option-stock";
+  const optionIcon = isHoldingSource ? "wallet" : "star";
   const marketText = [
     stock.code,
     typeof getStockMarketLabel === "function" ? getStockMarketLabel(stock) : stock.market
@@ -541,8 +557,8 @@ function renderJournalStockPickerOption(stock, active, index) {
   const priceText = stock.price ? formatKRW(stock.price) : "-";
 
   return `
-    <button class="journal-option journal-option-stock ${active ? "active" : ""}" type="button" data-journal-write-stock-option="${stock.name}" data-journal-write-stock-index="${index}" data-stock-code="${stock.code || ""}" data-search-text="${normalizeJournalCurrentPriceText(getJournalStockCandidates(stock.name, stock.code).join(" "))}">
-      <span class="journal-option-icon">${icon("star")}</span>
+    <button class="journal-option ${optionClass} ${active ? "active" : ""}" type="button" data-journal-write-stock-option="${stock.name}" data-journal-write-stock-index="${index}" data-stock-code="${stock.code || ""}" data-search-text="${normalizeJournalCurrentPriceText(getJournalStockCandidates(stock.name, stock.code).join(" "))}">
+      <span class="journal-option-icon">${icon(optionIcon)}</span>
       <span>
         <strong>${escapeChartText(stock.name)}</strong>
         <em>${escapeChartText(marketText || "코드 없음")} · 현재가 ${escapeChartText(priceText)}${hasHolding ? ` · 보유 ${stock.holdingQuantity.toLocaleString()}주` : ""}</em>
@@ -552,24 +568,28 @@ function renderJournalStockPickerOption(stock, active, index) {
   `;
 }
 
-function getJournalStockPickerOptions(mode = "buy") {
-  return mode === "sell" ? getJournalStockOptionsForMode(mode) : getJournalFavoriteStocks();
+function getJournalStockPickerOptions(mode = "buy", source = "favorites") {
+  if (source === "holdings") return getJournalHoldingStocks();
+  return getJournalFavoriteStocks();
 }
 
-function renderJournalStockPicker(form) {
+function renderJournalStockPicker(form, source = "favorites") {
   const mode = form.dataset.tradeMode === "sell" ? "sell" : "buy";
-  const title = mode === "sell" ? "보유 종목 선택" : "관심 종목 선택";
-  const description = mode === "sell" ? "보유 중인 종목을 선택하면 현재가가 자동 입력됩니다." : "별표로 추가한 관심 종목을 선택하면 현재가가 매수가에 입력됩니다.";
+  const pickerSource = source === "holdings" ? "holdings" : "favorites";
+  const title = pickerSource === "holdings" ? "보유종목 선택" : "즐겨찾기 종목 선택";
+  const description = pickerSource === "holdings"
+    ? "보유 중인 종목을 선택하면 종목명, 코드, 현재가, 보유 정보가 자동 입력됩니다."
+    : "별표로 추가한 관심 종목을 선택하면 현재가가 가격 입력란에 들어갑니다.";
   const selected = getJournalSelectedStock(form);
-  const options = getJournalStockPickerOptions(mode);
-  const emptyText = mode === "sell" ? "선택할 보유 종목이 없습니다." : "추가된 관심 종목이 없습니다.";
+  const options = getJournalStockPickerOptions(mode, pickerSource);
+  const emptyText = pickerSource === "holdings" ? "선택할 보유종목이 없습니다." : "추가한 즐겨찾기 종목이 없습니다.";
 
   return `
-    <div class="journal-stock-picker-backdrop" data-journal-write-stock-backdrop>
+    <div class="journal-stock-picker-backdrop" data-journal-write-stock-backdrop data-journal-stock-picker-source="${pickerSource}">
       <section class="journal-stock-picker-panel" role="dialog" aria-modal="true" aria-labelledby="journalWriteStockTitle">
         <div class="modal-header">
           <div>
-            <p class="eyebrow">${mode === "sell" ? "Holdings" : "Stocks"}</p>
+            <p class="eyebrow">${pickerSource === "holdings" ? "Holdings" : "Favorites"}</p>
             <h2 class="modal-title" id="journalWriteStockTitle">${title}</h2>
             <p class="journal-picker-description">${description}</p>
           </div>
@@ -581,7 +601,7 @@ function renderJournalStockPicker(form) {
             <span>${icon("search")}</span>
           </div>
           <div class="journal-option-list" data-journal-write-stock-options>
-            ${options.map((stock, index) => renderJournalStockPickerOption(stock, selected && selected.name === stock.name, index)).join("")}
+            ${options.map((stock, index) => renderJournalStockPickerOption(stock, selected && selected.name === stock.name, index, pickerSource)).join("")}
             <p class="journal-empty-option" data-journal-write-stock-empty data-empty-text="${escapeChartText(emptyText)}" ${options.length ? "hidden" : ""}>${emptyText}</p>
           </div>
         </div>
@@ -594,8 +614,9 @@ function openJournalWriteStockPicker(button) {
   const form = button ? button.closest("[data-journal-entry-form]") : null;
   if (!form) return;
 
+  const source = button?.dataset.journalWriteStockOpen || "favorites";
   closeJournalWriteStockPicker(form);
-  form.insertAdjacentHTML("beforeend", renderJournalStockPicker(form));
+  form.insertAdjacentHTML("beforeend", renderJournalStockPicker(form, source));
   hydrateIcons(form);
   const searchInput = form.querySelector("[data-journal-write-stock-search]");
   if (searchInput) searchInput.focus();
@@ -629,7 +650,8 @@ function applyJournalWriteStockSelection(button) {
   if (!form || !activeOption) return;
 
   const mode = form.dataset.tradeMode === "sell" ? "sell" : "buy";
-  const options = getJournalStockPickerOptions(mode);
+  const source = picker?.dataset.journalStockPickerSource || "favorites";
+  const options = getJournalStockPickerOptions(mode, source);
   const stock = options[Number(activeOption.dataset.journalWriteStockIndex)]
     || options.find((item) => item.name === activeOption.dataset.journalWriteStockOption)
     || null;
@@ -804,7 +826,8 @@ function renderJournalWrite({ showTitle = true } = {}) {
               <input class="input" placeholder="종목명을 입력하세요" autocomplete="off" data-journal-stock-name value="${stockNameValue}">
               <div class="asset-market-search-panel journal-stock-search-panel" data-journal-stock-search-panel></div>
             </div>
-            <button class="journal-stock-pick-button" type="button" data-journal-write-stock-open aria-label="종목 선택">${icon("star")}</button>
+            <button class="journal-held-stock-button" type="button" data-journal-write-stock-open="holdings">보유종목</button>
+            <button class="journal-stock-pick-button" type="button" data-journal-write-stock-open="favorites" aria-label="즐겨찾기 종목 선택">${icon("star")}</button>
           </div>`
         )}
 

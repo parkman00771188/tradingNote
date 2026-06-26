@@ -1264,6 +1264,21 @@
     height: 50px;
   }
 
+  .journal-stock-control {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 6px;
+  }
+
+  .journal-held-stock-button {
+    min-width: 72px;
+    padding: 0 9px;
+    font-size: 12px;
+  }
+
+  .journal-stock-pick-button {
+    width: 46px;
+  }
+
   .holding-box div {
     gap: 12px;
     grid-template-columns: 1fr;

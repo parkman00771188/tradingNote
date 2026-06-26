@@ -3438,12 +3438,14 @@ body.modal-open {
 }
 
 .journal-option-stock .journal-option-icon,
+.journal-option-holding .journal-option-icon,
 .journal-option-sell .journal-option-icon {
   color: var(--blue);
   background: var(--blue-soft);
 }
 
 .journal-option-stock.active,
+.journal-option-holding.active,
 .journal-option-sell.active {
   border-color: #8bbcff;
   background: linear-gradient(180deg, #f5f9ff, #ffffff);
@@ -3451,6 +3453,7 @@ body.modal-open {
 }
 
 .journal-option.journal-option-stock.active b,
+.journal-option.journal-option-holding.active b,
 .journal-option.journal-option-sell.active b {
   color: var(--blue);
 }
@@ -5713,6 +5716,10 @@ body.modal-open {
   gap: 8px;
 }
 
+.journal-stock-control {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
 .journal-stock-search-field {
   position: relative;
   min-width: 0;
@@ -5738,15 +5745,30 @@ body.modal-open {
   max-height: 240px;
 }
 
+.journal-held-stock-button,
 .journal-stock-pick-button {
   display: grid;
   place-items: center;
-  width: 48px;
   min-height: 52px;
   color: var(--blue);
   background: var(--blue-soft);
   border: 1px solid #cfe0ff;
   border-radius: 8px;
+}
+
+.journal-held-stock-button {
+  min-width: 82px;
+  padding: 0 12px;
+  color: #334155;
+  background: #f8fafc;
+  border-color: var(--line-strong);
+  font-size: 13px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.journal-stock-pick-button {
+  width: 48px;
 }
 
 .journal-stock-pick-button svg {
