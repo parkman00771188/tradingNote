@@ -128,6 +128,34 @@ function formatCalendarDetailDate(value) {
   return `${match[1]}년 ${Number(match[2])}월 ${Number(match[3])}일`;
 }
 
+function isCalendarSellRow(row) {
+  const typeText = String(row?.[2] || "");
+  return row?.[5] && row[5] !== "-" || typeText.includes("매도") || typeText.includes("留ㅻ룄");
+}
+
+function getCalendarTradeTypeLabel(row) {
+  return isCalendarSellRow(row) ? "매도" : "매수";
+}
+
+function getCalendarTradePrice(row) {
+  return isCalendarSellRow(row) ? row?.[5] : row?.[4];
+}
+
+function getCalendarTradeTotal(row) {
+  const quantity = typeof parseAssetDecimalInput === "function"
+    ? parseAssetDecimalInput(row?.[3])
+    : Number(String(row?.[3] || "").replace(/,/g, "")) || 0;
+  const price = typeof parseMarketNumber === "function"
+    ? parseMarketNumber(getCalendarTradePrice(row))
+    : Number(String(getCalendarTradePrice(row) || "").replace(/[^0-9.-]/g, "")) || 0;
+  return quantity * price;
+}
+
+function renderCalendarTradeTypeBadge(row) {
+  const sell = isCalendarSellRow(row);
+  return `<span class="trade-type ${sell ? "sell" : "buy"}">${sell ? "매도" : "매수"}</span>`;
+}
+
 function renderCalendarDayDetailModal() {
   const dateValue = calendarDayDetailDate || formatCalendarDateValue(calendarSelectedDate);
   const rows = getCalendarRowsForDateValue(dateValue);
@@ -145,17 +173,32 @@ function renderCalendarDayDetailModal() {
         <div class="modal-body">
           ${rows.length
             ? `<div class="calendar-day-records">
-                ${rows.map((row) => `
-                  <article class="calendar-day-record">
-                    <div>
-                      <strong>${escapeChartText(row[1] || "-")}</strong>
-                      <p>${escapeChartText(row[11] || row[0] || "")}</p>
-                    </div>
-                    <span class="trade-type ${String(row[2] || "").includes("매도") ? "sell" : "buy"}">${escapeChartText(row[2] || "-")}</span>
-                    <b>${escapeChartText(row[3] || "0")}주</b>
-                    <em>${escapeChartText(row[9] || "")}</em>
-                  </article>
-                `).join("")}
+                ${rows.map((row) => {
+                  const recordId = row[12] || "";
+                  const priceLabel = isCalendarSellRow(row) ? "매도가" : "매수가";
+                  const totalLabel = isCalendarSellRow(row) ? "총 매도금액" : "총 매수금액";
+                  return `
+                    <article class="calendar-day-record">
+                      <div class="calendar-day-record-main">
+                        <strong>${escapeChartText(row[1] || "-")}</strong>
+                        <p>${escapeChartText(row[11] || row[0] || "")}</p>
+                        <div class="calendar-day-record-meta">
+                          <span>${renderCalendarTradeTypeBadge(row)}</span>
+                          <span><em>수량</em><b>${escapeChartText(row[3] || "0")}주</b></span>
+                          <span><em>${priceLabel}</em><b>${escapeChartText(getCalendarTradePrice(row) || "-")}원</b></span>
+                          <span><em>${totalLabel}</em><b>${formatKRW(getCalendarTradeTotal(row))}</b></span>
+                          ${row[9] ? `<span class="calendar-day-record-note"><em>메모</em><b>${escapeChartText(row[9])}</b></span>` : ""}
+                        </div>
+                      </div>
+                      ${recordId ? `
+                        <div class="calendar-day-record-actions">
+                          <button class="mini-action" type="button" data-calendar-edit-journal="${recordId}" aria-label="수정">${icon("edit")}</button>
+                          <button class="mini-action danger" type="button" data-calendar-delete-journal="${recordId}" aria-label="삭제">${icon("trash")}</button>
+                        </div>
+                      ` : ""}
+                    </article>
+                  `;
+                }).join("")}
               </div>`
             : `<div class="calendar-day-empty">
                 <span class="status-icon">${icon("calendar")}</span>
@@ -307,7 +350,7 @@ function renderCalendar() {
           <article class="panel">
             <div class="panel-header tight"><h2 class="panel-title">선택일 거래 내역</h2></div>
             ${selectedRows.length
-              ? renderTable(["종목명", "구분", "수량", "체결가", "손익", "전략"], selectedRows.map((row) => [row[1], row[2], row[3], row[4], row[6], row[8]]))
+              ? renderTable(["종목명", "구분", "수량", "체결가", "손익", "전략"], selectedRows.map((row) => [row[1], renderCalendarTradeTypeBadge(row), row[3], getCalendarTradePrice(row), row[6], row[8]]))
               : `<div class="empty-state compact"><span class="status-icon">${icon("calendar")}</span><div><strong>기록된 매매가 없습니다.</strong><p>빈 날짜도 캘린더에서 그대로 확인할 수 있습니다.</p></div></div>`}
           </article>
           <article class="panel">

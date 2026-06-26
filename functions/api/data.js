@@ -190,7 +190,7 @@ function sanitizeAssets(input = {}) {
     holdings: holdings.map((item) => ({
       name: sanitizeText(item.name, 80),
       code: sanitizeText(item.code, 32),
-      quantity: sanitizeNumber(item.quantity),
+      quantity: sanitizeDecimal(item.quantity),
       averagePrice: sanitizeNumber(item.averagePrice),
       currentPrice: sanitizeNumber(item.currentPrice),
       priceInputMode: item.priceInputMode === "quantity" ? "quantity" : "full",

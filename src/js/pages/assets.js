@@ -211,19 +211,36 @@ function renderAssetHoldingRows(holdingData) {
     .join("");
 }
 
-function getAssetHoldingSegments(holdingData) {
+function getAssetPortfolioSegments(holdingData, cashBalance = 0, includeCash = true) {
   const sortedHoldings = holdingData.slice().sort((a, b) => b.amount - a.amount);
-  const totalHoldingValue = sortedHoldings.reduce((sum, item) => sum + item.amount, 0);
-
-  return sortedHoldings.map((item, index) => {
+  const rawSegments = sortedHoldings.map((item, index) => {
     const meta = getAssetHoldingMeta(item, index);
     return {
       label: item.name,
-      value: totalHoldingValue ? Number(((item.amount / totalHoldingValue) * 100).toFixed(1)) : 0,
+      rawValue: Number(item.amount) || 0,
       amount: formatKRW(item.amount),
       color: meta.color
     };
   });
+
+  if (includeCash && Number(cashBalance) > 0) {
+    rawSegments.push({
+      label: "현금",
+      rawValue: Number(cashBalance) || 0,
+      amount: formatKRW(cashBalance),
+      color: "#ef4444"
+    });
+  }
+
+  const totalValue = rawSegments.reduce((sum, item) => sum + item.rawValue, 0);
+  return rawSegments.map((item) => ({
+    ...item,
+    value: totalValue ? Number(((item.rawValue / totalValue) * 100).toFixed(1)) : 0
+  }));
+}
+
+function getAssetHoldingSegments(holdingData) {
+  return getAssetPortfolioSegments(holdingData, 0, false);
 }
 
 function renderMobileAssetHoldingCards(holdingData) {
@@ -264,7 +281,8 @@ function renderMobileAssets({
   holdingProfit,
   holdingReturn,
   holdingData,
-  holdingSegments
+  holdingSegments,
+  portfolioIncludeCash = true
 }) {
   const profitClass = holdingProfit >= 0 ? "text-red" : "text-blue";
   const visibleSegments = holdingSegments.slice(0, 7);
@@ -302,7 +320,11 @@ function renderMobileAssets({
       <section class="asset-mobile-portfolio">
         <div class="asset-mobile-section-head">
           <h2>보유자산 포트폴리오</h2>
-          <span>${icon("chevronRight")}</span>
+          <label class="asset-cash-include-toggle asset-cash-include-toggle-mobile">
+            <input type="checkbox" data-asset-portfolio-cash-toggle ${portfolioIncludeCash ? "checked" : ""}>
+            <span></span>
+            현금 포함
+          </label>
         </div>
         <div class="asset-mobile-portfolio-body">
           <div class="asset-mobile-donut">
@@ -354,11 +376,12 @@ function renderAssets() {
   const costBasis = typeof getHoldingTotalCostBasis === "function" ? getHoldingTotalCostBasis() : 0;
   const realizedProfit = 0;
   const allocationDiff = stockRatio - 90;
-  const holdingSegments = getAssetHoldingSegments(holdingData);
+  const portfolioIncludeCash = typeof getAssetPortfolioIncludeCash === "function" ? getAssetPortfolioIncludeCash() : true;
+  const holdingSegments = getAssetPortfolioSegments(holdingData, cashBalance, portfolioIncludeCash);
   const leadingHolding = holdingSegments[0] || { label: "-", value: 0 };
 
   return `
-    ${renderMobileAssets({ cashBalance, totalAssets, costBasis, investedValue, holdingProfit, holdingReturn, holdingData, holdingSegments })}
+    ${renderMobileAssets({ cashBalance, totalAssets, costBasis, investedValue, holdingProfit, holdingReturn, holdingData, holdingSegments, portfolioIncludeCash })}
     <div class="asset-page asset-desktop-page stack">
       <section class="panel asset-overview-panel">
         <div class="asset-summary-block">
@@ -385,7 +408,14 @@ function renderAssets() {
         <div class="asset-allocation-block">
           <div class="asset-section-header">
             <h2 class="panel-title">보유 자산 구성</h2>
-            <button class="mini-action" type="button" aria-label="보유 자산 새로고침">${icon("swap")}</button>
+            <div class="asset-allocation-tools">
+              <label class="asset-cash-include-toggle">
+                <input type="checkbox" data-asset-portfolio-cash-toggle ${portfolioIncludeCash ? "checked" : ""}>
+                <span></span>
+                현금자산 포함
+              </label>
+              <button class="mini-action" type="button" aria-label="보유 자산 새로고침">${icon("swap")}</button>
+            </div>
           </div>
           <div class="asset-allocation-content">
             <div class="asset-allocation-legend">
@@ -397,11 +427,11 @@ function renderAssets() {
               `).join("")}
             </div>
             <div class="asset-donut-wrap">
-              ${donutChart(holdingSegments, `보유 자산<br><small>주식 평가금액 기준</small>`)}
+              ${donutChart(holdingSegments, `보유 자산<br><small>${portfolioIncludeCash ? "현금 포함" : "평가금액"} 기준</small>`)}
             </div>
           </div>
           <div class="asset-allocation-footer">
-            <span>기준: 보유 종목 평가금액</span>
+            <span>기준: ${portfolioIncludeCash ? "현금자산 포함 보유 비중" : "보유 종목 평가금액"}</span>
             <strong>최대 비중 ${leadingHolding.label} ${leadingHolding.value.toFixed(1)}%</strong>
           </div>
         </div>

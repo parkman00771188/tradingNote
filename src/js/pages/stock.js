@@ -111,6 +111,17 @@ function renderStockEmptyState() {
   `;
 }
 
+function renderStockNewsPanel(selected, className = "") {
+  return `
+    <article class="panel ${className}">
+      <div class="panel-header tight"><h2 class="panel-title">핵심 뉴스 요약</h2></div>
+      <div class="list">
+        ${typeof renderStockNewsRows === "function" ? renderStockNewsRows(selected) : ""}
+      </div>
+    </article>
+  `;
+}
+
 function renderStock() {
   const selected = getStockAnalysisSelectedStock();
 
@@ -140,6 +151,8 @@ function renderStock() {
           <div class="legend"><span><i class="dot"></i>MA 5</span><span><i class="dot red"></i>MA 20</span><span><i class="dot green"></i>MA 60</span></div>
           ${typeof renderStockAnalysisCandleChart === "function" ? renderStockAnalysisCandleChart(selected) : candleChart(selected)}
         </article>
+
+        ${renderStockNewsPanel(selected, "stock-news-mobile-panel")}
 
         <section class="bottom-grid">
           <article class="panel">
@@ -188,12 +201,7 @@ function renderStock() {
       <aside class="side-card">
         ${renderStockWatchPanel()}
 
-        <article class="panel">
-          <div class="panel-header tight"><h2 class="panel-title">핵심 뉴스 요약</h2></div>
-          <div class="list">
-            ${typeof renderStockNewsRows === "function" ? renderStockNewsRows(selected) : ""}
-          </div>
-        </article>
+        ${renderStockNewsPanel(selected, "stock-news-desktop-panel")}
 
         <article class="panel">
           <div class="panel-header tight"><h2 class="panel-title">애널리스트 메모</h2><button class="mini-action" type="button">${icon("edit")}</button></div>

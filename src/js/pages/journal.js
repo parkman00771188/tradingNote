@@ -306,18 +306,28 @@ function getJournalTrades() {
     : (typeof trades !== "undefined" && Array.isArray(trades) ? trades : []);
 
   return sourceRows
-    .map((trade, index) => ({ trade, id: journalTradeId(index) }))
+    .map((trade, index) => {
+      const recordId = trade?.[12] || "";
+      return { trade, id: recordId || journalTradeId(index), recordId };
+    })
     .filter(({ trade, id }) => !journalDeletedTradeIds.has(id) && journalStockMatchesFilter(trade[1]) && journalTradeTypeMatchesFilter(trade[2]));
 }
 
 function renderSelectableJournalRows(limit) {
   return getJournalTrades()
     .slice(0, limit)
-    .map(({ trade, id }) => {
+    .map(({ trade, id, recordId }) => {
       const [date, stock, type, qty, buy, sell, profit, rate, , memo] = trade;
-      const isSell = type === "매도";
+      const normalizedType = normalizeJournalText(type);
+      const isSell = sell !== "-" || normalizedType === normalizeJournalText("매도") || normalizedType === normalizeJournalText("留ㅻ룄");
       const profitClass = profit.startsWith("+") ? "text-red" : profit.startsWith("-") ? "text-blue" : "";
       const checked = journalSelectedTradeIds.has(id) ? "checked" : "";
+      const action = recordId
+        ? `<div class="journal-row-actions">
+            <button class="mini-action" type="button" data-journal-edit-record="${recordId}" aria-label="수정">${icon("edit")}</button>
+            <button class="mini-action danger" type="button" data-journal-delete-record="${recordId}" aria-label="삭제">${icon("trash")}</button>
+          </div>`
+        : `<button class="menu-dots" type="button" aria-label="더보기">${icon("more")}</button>`;
 
       return [
         `<label class="row-check" aria-label="${stock} 거래 선택"><input type="checkbox" data-journal-select="${id}" ${checked}><span></span></label>`,
@@ -330,7 +340,7 @@ function renderSelectableJournalRows(limit) {
         `<span class="${profitClass}">${profit}</span>`,
         `<span class="${profitClass}">${rate}</span>`,
         memo,
-        `<button class="menu-dots" type="button" aria-label="더보기">${icon("more")}</button>`
+        action
       ];
     });
 }

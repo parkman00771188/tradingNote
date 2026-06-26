@@ -460,19 +460,19 @@ function inputWithSuffix({ value = "", placeholder = "", suffix = "", readonly =
   `;
 }
 
-function priceInputWithCurrentButton({ placeholder = "", attrs = "" }) {
+function priceInputWithCurrentButton({ value = "", placeholder = "", attrs = "" }) {
   return `
     <div class="journal-price-control">
-      ${inputWithSuffix({ placeholder, suffix: "원", numeric: true, attrs })}
+      ${inputWithSuffix({ value, placeholder, suffix: "원", numeric: true, attrs })}
       <button class="journal-current-price-button" type="button" data-journal-current-price>현재가</button>
     </div>
   `;
 }
 
-function quantityInputWithPresets() {
+function quantityInputWithPresets({ value = "" } = {}) {
   return `
     <div class="journal-quantity-control">
-      ${inputWithSuffix({ placeholder: "수량을 입력하세요", suffix: "주", numeric: true, attrs: "data-journal-trade-quantity" })}
+      ${inputWithSuffix({ value, placeholder: "수량을 입력하세요", suffix: "주", numeric: true, attrs: "data-journal-trade-quantity" })}
       <div class="journal-quantity-presets" aria-label="수량 빠른 입력">
         <button type="button" data-journal-quantity-preset="10">10%</button>
         <button type="button" data-journal-quantity-preset="50">50%</button>
@@ -685,13 +685,26 @@ function updateJournalTradeEstimate(form) {
   const helpNode = form.querySelector(`[data-journal-total-help="${mode}"]`);
   const errorNode = form.querySelector(`[data-journal-total-error="${mode}"]`);
   const saveButton = form.querySelector("[data-journal-entry-save]");
-  const quantity = parseKRWInput(quantityInput ? quantityInput.value : "");
+  const quantity = typeof parseAssetDecimalInput === "function"
+    ? parseAssetDecimalInput(quantityInput ? quantityInput.value : "")
+    : parseKRWInput(quantityInput ? quantityInput.value : "");
   const price = parseKRWInput(priceInput ? priceInput.value : "");
   const total = quantity * price;
   const stock = getJournalSelectedStock(form);
-  const limit = mode === "sell" ? (stock ? stock.holdingAmount : 0) : getAssetCashBalance();
+  const editingRecord = typeof getJournalRecordById === "function"
+    ? getJournalRecordById(form.dataset.journalEditId || "")
+    : null;
+  const editingSameMode = editingRecord && editingRecord.type === mode;
+  const editingTotalAllowance = editingSameMode && typeof getJournalRecordTotal === "function"
+    ? getJournalRecordTotal(editingRecord)
+    : 0;
+  const editingQuantityAllowance = editingSameMode ? Number(editingRecord.quantity) || 0 : 0;
+  const limit = mode === "sell"
+    ? (stock ? stock.holdingAmount : 0) + editingTotalAllowance
+    : getAssetCashBalance() + editingTotalAllowance;
+  const sellQuantityLimit = (stock ? stock.holdingQuantity : 0) + editingQuantityAllowance;
   const invalid = mode === "sell"
-    ? total > limit || quantity > (stock ? stock.holdingQuantity : 0) || (total > 0 && !stock)
+    ? total > limit || quantity > sellQuantityLimit || (total > 0 && !stock)
     : total > limit;
 
   if (totalNode) totalNode.textContent = formatKRW(total);
@@ -706,7 +719,7 @@ function updateJournalTradeEstimate(form) {
     errorNode.textContent = invalid
       ? mode === "sell"
         ? stock
-          ? quantity > stock.holdingQuantity
+          ? quantity > sellQuantityLimit
             ? "현재 해당 주식의 보유 수량보다 많이 매도할 수 없습니다."
             : "현재 해당 주식의 총 보유금액보다 크게 매도할 수 없습니다."
           : "매도할 보유 종목을 먼저 선택하세요."
@@ -743,11 +756,30 @@ function clearJournalWriteInitialDate() {
 }
 
 function renderJournalWrite({ showTitle = true } = {}) {
-  const journalDateValue = getJournalWriteDateValue();
+  const editingRecord = typeof getJournalEditingRecord === "function" ? getJournalEditingRecord() : null;
+  const mode = editingRecord?.type === "sell" ? "sell" : "buy";
+  const recordPrice = editingRecord && typeof getJournalRecordPrice === "function" ? getJournalRecordPrice(editingRecord) : 0;
+  const selectedStock = editingRecord
+    ? normalizeJournalStockItem({
+      name: editingRecord.name,
+      code: editingRecord.code || editingRecord.symbol,
+      symbol: editingRecord.symbol || editingRecord.code,
+      price: recordPrice,
+      currentPriceKrw: recordPrice
+    })
+    : null;
+  const journalDateValue = editingRecord?.date || getJournalWriteDateValue();
+  const stockNameValue = editingRecord ? escapeChartText(editingRecord.name || "") : "";
+  const quantityValue = editingRecord ? escapeChartText(formatAssetDecimal(editingRecord.quantity) || String(editingRecord.quantity || "")) : "";
+  const priceValue = recordPrice ? escapeChartText(formatMarketNumber(recordPrice)) : "";
+  const memoValue = editingRecord ? escapeChartText(editingRecord.memo || "") : "";
+  const selectedAttrs = selectedStock
+    ? `data-selected-stock-name="${escapeChartText(selectedStock.name)}" data-selected-stock-code="${escapeChartText(selectedStock.code || "")}" data-selected-stock-price="${selectedStock.price || 0}" data-selected-holding-quantity="${selectedStock.holdingQuantity || 0}" data-selected-holding-amount="${selectedStock.holdingAmount || 0}"`
+    : "";
   return `
-    <form class="journal-entry-form" data-journal-entry-form data-trade-mode="buy">
+    <form class="journal-entry-form" data-journal-entry-form data-trade-mode="${mode}" data-journal-edit-id="${editingRecord?.id || ""}" ${selectedAttrs}>
       <div class="journal-entry-content">
-        ${showTitle ? `<h2 id="journalWriteModalTitle" class="journal-entry-title">매매 일지 작성</h2>` : ""}
+        ${showTitle ? `<h2 id="journalWriteModalTitle" class="journal-entry-title">${editingRecord ? "매매 일지 수정" : "매매 일지 작성"}</h2>` : ""}
 
         ${journalWriteField(
           "일자",
@@ -760,8 +792,8 @@ function renderJournalWrite({ showTitle = true } = {}) {
         ${journalWriteField(
           "구분",
           `<div class="trade-toggle" aria-label="거래 구분">
-            <button class="active" type="button" data-journal-trade-mode="buy" aria-pressed="true">매수</button>
-            <button type="button" data-journal-trade-mode="sell" aria-pressed="false">매도</button>
+            <button class="${mode === "buy" ? "active" : ""}" type="button" data-journal-trade-mode="buy" aria-pressed="${mode === "buy" ? "true" : "false"}">매수</button>
+            <button class="${mode === "sell" ? "active" : ""}" type="button" data-journal-trade-mode="sell" aria-pressed="${mode === "sell" ? "true" : "false"}">매도</button>
           </div>`
         )}
 
@@ -769,7 +801,7 @@ function renderJournalWrite({ showTitle = true } = {}) {
           "종목명",
           `<div class="journal-stock-control" data-journal-stock-control>
             <div class="journal-stock-search-field">
-              <input class="input" placeholder="종목명을 입력하세요" autocomplete="off" data-journal-stock-name>
+              <input class="input" placeholder="종목명을 입력하세요" autocomplete="off" data-journal-stock-name value="${stockNameValue}">
               <div class="asset-market-search-panel journal-stock-search-panel" data-journal-stock-search-panel></div>
             </div>
             <button class="journal-stock-pick-button" type="button" data-journal-write-stock-open aria-label="종목 선택">${icon("star")}</button>
@@ -781,12 +813,12 @@ function renderJournalWrite({ showTitle = true } = {}) {
           <div class="holding-box" data-journal-holding-box></div>
         </div>
 
-        <div data-visible-for="buy">${journalWriteField("매수가", priceInputWithCurrentButton({ placeholder: "매수가를 입력하세요", attrs: "data-journal-trade-buy-price" }))}</div>
-        <div data-visible-for="sell">${journalWriteField("매도가", priceInputWithCurrentButton({ placeholder: "매도가를 입력하세요", attrs: "data-journal-trade-sell-price" }))}</div>
-        ${journalWriteField("수량", quantityInputWithPresets())}
+        <div data-visible-for="buy">${journalWriteField("매수가", priceInputWithCurrentButton({ value: mode === "buy" ? priceValue : "", placeholder: "매수가를 입력하세요", attrs: "data-journal-trade-buy-price" }))}</div>
+        <div data-visible-for="sell">${journalWriteField("매도가", priceInputWithCurrentButton({ value: mode === "sell" ? priceValue : "", placeholder: "매도가를 입력하세요", attrs: "data-journal-trade-sell-price" }))}</div>
+        ${journalWriteField("수량", quantityInputWithPresets({ value: quantityValue }))}
         <div data-visible-for="buy">${journalTradeTotalBox("buy")}</div>
         <div data-visible-for="sell">${journalTradeTotalBox("sell")}</div>
-        ${journalWriteField("메모", `<textarea class="textarea compact-textarea" placeholder="메모를 입력하세요"></textarea>`)}
+        ${journalWriteField("메모", `<textarea class="textarea compact-textarea" placeholder="메모를 입력하세요">${memoValue}</textarea>`)}
       </div>
 
       <div class="journal-entry-actions">

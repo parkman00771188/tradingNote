@@ -121,6 +121,8 @@ var userMemos = [];
 var userJournalRecords = [];
 var userJournalServerSaveTimer = 0;
 var userJournalServerSavePendingFor = "";
+var journalEditingRecordId = "";
+var assetPortfolioIncludeCash = true;
 const assetXlsxLibraryUrl = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
 var assetXlsxLibraryPromise = null;
 const assetSpreadsheetHeaders = [
@@ -300,6 +302,8 @@ function clearRuntimeUserData() {
   assetCashBalance = 0;
   userMemos = [];
   userJournalRecords = [];
+  journalEditingRecordId = "";
+  assetPortfolioIncludeCash = true;
   stockAnalysisSelected = null;
   stockFavoriteItems = [];
   stockFavoritesOpen = false;
@@ -406,7 +410,8 @@ function getJournalRecordRows() {
       "직접 기록",
       record.memo || "",
       record.date,
-      record.code || record.symbol || ""
+      record.code || record.symbol || "",
+      record.id || ""
     ];
   });
 }
@@ -414,6 +419,161 @@ function getJournalRecordRows() {
 function getAllJournalTradeRows() {
   const runtimeRows = typeof trades !== "undefined" && Array.isArray(trades) ? trades : [];
   return [...getJournalRecordRows(), ...runtimeRows];
+}
+
+function getJournalRecordById(recordId = "") {
+  const key = String(recordId || "");
+  if (!key) return null;
+  return userJournalRecords.find((record) => String(record.id || "") === key) || null;
+}
+
+function getJournalEditingRecord() {
+  return getJournalRecordById(journalEditingRecordId);
+}
+
+function setJournalEditingRecord(recordId = "") {
+  journalEditingRecordId = String(recordId || "");
+}
+
+function getAssetPortfolioIncludeCash() {
+  return assetPortfolioIncludeCash;
+}
+
+function getJournalRecordPrice(record = {}) {
+  return Math.round(Number(record.type === "sell" ? record.sellPrice || record.price : record.buyPrice || record.price) || 0);
+}
+
+function getJournalRecordTotal(record = {}) {
+  return Math.round((Number(record.quantity) || 0) * getJournalRecordPrice(record));
+}
+
+function normalizeJournalMatchKey(value = "") {
+  if (typeof normalizeStockKey === "function") return normalizeStockKey(value);
+  return String(value || "").replace(/\s+/g, "").toLowerCase();
+}
+
+function getJournalAssetRowsForMutation() {
+  return getHoldingData().map((item) => ({
+    name: item.name,
+    code: item.code,
+    quantity: Number(item.quantity) || 0,
+    averagePrice: Math.round(Number(item.averagePrice) || 0),
+    currentPrice: Math.round(Number(item.currentPrice) || 0),
+    currency: item.currency || "KRW",
+    exchange: item.exchange || "",
+    market: item.market || "",
+    quoteType: item.quoteType || item.type || "",
+    type: item.type || "",
+    unit: item.unit || "",
+    priceInputMode: item.priceInputMode || "full"
+  }));
+}
+
+function findJournalAssetRowIndex(rows = [], record = {}) {
+  const code = record.code || record.symbol || "";
+  const name = record.name || "";
+  if (typeof stockMatches === "function") {
+    return rows.findIndex((row) => stockMatches(row.name, row.code, name, code));
+  }
+  const codeKey = normalizeJournalMatchKey(code);
+  const nameKey = normalizeJournalMatchKey(name);
+  return rows.findIndex((row) => {
+    const rowCode = normalizeJournalMatchKey(row.code);
+    const rowName = normalizeJournalMatchKey(row.name);
+    return (codeKey && rowCode === codeKey) || (nameKey && rowName === nameKey);
+  });
+}
+
+function applyJournalRecordAssetEffect(record = {}, direction = 1) {
+  const normalized = normalizeJournalRecord(record);
+  if (!normalized.name && !normalized.code) return false;
+
+  const quantity = Number(normalized.quantity) || 0;
+  const price = getJournalRecordPrice(normalized);
+  const total = getJournalRecordTotal(normalized);
+  if (!quantity || !price) return false;
+
+  const rows = getJournalAssetRowsForMutation();
+  const isSell = normalized.type === "sell";
+  const quantityDelta = (isSell ? -quantity : quantity) * direction;
+  const cashDelta = (isSell ? total : -total) * direction;
+
+  let rowIndex = findJournalAssetRowIndex(rows, normalized);
+  if (rowIndex < 0 && quantityDelta > 0) {
+    rows.push({
+      name: normalized.name || normalized.code,
+      code: normalized.code || normalized.symbol || "",
+      quantity: 0,
+      averagePrice: price,
+      currentPrice: price,
+      currency: "KRW",
+      exchange: "",
+      market: "",
+      quoteType: "",
+      type: "",
+      unit: "",
+      priceInputMode: "full"
+    });
+    rowIndex = rows.length - 1;
+  }
+
+  if (rowIndex >= 0) {
+    const row = rows[rowIndex];
+    const previousQuantity = Number(row.quantity) || 0;
+    const nextQuantity = Math.max(0, previousQuantity + quantityDelta);
+    if (!isSell && direction > 0 && nextQuantity > 0) {
+      const previousCost = Math.max(0, previousQuantity) * (Number(row.averagePrice) || price);
+      row.averagePrice = Math.round((previousCost + quantity * price) / nextQuantity);
+    }
+    row.quantity = nextQuantity;
+    row.currentPrice = price || row.currentPrice;
+    row.priceInputMode = row.priceInputMode || "full";
+  }
+
+  assetCashBalance = Math.max(0, Math.round((Number(assetCashBalance) || 0) + cashDelta));
+  replaceAssetHoldings(rows.filter((row) => (Number(row.quantity) || 0) > 0));
+  return true;
+}
+
+async function persistJournalAndAssetState() {
+  const results = await Promise.allSettled([
+    saveAssetStateToStorage({ source: "journal", immediate: true }),
+    saveJournalRecordsToServer()
+  ]);
+  const failed = results.find((result) => result.status === "rejected");
+  if (failed) throw failed.reason;
+  return true;
+}
+
+async function deleteJournalRecordById(recordId = "") {
+  const record = getJournalRecordById(recordId);
+  if (!record) return false;
+  applyJournalRecordAssetEffect(record, -1);
+  userJournalRecords = userJournalRecords.filter((item) => String(item.id || "") !== String(recordId));
+  await persistJournalAndAssetState();
+  return true;
+}
+
+async function deleteJournalRecordsByIds(recordIds = []) {
+  const idSet = new Set(recordIds.map((id) => String(id || "")).filter(Boolean));
+  if (!idSet.size) return false;
+  userJournalRecords.forEach((record) => {
+    if (idSet.has(String(record.id || ""))) applyJournalRecordAssetEffect(record, -1);
+  });
+  userJournalRecords = userJournalRecords.filter((item) => !idSet.has(String(item.id || "")));
+  await persistJournalAndAssetState();
+  return true;
+}
+
+function openJournalRecordEditor(recordId = "") {
+  const record = getJournalRecordById(recordId);
+  if (!record) return false;
+  setJournalEditingRecord(record.id);
+  setJournalWriteInitialDate(record.date);
+  activeModal = "journalWrite";
+  render();
+  hydrateIcons(document);
+  return true;
 }
 
 function hasAssetSnapshotData(snapshot = {}) {
@@ -539,8 +699,6 @@ async function saveUserAssetStateToServer({ allowEmpty = false, source = "user",
     }
 
     if (response.ok && data.ok) {
-      const savedAssets = data.data?.assets || {};
-      const savedHasAssets = hasAssetSnapshotData(savedAssets);
       setDatabaseState({
         checked: true,
         connected: true,
@@ -548,7 +706,7 @@ async function saveUserAssetStateToServer({ allowEmpty = false, source = "user",
         message: "Cloudflare D1에 자동 저장되었습니다.",
         error: ""
       });
-      if (allowEmpty || savedHasAssets) {
+      if (allowEmpty) {
         clearPlainAssetStateFromStorage(pendingAssetStorageCleanupKey || undefined);
         pendingAssetStorageCleanupKey = "";
       }
@@ -1493,7 +1651,7 @@ async function loadStockChartForSelection(item = getStockAnalysisSelectedStock()
   const symbol = getStockChartSymbol(stock);
   const key = getStockChartKey(stock, config.key);
   if (!symbol || !key) return false;
-  if (!force && stockChartState.key === key && (stockChartState.loading || stockChartState.candles.length)) return true;
+  if (!force && stockChartState.key === key && (stockChartState.loading || stockChartState.candles.length || stockChartState.error)) return true;
 
   const requestId = stockChartState.requestId + 1;
   stockChartState = {
@@ -1605,7 +1763,7 @@ async function loadStockNewsForSelection(item = getStockAnalysisSelectedStock(),
   const selected = normalizeStockAnalysisItem(item);
   const key = getStockNewsKey(selected);
   if (!key) return false;
-  if (!force && stockNewsState.key === key && (stockNewsState.loading || stockNewsState.items.length)) return true;
+  if (!force && stockNewsState.key === key && (stockNewsState.loading || stockNewsState.items.length || stockNewsState.error)) return true;
 
   const requestId = stockNewsState.requestId + 1;
   stockNewsState = {
@@ -1844,6 +2002,7 @@ async function saveJournalRecordsToServer() {
 function createJournalRecordFromForm(form) {
   if (!form) return null;
   const mode = form.dataset.tradeMode === "sell" ? "sell" : "buy";
+  const editingRecord = getJournalRecordById(form.dataset.journalEditId || journalEditingRecordId || "");
   const stock = typeof getJournalSelectedStock === "function" ? getJournalSelectedStock(form) : null;
   const nameInput = form.querySelector("[data-journal-stock-name]");
   const dateInput = form.querySelector("[data-date-picker]");
@@ -1851,21 +2010,23 @@ function createJournalRecordFromForm(form) {
   const priceInput = form.querySelector(mode === "sell" ? "[data-journal-trade-sell-price]" : "[data-journal-trade-buy-price]");
   const memoInput = form.querySelector("textarea");
   const price = parseKRWInput(priceInput ? priceInput.value : "");
-  const quantity = parseKRWInput(quantityInput ? quantityInput.value : "");
+  const quantity = typeof parseAssetDecimalInput === "function"
+    ? parseAssetDecimalInput(quantityInput ? quantityInput.value : "")
+    : parseKRWInput(quantityInput ? quantityInput.value : "");
   const now = new Date().toISOString();
   const record = normalizeJournalRecord({
-    id: `journal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: editingRecord?.id || `journal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     date: dateInput ? dateInput.value : "",
     type: mode,
-    name: stock?.name || (nameInput ? nameInput.value : ""),
-    code: stock?.code || "",
-    symbol: stock?.symbol || stock?.code || "",
+    name: stock?.name || (nameInput ? nameInput.value : "") || editingRecord?.name || "",
+    code: stock?.code || editingRecord?.code || "",
+    symbol: stock?.symbol || stock?.code || editingRecord?.symbol || editingRecord?.code || "",
     quantity,
     price,
     buyPrice: mode === "buy" ? price : 0,
     sellPrice: mode === "sell" ? price : 0,
     memo: memoInput ? memoInput.value : "",
-    createdAt: now,
+    createdAt: editingRecord?.createdAt || now,
     updatedAt: now
   });
 
@@ -1874,10 +2035,16 @@ function createJournalRecordFromForm(form) {
 
 async function saveJournalEntryFromForm(form) {
   if (!form) return false;
+  const editingRecord = getJournalRecordById(form.dataset.journalEditId || journalEditingRecordId || "");
   const record = createJournalRecordFromForm(form);
   if (!record) return false;
+  if (editingRecord) {
+    applyJournalRecordAssetEffect(editingRecord, -1);
+  }
+  applyJournalRecordAssetEffect(record, 1);
   userJournalRecords = [record, ...userJournalRecords.filter((item) => item.id !== record.id)].slice(0, 500);
-  await saveJournalRecordsToServer();
+  setJournalEditingRecord("");
+  await persistJournalAndAssetState();
   return true;
 }
 
@@ -1903,7 +2070,11 @@ function toggleStockAnalysisFavorite() {
 
 function setStockAnalysisSelection(item = {}, { refresh = true } = {}) {
   if (!item) return;
-  stockAnalysisSelected = normalizeStockAnalysisItem(item);
+  const previousKey = getStockItemKey(getStockAnalysisSelectedStock());
+  const selected = normalizeStockAnalysisItem(item);
+  const nextKey = getStockItemKey(selected);
+  const changed = previousKey !== nextKey;
+  stockAnalysisSelected = selected;
   stockSearchState = {
     query: "",
     loading: false,
@@ -1914,15 +2085,15 @@ function setStockAnalysisSelection(item = {}, { refresh = true } = {}) {
   stockFavoritesOpen = false;
   render();
 
-  if (refresh) {
+  if (refresh && changed) {
     refreshStockAnalysisSelection(stockAnalysisSelected).catch((error) => {
       console.warn("Selected stock could not be refreshed.", error);
     });
   }
-  loadStockChartForSelection(stockAnalysisSelected, { force: true }).catch((error) => {
+  loadStockChartForSelection(stockAnalysisSelected, { force: changed }).catch((error) => {
     console.warn("Selected stock chart could not be refreshed.", error);
   });
-  loadStockNewsForSelection(stockAnalysisSelected, { force: true }).catch((error) => {
+  loadStockNewsForSelection(stockAnalysisSelected, { force: changed }).catch((error) => {
     console.warn("Selected stock news could not be refreshed.", error);
   });
 }
@@ -1933,6 +2104,7 @@ async function refreshStockAnalysisSelection(item = getStockAnalysisSelectedStoc
   const targetKey = getStockItemKey(target);
   if (!targetKey) return;
 
+  const beforeSignature = JSON.stringify(getStockAnalysisSelectedStock() || {});
   const result = await fetchAssetMarketMeta(target).catch(() => null);
   if (!result) return;
 
@@ -1944,11 +2116,12 @@ async function refreshStockAnalysisSelection(item = getStockAnalysisSelectedStoc
     updateStockFavoriteItem(refreshed);
     scheduleStockFavoritesSave();
   }
-  if (getRoute() === "stock") render();
+  const afterSignature = JSON.stringify(getStockAnalysisSelectedStock() || {});
+  if (getRoute() === "stock" && beforeSignature !== afterSignature) render();
   loadStockChartForSelection(refreshed).catch((error) => {
     console.warn("Refreshed stock chart could not be loaded.", error);
   });
-  loadStockNewsForSelection(refreshed, { force: true }).catch((error) => {
+  loadStockNewsForSelection(refreshed).catch((error) => {
     console.warn("Refreshed stock news could not be loaded.", error);
   });
 }
@@ -4223,7 +4396,10 @@ function renderJournalDateRangeModal() {
 }
 
 function cancelActiveModalDraft(modalName = activeModal) {
-  if (modalName === "journalWrite" && typeof clearJournalWriteInitialDate === "function") clearJournalWriteInitialDate();
+  if (modalName === "journalWrite" && typeof clearJournalWriteInitialDate === "function") {
+    clearJournalWriteInitialDate();
+    setJournalEditingRecord("");
+  }
   if (modalName === "journalDateRange") cancelJournalDateRangeEdit();
   if (modalName === "journalStockFilter") cancelJournalStockFilterEdit();
   if (modalName === "journalTradeTypeFilter") cancelJournalTradeTypeFilterEdit();
@@ -4311,6 +4487,8 @@ function renderModal() {
       </section>
     </div>
   `;
+  const journalForm = modalRoot.querySelector("[data-journal-entry-form]");
+  if (journalForm && typeof syncJournalTradeMode === "function") syncJournalTradeMode(journalForm);
 }
 
 function renderMobileSheetLegacy() {
@@ -4705,6 +4883,7 @@ document.addEventListener("click", async (event) => {
   if (modalButton) {
     activeModal = modalButton.dataset.modal;
     if (activeModal === "journalWrite" && typeof clearJournalWriteInitialDate === "function") {
+      setJournalEditingRecord("");
       clearJournalWriteInitialDate();
     }
     if (activeModal === "assetCash") {
@@ -4748,6 +4927,7 @@ document.addEventListener("click", async (event) => {
     const calendarWriteJournal = event.target.closest("[data-calendar-write-journal]");
     if (calendarWriteJournal && activeModal === "calendarDayDetail") {
       const selectedDate = calendarWriteJournal.dataset.calendarWriteJournal || "";
+      setJournalEditingRecord("");
       if (typeof setJournalWriteInitialDate === "function") setJournalWriteInitialDate(selectedDate);
       activeModal = "journalWrite";
       renderModal();
@@ -4755,9 +4935,27 @@ document.addEventListener("click", async (event) => {
       return;
     }
 
+    const calendarEditJournal = event.target.closest("[data-calendar-edit-journal]");
+    if (calendarEditJournal && activeModal === "calendarDayDetail") {
+      openJournalRecordEditor(calendarEditJournal.dataset.calendarEditJournal);
+      return;
+    }
+
+    const calendarDeleteJournal = event.target.closest("[data-calendar-delete-journal]");
+    if (calendarDeleteJournal && activeModal === "calendarDayDetail") {
+      if (window.confirm("이 매매일지를 삭제하시겠습니까?")) {
+        await deleteJournalRecordById(calendarDeleteJournal.dataset.calendarDeleteJournal);
+        activeModal = "calendarDayDetail";
+        renderModal();
+        hydrateIcons(document);
+      }
+      return;
+    }
+
     const modalClose = event.target.closest("[data-modal-close]");
     if (modalClose && modalPanel) {
       cancelActiveModalDraft();
+      setJournalEditingRecord("");
       activeModal = null;
       assetCashError = "";
       assetCashMessage = "";
@@ -5125,6 +5323,7 @@ document.addEventListener("click", async (event) => {
       if (form && !updateJournalTradeEstimate(form)) return;
       if (form && !(await saveJournalEntryFromForm(form))) return;
       activeModal = null;
+      setJournalEditingRecord("");
       if (typeof clearJournalWriteInitialDate === "function") clearJournalWriteInitialDate();
       render();
       return;
@@ -5132,6 +5331,7 @@ document.addEventListener("click", async (event) => {
 
     if (event.target.matches(".modal-backdrop")) {
       cancelActiveModalDraft();
+      setJournalEditingRecord("");
       activeModal = null;
       assetCashError = "";
       assetCashMessage = "";
@@ -5179,6 +5379,7 @@ document.addEventListener("click", async (event) => {
     const form = pageJournalEntrySave.closest("[data-journal-entry-form]");
     if (form && !updateJournalTradeEstimate(form)) return;
     if (form && !(await saveJournalEntryFromForm(form))) return;
+    setJournalEditingRecord("");
     if (getRoute() === "journalWrite") {
       window.location.hash = "#calendar";
     }
@@ -5216,9 +5417,28 @@ document.addEventListener("click", async (event) => {
 
   const journalDeleteButton = event.target.closest("[data-journal-delete-selected]");
   if (journalDeleteButton && getRoute() === "journal") {
-    journalSelectedTradeIds.forEach((id) => journalDeletedTradeIds.add(id));
+    const selectedIds = Array.from(journalSelectedTradeIds);
+    const realRecordIds = selectedIds.filter((id) => getJournalRecordById(id));
+    const sampleIds = selectedIds.filter((id) => !getJournalRecordById(id));
+    if (realRecordIds.length) await deleteJournalRecordsByIds(realRecordIds);
+    sampleIds.forEach((id) => journalDeletedTradeIds.add(id));
     journalSelectedTradeIds.clear();
     render();
+    return;
+  }
+
+  const journalEditRecordButton = event.target.closest("[data-journal-edit-record]");
+  if (journalEditRecordButton && getRoute() === "journal") {
+    openJournalRecordEditor(journalEditRecordButton.dataset.journalEditRecord);
+    return;
+  }
+
+  const journalDeleteRecordButton = event.target.closest("[data-journal-delete-record]");
+  if (journalDeleteRecordButton && getRoute() === "journal") {
+    if (window.confirm("이 매매일지를 삭제하시겠습니까?")) {
+      await deleteJournalRecordById(journalDeleteRecordButton.dataset.journalDeleteRecord);
+      render();
+    }
     return;
   }
 
@@ -5228,6 +5448,7 @@ document.addEventListener("click", async (event) => {
     if (renderers[route]) {
       const currentRoute = getRoute();
       activeModal = null;
+      setJournalEditingRecord("");
       mobileSheetOpen = false;
       window.location.hash = route;
       if (currentRoute === route) {
@@ -5272,6 +5493,13 @@ document.addEventListener("change", (event) => {
     const [file] = assetSettingsFileInput.files || [];
     assetSettingsFileInput.value = "";
     importAssetSettingsFile(file);
+    return;
+  }
+
+  const assetPortfolioCashToggle = event.target.closest("[data-asset-portfolio-cash-toggle]");
+  if (assetPortfolioCashToggle && getRoute() === "assets") {
+    assetPortfolioIncludeCash = assetPortfolioCashToggle.checked;
+    render();
     return;
   }
 

@@ -1,10 +1,10 @@
 const navItems = [
   { id: "dashboard", label: "대시보드", icon: "home" },
-  { id: "journal", label: "매매 일지", icon: "journal" },
   { id: "calendar", label: "캘린더", icon: "calendar" },
   { id: "stock", label: "종목 분석", icon: "chart" },
   { id: "performance", label: "성과 분석", icon: "performance" },
   { id: "assets", label: "자산 현황", icon: "wallet" },
+  { id: "journal", label: "매매 일지", icon: "journal" },
   { id: "memo", label: "메모", icon: "memo" },
   { id: "settings", label: "설정", icon: "settings" }
 ];
