@@ -147,16 +147,21 @@ function assetMoney(value, className = "") {
   return `<strong class="${className}">${Math.round(Number(value) || 0).toLocaleString()}</strong><span>KRW</span>`;
 }
 
+function assetPerformanceClass(value) {
+  const amount = Number(value) || 0;
+  return amount > 0 ? "text-red" : amount < 0 ? "text-blue" : "";
+}
+
 function assetSignedMoney(value) {
   const amount = Math.round(Number(value) || 0);
-  const className = amount >= 0 ? "text-red" : "text-blue";
+  const className = assetPerformanceClass(amount);
   const sign = amount >= 0 ? "+" : "-";
   return `<strong class="${className}">${sign}${Math.abs(amount).toLocaleString()}</strong><span>KRW</span>`;
 }
 
 function assetRate(value) {
   const rate = Number(value) || 0;
-  const className = rate >= 0 ? "text-red" : "text-blue";
+  const className = assetPerformanceClass(rate);
   const sign = rate >= 0 ? "+" : "-";
   return `<strong class="${className}">${sign}${Math.abs(rate).toFixed(2)}</strong><span>%</span>`;
 }
@@ -188,7 +193,8 @@ function renderAssetHoldingRows(holdingData) {
     .slice()
     .map((item, index) => {
       const meta = getAssetHoldingMeta(item, index);
-      const profitClass = item.profit >= 0 ? "text-red" : "text-blue";
+      const profitClass = assetPerformanceClass(item.profit);
+      const rateClass = assetPerformanceClass(item.rate);
       return `
         <tr>
           <td>
@@ -202,7 +208,7 @@ function renderAssetHoldingRows(holdingData) {
           <td><strong>${formatKRW(item.costBasis)}</strong></td>
           <td><strong>${formatKRW(item.currentPrice)}</strong></td>
           <td><strong>${formatKRW(item.amount)}</strong></td>
-          <td><strong class="${profitClass}">${formatSignedRate(item.rate)}</strong><em class="${profitClass}">${formatSignedMarketNumber(item.profit)}원</em></td>
+          <td><strong class="${rateClass}">${formatSignedRate(item.rate)}</strong><em class="${profitClass}">${formatSignedMarketNumber(item.profit)}원</em></td>
           <td><strong>${item.weight.toFixed(1)}%</strong></td>
           <td><button class="btn ghost table-action" type="button">상세</button></td>
         </tr>
@@ -263,7 +269,8 @@ function renderMobileAssetHoldingCards(holdingData) {
     .slice()
     .map((item, index) => {
       const meta = getAssetHoldingMeta(item, index);
-      const profitClass = item.profit >= 0 ? "text-red" : "text-blue";
+      const profitClass = assetPerformanceClass(item.profit);
+      const rateClass = assetPerformanceClass(item.rate);
 
       return `
         <article class="asset-mobile-holding-card">
@@ -273,7 +280,7 @@ function renderMobileAssetHoldingCards(holdingData) {
               <span>평가손익</span>
               <strong class="${profitClass}">${formatSignedMarketNumber(item.profit)}</strong>
               <span>수익률</span>
-              <strong class="${profitClass}">${formatSignedRate(item.rate)}</strong>
+              <strong class="${rateClass}">${formatSignedRate(item.rate)}</strong>
             </div>
           </div>
           <div class="asset-mobile-holding-stats">
@@ -299,7 +306,8 @@ function renderMobileAssets({
   holdingSegments,
   portfolioIncludeCash = true
 }) {
-  const profitClass = holdingProfit >= 0 ? "text-red" : "text-blue";
+  const profitClass = assetPerformanceClass(holdingProfit);
+  const returnClass = assetPerformanceClass(holdingReturn);
   const visibleSegments = holdingSegments.filter((item) => Number(item.value) > 0).slice(0, 7);
   const visibleWeight = visibleSegments.reduce((sum, item) => sum + item.value, 0);
   const otherWeight = Math.max(0, 100 - visibleSegments.reduce((sum, item) => sum + item.value, 0));
@@ -332,7 +340,7 @@ function renderMobileAssets({
           <span>총 매수</span><strong>${formatMarketNumber(costBasis)}</strong>
           <span>평가손익</span><strong class="${profitClass}">${formatSignedMarketNumber(holdingProfit)}</strong>
           <span>총 평가</span><strong>${formatMarketNumber(investedValue)}</strong>
-          <span>수익률</span><strong class="${profitClass}">${formatSignedRate(holdingReturn)}</strong>
+          <span>수익률</span><strong class="${returnClass}">${formatSignedRate(holdingReturn)}</strong>
           <span>주문가능</span><strong>${formatMarketNumber(cashBalance)}</strong>
         </div>
       </section>
@@ -405,7 +413,7 @@ function renderAssets() {
           </div>
           <div class="asset-daily-change">
             <span>전일 대비 자산 변동</span>
-            <strong class="${dailyChange >= 0 ? "text-red" : "text-blue"}">${formatSignedMarketNumber(dailyChange)}원 (${formatSignedRate(dailyChangeRate)})</strong>
+            <strong class="${assetPerformanceClass(dailyChange)}">${formatSignedMarketNumber(dailyChange)}원 (${formatSignedRate(dailyChangeRate)})</strong>
           </div>
         </div>
 
