@@ -43,6 +43,7 @@ var userDataServerLoadError = "";
 var userDataServerSaveTimer = 0;
 var userDataServerSavePendingFor = "";
 var userDataServerSavePendingSource = "";
+var assetTrendDashboardSnapshotKey = "";
 var pendingAssetStorageCleanupKey = "";
 var authState = {
   checked: false,
@@ -343,6 +344,34 @@ function recordAssetTrendSnapshot(savedAt = new Date()) {
   return assetTrendHistory;
 }
 
+function getAssetTrendSnapshotKey(entry = {}) {
+  return [
+    getCurrentUserStorageId(),
+    entry.date || "",
+    Math.round(Number(entry.totalAssets) || 0),
+    Math.round(Number(entry.investmentPrincipal) || 0),
+    Math.round(Number(entry.cashBalance) || 0)
+  ].join(":");
+}
+
+function syncDashboardAssetTrendSnapshot() {
+  if (!authState.authenticated) return;
+  const userId = getCurrentUserStorageId();
+  if (!userId || userDataServerLoadedFor !== userId) return;
+
+  const currentEntry = getCurrentAssetTrendEntry();
+  if (!currentEntry) return;
+
+  const snapshotKey = getAssetTrendSnapshotKey(currentEntry);
+  if (assetTrendDashboardSnapshotKey === snapshotKey) return;
+  assetTrendDashboardSnapshotKey = snapshotKey;
+
+  saveAssetStateToStorage({ source: "system_dashboard" }).catch((error) => {
+    console.warn("Dashboard asset trend snapshot could not be saved.", error);
+    assetTrendDashboardSnapshotKey = "";
+  });
+}
+
 function getAssetTrendHistory({ includeCurrent = true } = {}) {
   const currentEntry = includeCurrent ? getCurrentAssetTrendEntry() : null;
   return currentEntry ? mergeAssetTrendHistories(assetTrendHistory, [currentEntry]) : normalizeAssetTrendHistory(assetTrendHistory);
@@ -470,6 +499,7 @@ function clearRuntimeUserData() {
   assetTrendRange = "6m";
   assetTrendIncludeCash = true;
   assetTrendHistory = [];
+  assetTrendDashboardSnapshotKey = "";
   userMemos = [];
   userJournalRecords = [];
   journalEditingRecordId = "";
@@ -5152,6 +5182,9 @@ function render() {
   }
   if (route === "settings") {
     hydrateDatabaseSettingsPage();
+  }
+  if (route === "dashboard") {
+    syncDashboardAssetTrendSnapshot();
   }
   if (route === "stock") {
     ensureStockChartForSelection();
