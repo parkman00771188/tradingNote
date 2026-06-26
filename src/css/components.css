@@ -538,16 +538,36 @@
 }
 
 .asset-allocation-row span {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
+}
+
+.asset-portfolio-label {
+  min-width: 0;
+}
+
+.asset-portfolio-label .dot {
+  flex: 0 0 9px;
+  margin-right: 0;
+}
+
+.asset-portfolio-label em {
+  min-width: 0;
+  overflow: hidden;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .asset-allocation-row strong {
   color: #334155;
   font-size: 15px;
   font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .asset-allocation-empty {

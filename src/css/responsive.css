@@ -2100,21 +2100,36 @@
 
   .asset-mobile-legend > div:not(.asset-mobile-legend-empty) {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) minmax(52px, auto);
+    gap: 10px;
     align-items: center;
     min-width: 0;
   }
 
   .asset-mobile-legend span {
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: 9px minmax(0, 1fr);
     align-items: center;
-    gap: 8px;
+    gap: 9px;
     min-width: 0;
+    overflow: hidden;
     color: #343a44;
     font-size: 15px;
     line-height: 1.2;
     font-weight: 520;
+    white-space: nowrap;
+  }
+
+  .asset-mobile-legend .dot {
+    flex: 0 0 9px;
+    margin-right: 0;
+  }
+
+  .asset-mobile-legend em {
+    min-width: 0;
+    overflow: hidden;
+    font-style: normal;
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
@@ -2123,6 +2138,7 @@
     font-size: 15px;
     font-weight: 520;
     font-variant-numeric: tabular-nums;
+    text-align: right;
     white-space: nowrap;
   }
 

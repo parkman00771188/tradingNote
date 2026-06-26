@@ -244,6 +244,20 @@ function getAssetHoldingSegments(holdingData) {
   return getAssetPortfolioSegments(holdingData, 0, false);
 }
 
+function renderAssetPortfolioLegendRow(item, className = "asset-allocation-row") {
+  const color = String(item.color || "").trim() || "#cbd5e1";
+  const label = String(item.label || "").trim() || "자산";
+  return `
+    <div class="${className}">
+      <span class="asset-portfolio-label">
+        <i class="dot" style="background:${escapeChartText(color)}"></i>
+        <em>${escapeChartText(label)}</em>
+      </span>
+      <strong>${Number(item.value || 0).toFixed(1)}%</strong>
+    </div>
+  `;
+}
+
 function renderMobileAssetHoldingCards(holdingData) {
   return holdingData
     .slice()
@@ -338,12 +352,7 @@ function renderMobileAssets({
           </div>
           <div class="asset-mobile-legend">
             ${hasPortfolioSegments
-              ? mobileSegments.map((item) => `
-                <div>
-                  <span><i class="dot" style="background:${item.color}"></i>${item.label}</span>
-                  <strong>${item.value.toFixed(1)}%</strong>
-                </div>
-              `).join("")
+              ? mobileSegments.map((item) => renderAssetPortfolioLegendRow(item, "asset-mobile-legend-row")).join("")
               : `<div class="asset-mobile-legend-empty">보유자산이 없습니다.</div>`}
           </div>
         </div>
@@ -415,12 +424,7 @@ function renderAssets() {
           <div class="asset-allocation-content">
             <div class="asset-allocation-legend">
               ${hasPortfolioSegments
-                ? holdingSegments.map((item) => `
-                  <div class="asset-allocation-row">
-                    <span><i class="dot" style="background:${item.color}"></i>${item.label}</span>
-                    <strong>${item.value.toFixed(1)}%</strong>
-                  </div>
-                `).join("")
+                ? holdingSegments.map((item) => renderAssetPortfolioLegendRow(item)).join("")
                 : `<div class="asset-allocation-empty">보유자산이 없습니다.</div>`}
             </div>
             <div class="asset-donut-wrap">
