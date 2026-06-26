@@ -1951,9 +1951,7 @@
   }
 
   .asset-mobile-summary h2 span,
-  .asset-mobile-section-head span,
-  .asset-mobile-benefit svg,
-  .asset-mobile-hide-toggle i {
+  .asset-mobile-section-head span {
     display: inline-grid;
     place-items: center;
     color: #9aa1ad;
@@ -1961,9 +1959,7 @@
 
   .asset-mobile-summary h2 svg,
   .asset-mobile-settings-button svg,
-  .asset-mobile-section-head svg,
-  .asset-mobile-benefit svg,
-  .asset-mobile-hide-toggle svg {
+  .asset-mobile-section-head svg {
     width: 20px;
     height: 20px;
     stroke: currentColor;
@@ -2126,74 +2122,6 @@
     font-size: 14px;
     line-height: 1.2;
     font-weight: 700;
-  }
-
-  .asset-mobile-benefit {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 10px;
-    margin: 16px;
-    padding: 14px 14px 14px 16px;
-    background: rgba(255, 255, 255, 0.78);
-    border-radius: 6px;
-  }
-
-  .asset-mobile-benefit div {
-    display: grid;
-    gap: 6px;
-    min-width: 0;
-  }
-
-  .asset-mobile-benefit span {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: #7d8592;
-    font-size: 13px;
-    font-weight: 560;
-  }
-
-  .asset-mobile-benefit strong {
-    color: #222832;
-    font-size: 16px;
-    line-height: 1.25;
-    font-weight: 700;
-  }
-
-  .asset-mobile-benefit .btn {
-    min-height: 42px;
-    padding: 0 12px;
-    border-radius: 5px;
-    font-size: 15px;
-    font-weight: 560;
-    white-space: nowrap;
-  }
-
-  .asset-mobile-hide-toggle {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 16px 22px 22px;
-    color: #4f5662;
-    background: white;
-    border-top: 1px solid #eceff3;
-    border-bottom: 1px solid #eceff3;
-    font-size: 16px;
-    font-weight: 520;
-  }
-
-  .asset-mobile-hide-toggle > span {
-    width: 24px;
-    height: 24px;
-    flex: 0 0 24px;
-    background: white;
-    border: 1.8px solid #aeb5bf;
-    border-radius: 50%;
-  }
-
-  .asset-mobile-hide-toggle i {
-    font-style: normal;
   }
 
   .asset-mobile-holdings {

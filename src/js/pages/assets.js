@@ -346,20 +346,6 @@ function renderMobileAssets({
         </div>
       </section>
 
-      <section class="asset-mobile-benefit">
-        <div>
-          <span>넣어두면 매일 쌓이는 혜택 ${icon("info")}</span>
-          <strong>연 2.1% 예치금 이용료 받아요.</strong>
-        </div>
-        <button class="btn primary" type="button" data-modal="assetCash">+ KRW입금</button>
-      </section>
-
-      <label class="asset-mobile-hide-toggle">
-        <span></span>
-        거래미지원/소액 자산 숨기기
-        <i>${icon("info")}</i>
-      </label>
-
       <section class="asset-mobile-holdings">
         ${renderMobileAssetHoldingCards(holdingData)}
       </section>
