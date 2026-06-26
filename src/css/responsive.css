@@ -3003,6 +3003,18 @@
     -webkit-user-select: none;
   }
 
+  .mobile-sheet-handle::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 148px;
+    height: 58px;
+    border-radius: 18px;
+    background: transparent;
+    transform: translate(-50%, -50%);
+  }
+
   .mobile-sheet-handle:active {
     cursor: grabbing;
   }
