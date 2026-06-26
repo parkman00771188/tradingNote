@@ -69,6 +69,7 @@ var assetMarketSearch = {
   requestId: 0
 };
 var assetMarketSearchTimer = 0;
+var assetMarketMetaCache = new Map();
 var settingsActiveSection = "broker";
 const assetSettingsVisibleDotLimit = 5;
 const assetSettingsDotSize = 10;
@@ -118,6 +119,16 @@ const assetSpreadsheetColumnAliases = {
 };
 
 const fallbackAssetInvestedBalance = 42750000;
+const knownDomesticMarketByCode = {
+  "000270": "KOSPI",
+  "000660": "KOSPI",
+  "005380": "KOSPI",
+  "005930": "KOSPI",
+  "035420": "KOSPI",
+  "035720": "KOSPI",
+  "207940": "KOSPI",
+  "373220": "KOSPI"
+};
 
 function formatKRW(value) {
   return `${Math.max(0, Math.round(Number(value) || 0)).toLocaleString()}원`;
@@ -1530,8 +1541,19 @@ function getAssetMarketLabel(item = {}) {
   if (/=F$/.test(code)) return "선물";
   if (/\.KS$/.test(code)) return "KOSPI";
   if (/\.KQ$/.test(code)) return "KOSDAQ";
+  const domesticMarket = getDomesticMarketFallback(code);
+  if (domesticMarket) return domesticMarket;
   if (quoteType === "EQUITY") return type || "주식";
   return type || market || "";
+}
+
+function getDomesticMarketFallback(code) {
+  const text = String(code || "").trim().toUpperCase();
+  const normalizedCode = text.replace(/\.(KS|KQ)$/i, "");
+  if (/\.KS$/i.test(text)) return "KOSPI";
+  if (/\.KQ$/i.test(text)) return "KOSDAQ";
+  if (knownDomesticMarketByCode[normalizedCode]) return knownDomesticMarketByCode[normalizedCode];
+  return /^\d{6}$/.test(normalizedCode) ? "KRX" : "";
 }
 
 function getAssetMarketChipTone(label) {
@@ -1605,6 +1627,7 @@ function beginAssetSettingsEdit() {
   assetSettingsPendingRemoveId = null;
   assetSettingsDeleteTargetId = "";
   resetAssetMarketSearch();
+  queueAssetSettingsMarketMetaEnrichment();
 }
 
 function cancelAssetSettingsEdit() {
@@ -1791,6 +1814,94 @@ async function runAssetMarketSearch(rowId, query, requestId) {
     assetMarketSearch.error = error?.message || "종목 검색에 실패했습니다.";
     updateAssetMarketSearchPanel(rowId);
   }
+}
+
+function getAssetMarketMetaCacheKey(item = {}) {
+  return String(item.code || item.symbol || item.name || "").trim().toUpperCase();
+}
+
+function shouldEnrichAssetMarketMeta(item = {}) {
+  const code = String(item.code || item.symbol || "").trim();
+  const metadata = String(item.market || item.exchange || item.quoteType || item.type || "").trim();
+  return Boolean(code) && !metadata;
+}
+
+function findAssetMarketMetaResult(results = [], item = {}) {
+  const code = String(item.code || item.symbol || "").trim().toUpperCase();
+  const normalizedCode = code.replace(/\.(KS|KQ)$/i, "");
+  if (!code) return null;
+
+  return results.find((result) => {
+    const resultCode = String(result.code || "").trim().toUpperCase();
+    const resultSymbol = String(result.symbol || "").trim().toUpperCase();
+    const normalizedSymbol = resultSymbol.replace(/\.(KS|KQ)$/i, "");
+    return resultCode === normalizedCode || resultSymbol === code || normalizedSymbol === normalizedCode;
+  }) || results[0] || null;
+}
+
+async function fetchAssetMarketMeta(item = {}) {
+  const cacheKey = getAssetMarketMetaCacheKey(item);
+  if (!cacheKey) return null;
+  if (assetMarketMetaCache.has(cacheKey)) return assetMarketMetaCache.get(cacheKey);
+
+  const response = await fetch(`/api/markets?action=search&q=${encodeURIComponent(cacheKey)}`, {
+    credentials: "include",
+    headers: { Accept: "application/json" }
+  });
+  const payload = await response.json().catch(() => ({}));
+  const result = response.ok && payload.ok
+    ? findAssetMarketMetaResult(Array.isArray(payload.results) ? payload.results : [], item)
+    : null;
+  assetMarketMetaCache.set(cacheKey, result || null);
+  return result || null;
+}
+
+function getAssetMarketMetaPatch(result = {}) {
+  const patch = {
+    type: result.type || "",
+    quoteType: result.quoteType || "",
+    market: result.market || "",
+    exchange: result.exchange || "",
+    source: result.source || "",
+    currency: normalizeAssetCurrency(result.currency || "")
+  };
+  return Object.fromEntries(Object.entries(patch).filter(([, value]) => value));
+}
+
+async function enrichAssetSettingsMarketMeta() {
+  if (activeModal !== "assetSettings" || !assetSettingsDrafts.length) return;
+
+  const targets = assetSettingsDrafts.filter(shouldEnrichAssetMarketMeta);
+  if (!targets.length) return;
+
+  let changed = false;
+  for (const target of targets) {
+    const cacheKey = getAssetMarketMetaCacheKey(target);
+    const result = await fetchAssetMarketMeta(target).catch(() => null);
+    if (!result || activeModal !== "assetSettings") continue;
+
+    const current = assetSettingsDrafts.find((item) => item.id === target.id);
+    if (!current || getAssetMarketMetaCacheKey(current) !== cacheKey || !shouldEnrichAssetMarketMeta(current)) continue;
+
+    const patch = getAssetMarketMetaPatch(result);
+    if (!Object.keys(patch).length) continue;
+
+    assetSettingsDrafts = assetSettingsDrafts.map((item) => item.id === target.id ? { ...item, ...patch } : item);
+    changed = true;
+  }
+
+  if (changed && activeModal === "assetSettings") {
+    renderModal();
+    hydrateIcons(document);
+  }
+}
+
+function queueAssetSettingsMarketMetaEnrichment() {
+  window.setTimeout(() => {
+    enrichAssetSettingsMarketMeta().catch((error) => {
+      console.warn("Asset market metadata could not be enriched.", error);
+    });
+  }, 0);
 }
 
 function scheduleAssetMarketSearch(rowId, query) {
