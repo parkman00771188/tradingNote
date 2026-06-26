@@ -130,6 +130,29 @@ const knownDomesticMarketByCode = {
   "373220": "KOSPI"
 };
 
+const assetLogoDomainsByCode = {
+  "000270": "kia.com",
+  "000660": "skhynix.com",
+  "005380": "hyundai.com",
+  "005930": "samsung.com",
+  "035420": "navercorp.com",
+  "035720": "kakaocorp.com",
+  "207940": "samsungbiologics.com",
+  "373220": "lgensol.com"
+};
+
+const assetLogoDomainsBySymbol = {
+  AAPL: "apple.com",
+  AMZN: "amazon.com",
+  GOOGL: "abc.xyz",
+  GOOG: "abc.xyz",
+  META: "meta.com",
+  MSFT: "microsoft.com",
+  NFLX: "netflix.com",
+  NVDA: "nvidia.com",
+  TSLA: "tesla.com"
+};
+
 function formatKRW(value) {
   return `${Math.max(0, Math.round(Number(value) || 0)).toLocaleString()}원`;
 }
@@ -615,6 +638,7 @@ function normalizeAssetRowInput(item) {
     market: String(item.market || "").trim(),
     exchange: String(item.exchange || "").trim(),
     source: String(item.source || "").trim(),
+    logoUrl: String(item.logoUrl || "").trim(),
     currency: String(item.currency || "").trim().toUpperCase(),
     marketPrice: parseAssetDecimalInput(item.marketPrice),
     exchangeRateToKrw: parseAssetDecimalInput(item.exchangeRateToKrw),
@@ -670,6 +694,7 @@ function replaceAssetHoldings(rows) {
         row.market,
         row.exchange,
         row.source,
+        row.logoUrl,
         row.currency,
         row.marketPrice,
         row.exchangeRateToKrw,
@@ -693,10 +718,11 @@ function replaceAssetHoldings(rows) {
       watchRow[7] = row.market;
       watchRow[8] = row.exchange;
       watchRow[9] = row.source;
-      watchRow[10] = row.currency;
-      watchRow[11] = row.marketPrice;
-      watchRow[12] = row.exchangeRateToKrw;
-      watchRow[13] = row.priceDisplayCurrency;
+      watchRow[10] = row.logoUrl;
+      watchRow[11] = row.currency;
+      watchRow[12] = row.marketPrice;
+      watchRow[13] = row.exchangeRateToKrw;
+      watchRow[14] = row.priceDisplayCurrency;
       return;
     }
 
@@ -712,6 +738,7 @@ function replaceAssetHoldings(rows) {
         row.market,
         row.exchange,
         row.source,
+        row.logoUrl,
         row.currency,
         row.marketPrice,
         row.exchangeRateToKrw,
@@ -840,6 +867,7 @@ function getAssetSnapshot() {
       market: item.market || "",
       exchange: item.exchange || "",
       source: item.source || "",
+      logoUrl: item.logoUrl || "",
       currency: item.currency || "",
       marketPrice: item.marketPrice || 0,
       exchangeRateToKrw: item.exchangeRateToKrw || 0,
@@ -1463,6 +1491,7 @@ function createAssetSettingsDraft(item = {}) {
     market: item.market || "",
     exchange: item.exchange || "",
     source: item.source || "",
+    logoUrl: item.logoUrl || "",
     currency: normalizeAssetCurrency(item.currency || ""),
     marketPrice: Math.max(0, Number(item.marketPrice) || 0),
     exchangeRateToKrw: Math.max(0, Number(item.exchangeRateToKrw) || 0),
@@ -1554,6 +1583,59 @@ function getDomesticMarketFallback(code) {
   if (/\.KQ$/i.test(text)) return "KOSDAQ";
   if (knownDomesticMarketByCode[normalizedCode]) return knownDomesticMarketByCode[normalizedCode];
   return /^\d{6}$/.test(normalizedCode) ? "KRX" : "";
+}
+
+function getSafeAssetLogoUrl(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  try {
+    const url = new URL(text);
+    return ["https:", "http:"].includes(url.protocol) ? url.href : "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function getAssetLogoDomain(item = {}) {
+  const rawCode = String(item.code || item.symbol || "").trim().toUpperCase();
+  const normalizedCode = rawCode.replace(/\.(KS|KQ)$/i, "");
+  const symbolRoot = rawCode.split(/[.\-]/)[0];
+  return assetLogoDomainsByCode[normalizedCode] || assetLogoDomainsBySymbol[rawCode] || assetLogoDomainsBySymbol[symbolRoot] || "";
+}
+
+function getAssetLogoUrl(item = {}) {
+  const apiLogo = getSafeAssetLogoUrl(item.logoUrl);
+  if (apiLogo) return apiLogo;
+
+  const domain = getAssetLogoDomain(item);
+  return domain ? `https://www.google.com/s2/favicons?sz=128&domain=${encodeURIComponent(domain)}` : "";
+}
+
+function getAssetLogoInitial(item = {}) {
+  const name = String(item.name || "").trim();
+  const code = String(item.code || item.symbol || "").trim();
+  return Array.from(name || code || "?")[0]?.toUpperCase() || "?";
+}
+
+function getAssetLogoWordmark(item = {}) {
+  const code = String(item.code || item.symbol || "").trim().toUpperCase().replace(/\.(KS|KQ)$/i, "");
+  const name = String(item.name || "").trim().toLowerCase();
+  if (code === "005930" || /samsung|삼성/.test(name)) return "SAMSUNG";
+  return "";
+}
+
+function renderAssetLogoMark(item = {}) {
+  const wordmark = getAssetLogoWordmark(item);
+  const logoUrl = getAssetLogoUrl(item);
+  const initial = getAssetLogoInitial(item);
+  return `
+    <span class="asset-settings-logo-mark ${wordmark ? "has-wordmark" : ""}" aria-hidden="true">
+      <span class="asset-settings-logo-fallback">${escapeChartText(initial)}</span>
+      ${wordmark ? `<span class="asset-settings-logo-wordmark samsung">${escapeChartText(wordmark)}</span>` : ""}
+      ${!wordmark && logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}
+    </span>
+  `;
 }
 
 function getAssetMarketChipTone(label) {
@@ -1863,6 +1945,7 @@ function getAssetMarketMetaPatch(result = {}) {
     market: result.market || "",
     exchange: result.exchange || "",
     source: result.source || "",
+    logoUrl: result.logoUrl || "",
     currency: normalizeAssetCurrency(result.currency || "")
   };
   return Object.fromEntries(Object.entries(patch).filter(([, value]) => value));
@@ -1957,6 +2040,7 @@ function applyAssetMarketResult(rowId, resultIndex) {
     market: result.market || "",
     exchange: result.exchange || "",
     source: result.source || "",
+    logoUrl: result.logoUrl || "",
     currency: resultCurrency || "KRW",
     marketPrice,
     exchangeRateToKrw,
@@ -2057,6 +2141,7 @@ function normalizeAssetSettingsRow(item) {
     market: String(item.market || "").trim(),
     exchange: String(item.exchange || "").trim(),
     source: String(item.source || "").trim(),
+    logoUrl: String(item.logoUrl || "").trim(),
     currency: getAssetCurrency(item),
     marketPrice: getAssetMarketPrice(item),
     exchangeRateToKrw: getAssetExchangeRateToKrw(item),
@@ -2327,6 +2412,68 @@ function renderAssetSettingsCardView(item, index) {
         <button class="${currentDisplayCurrency === foreignCurrency ? "active" : ""}" type="button" data-asset-settings-price-currency="${escapeChartText(foreignCurrency)}" data-asset-setting-id="${item.id}" aria-pressed="${currentDisplayCurrency === foreignCurrency}">${escapeChartText(foreignCurrency)}</button>
       </div>`
     : "";
+
+  if (!isEditing) {
+    const quantityText = formatMarketNumber(Number(item.quantity) || 0);
+    const priceText = formatMarketNumber(Number(item.currentPrice) || 0);
+    const amountText = formatMarketNumber(amount);
+    const assetCodeText = displayCode || "코드 미입력";
+
+    return `
+      <article class="asset-settings-card asset-settings-display-card asset-settings-summary-card ${motionClass}" data-asset-setting-card="${item.id}">
+        <button class="mini-action asset-settings-menu" type="button" data-asset-settings-menu="${item.id}" aria-label="자산 메뉴" aria-expanded="${assetSettingsOpenMenuId === item.id ? "true" : "false"}">${icon("more")}</button>
+        ${
+          assetSettingsOpenMenuId === item.id
+            ? `<div class="asset-settings-floating-menu" role="menu">
+                <button type="button" data-asset-settings-edit="${item.id}" role="menuitem">${icon("edit")}수정</button>
+                <button type="button" data-asset-settings-remove="${item.id}" role="menuitem">${icon("trash")}삭제</button>
+              </div>`
+            : ""
+        }
+
+        <div class="asset-settings-summary-hero">
+          <svg class="asset-settings-summary-wave" viewBox="0 0 640 190" aria-hidden="true" preserveAspectRatio="none">
+            <path d="M0 154 C84 130 122 138 168 148 C214 158 238 122 286 130 C340 138 352 88 402 94 C452 100 462 128 514 102 C570 74 580 18 640 54" />
+            <path d="M0 170 C88 152 130 150 186 160 C236 170 248 134 294 142 C348 150 358 106 410 110 C470 114 490 142 540 118 C592 92 600 50 640 72" />
+          </svg>
+          <div class="asset-settings-summary-content">
+            ${renderAssetLogoMark(item)}
+            <div class="asset-settings-summary-title">
+              <div class="asset-settings-summary-badge-row">
+                <span class="asset-settings-chip">ASSET ${String(index + 1).padStart(2, "0")}</span>
+                ${categoryLabel ? `<span class="asset-settings-sector-chip ${categoryTone}">${escapeChartText(categoryLabel)}</span>` : ""}
+              </div>
+              <strong>${escapeChartText(displayName)}</strong>
+              <span>${escapeChartText(assetCodeText)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="asset-settings-summary-metrics">
+          <div class="asset-settings-summary-metric asset-settings-summary-quantity">
+            <span class="asset-settings-summary-icon" aria-hidden="true">${icon("coin")}</span>
+            <span class="asset-settings-summary-label">보유 수량</span>
+            <strong>${quantityText}<small>주</small></strong>
+          </div>
+          <div class="asset-settings-summary-metric asset-settings-summary-price">
+            <span class="asset-settings-summary-icon" aria-hidden="true">${icon("chart")}</span>
+            <span class="asset-settings-summary-label">현재가</span>
+            <strong>${priceText}<small>원</small></strong>
+          </div>
+          <div class="asset-settings-summary-metric asset-settings-summary-value">
+            <span class="asset-settings-summary-icon" aria-hidden="true">${icon("performance")}</span>
+            <span class="asset-settings-summary-label">평가금액</span>
+            <strong>${amountText}<small>원</small></strong>
+          </div>
+        </div>
+
+        <div class="asset-settings-summary-note">
+          <span aria-hidden="true">${icon("info")}</span>
+          <p>평가금액은 보유 수량을 기준으로 실시간 현재가를 반영하여 계산됩니다.</p>
+        </div>
+      </article>
+    `;
+  }
 
   return `
     <article class="asset-settings-card asset-settings-display-card ${isEditing ? "is-editing" : ""} ${motionClass}" data-asset-setting-card="${item.id}">

@@ -173,6 +173,7 @@ function mapYahooQuote(quote) {
     market: quote.exchDisp || quote.exchange || "",
     exchange: quote.exchange || quote.exchDisp || "",
     industry: quote.industryDisp || quote.industry || "",
+    logoUrl: quote.logoUrl || "",
     currency: "",
     source: "Yahoo Finance"
   };
@@ -266,6 +267,7 @@ async function enrichWithChart(item) {
     quoteType: item.quoteType,
     market: item.market || chart.market,
     exchange: item.exchange || chart.exchange,
+    logoUrl: item.logoUrl || chart.logoUrl || "",
     currency,
     currentPrice: chart.currentPrice || item.currentPrice || 0,
     currentPriceKrw,
@@ -315,6 +317,7 @@ async function searchMarkets(query) {
     market: item.market,
     exchange: item.exchange,
     industry: item.industry || "",
+    logoUrl: item.logoUrl || "",
     currency: item.currency || "",
     currentPrice: Number(item.currentPrice || 0),
     currentPriceKrw: Number(item.currentPriceKrw || 0),

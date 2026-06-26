@@ -150,9 +150,15 @@ function findWatchListRow(name, code = "") {
   return watchList.find(([watchName, watchCode]) => stockMatches(watchName, watchCode, name, code)) || null;
 }
 
+function isStoredAssetLogoUrl(value) {
+  return /^https?:\/\//i.test(String(value || "").trim());
+}
+
 function getWatchStock(name, code = "") {
   const row = findWatchListRow(name, code);
   if (!row) return null;
+  const storedLogoOrCurrency = row[10] || "";
+  const hasStoredLogo = isStoredAssetLogoUrl(storedLogoOrCurrency);
 
   return {
     name: row[0],
@@ -166,10 +172,11 @@ function getWatchStock(name, code = "") {
     market: row[7] || "",
     exchange: row[8] || "",
     source: row[9] || "",
-    currency: row[10] || "",
-    marketPrice: Number(row[11]) || 0,
-    exchangeRateToKrw: Number(row[12]) || 0,
-    priceDisplayCurrency: row[13] || ""
+    logoUrl: hasStoredLogo ? storedLogoOrCurrency : "",
+    currency: hasStoredLogo ? row[11] || "" : storedLogoOrCurrency,
+    marketPrice: Number(hasStoredLogo ? row[12] : row[11]) || 0,
+    exchangeRateToKrw: Number(hasStoredLogo ? row[13] : row[12]) || 0,
+    priceDisplayCurrency: hasStoredLogo ? row[14] || "" : row[13] || ""
   };
 }
 
@@ -188,11 +195,18 @@ function getHoldingData() {
       storedMarket,
       storedExchange,
       storedSource,
-      storedCurrency,
-      storedMarketPrice,
-      storedExchangeRateToKrw,
-      storedPriceDisplayCurrency
+      storedLogoOrCurrency,
+      storedCurrencyOrMarketPrice,
+      storedMarketPriceOrExchangeRate,
+      storedExchangeRateOrPriceDisplay,
+      storedPriceDisplayCurrencyNew
     ] = holdingRow;
+    const hasStoredLogo = isStoredAssetLogoUrl(storedLogoOrCurrency);
+    const storedLogoUrl = hasStoredLogo ? storedLogoOrCurrency : "";
+    const storedCurrency = hasStoredLogo ? storedCurrencyOrMarketPrice : storedLogoOrCurrency;
+    const storedMarketPrice = hasStoredLogo ? storedMarketPriceOrExchangeRate : storedCurrencyOrMarketPrice;
+    const storedExchangeRateToKrw = hasStoredLogo ? storedExchangeRateOrPriceDisplay : storedMarketPriceOrExchangeRate;
+    const storedPriceDisplayCurrency = hasStoredLogo ? storedPriceDisplayCurrencyNew : storedExchangeRateOrPriceDisplay;
     const quantity = parseMarketNumber(quantityText);
     const previousAmount = parseMarketNumber(amountText);
     const previousProfit = parseSignedMarketNumber(profitText);
@@ -211,6 +225,7 @@ function getHoldingData() {
       market: storedMarket || watch?.market || "",
       exchange: storedExchange || watch?.exchange || "",
       source: storedSource || watch?.source || "",
+      logoUrl: storedLogoUrl || watch?.logoUrl || "",
       currency: storedCurrency || watch?.currency || "",
       marketPrice: Number(storedMarketPrice || watch?.marketPrice || 0),
       exchangeRateToKrw: Number(storedExchangeRateToKrw || watch?.exchangeRateToKrw || 0),
