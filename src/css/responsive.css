@@ -2900,6 +2900,12 @@
     display: block;
   }
 
+  html.mobile-sheet-scroll-locked,
+  body.mobile-sheet-scroll-locked {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   .mobile-sheet-backdrop {
     position: fixed;
     inset: 0;
@@ -2908,6 +2914,7 @@
     align-items: end;
     background: rgba(15, 23, 42, 0.26);
     backdrop-filter: blur(14px);
+    overscroll-behavior: none;
   }
 
   .mobile-more-sheet {

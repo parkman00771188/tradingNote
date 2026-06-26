@@ -15,6 +15,9 @@ const renderers = {
 var activeModal = null;
 var mobileSheetOpen = false;
 var mobileSheetDragState = null;
+var mobileSheetScrollLockY = 0;
+var mobileSheetScrollLocked = false;
+var mobileSheetScrollLockStyles = null;
 var chartTooltip = null;
 var pinnedChartTooltipTarget = null;
 var chartTooltipPointerTapTarget = null;
@@ -4616,11 +4619,13 @@ function renderMobileSheetLegacy() {
 
   if (!mobileSheetOpen) {
     sheetRoot.innerHTML = "";
+    unlockMobileSheetPageScroll();
     if (!activeModal && document.body) document.body.classList.remove("modal-open");
     return;
   }
 
   if (document.body) document.body.classList.add("modal-open");
+  lockMobileSheetPageScroll();
   const quickItems = [
     ["dashboard", "home", "대시보드"],
     ["calendar", "calendar", "캘린더"],
@@ -4668,6 +4673,53 @@ function clearMobileSheetDragState() {
     mobileSheetDragState.sheet.style.transform = "";
   }
   mobileSheetDragState = null;
+}
+
+function lockMobileSheetPageScroll() {
+  if (mobileSheetScrollLocked || !document.body) return;
+
+  const body = document.body;
+  mobileSheetScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+  mobileSheetScrollLockStyles = {
+    position: body.style.position,
+    top: body.style.top,
+    left: body.style.left,
+    right: body.style.right,
+    width: body.style.width
+  };
+  body.style.position = "fixed";
+  body.style.top = `-${mobileSheetScrollLockY}px`;
+  body.style.left = "0";
+  body.style.right = "0";
+  body.style.width = "100%";
+  body.classList.add("mobile-sheet-scroll-locked");
+  document.documentElement.classList.add("mobile-sheet-scroll-locked");
+  mobileSheetScrollLocked = true;
+}
+
+function unlockMobileSheetPageScroll() {
+  if (!mobileSheetScrollLocked || !document.body) return;
+
+  const body = document.body;
+  const restoreY = mobileSheetScrollLockY;
+  const styles = mobileSheetScrollLockStyles || {};
+  body.style.position = styles.position || "";
+  body.style.top = styles.top || "";
+  body.style.left = styles.left || "";
+  body.style.right = styles.right || "";
+  body.style.width = styles.width || "";
+  body.classList.remove("mobile-sheet-scroll-locked");
+  document.documentElement.classList.remove("mobile-sheet-scroll-locked");
+  mobileSheetScrollLockY = 0;
+  mobileSheetScrollLockStyles = null;
+  mobileSheetScrollLocked = false;
+  window.scrollTo(0, restoreY);
+}
+
+function preventMobileSheetBackdropScroll(event) {
+  if (!mobileSheetOpen) return;
+  if (event.target?.closest?.(".mobile-more-sheet")) return;
+  event.preventDefault();
 }
 
 function beginMobileSheetDrag(event) {
@@ -4731,11 +4783,13 @@ function renderMobileSheet() {
   if (!mobileSheetOpen) {
     clearMobileSheetDragState();
     sheetRoot.innerHTML = "";
+    unlockMobileSheetPageScroll();
     if (!activeModal && document.body) document.body.classList.remove("modal-open");
     return;
   }
 
   if (document.body) document.body.classList.add("modal-open");
+  lockMobileSheetPageScroll();
 
   const quickItems = [
     ["dashboard", "dashboard_home", "대시보드"],
@@ -5830,6 +5884,9 @@ document.addEventListener("input", (event) => {
 document.addEventListener("pointerdown", (event) => {
   beginMobileSheetDrag(event);
 });
+
+document.addEventListener("touchmove", preventMobileSheetBackdropScroll, { passive: false });
+document.addEventListener("wheel", preventMobileSheetBackdropScroll, { passive: false });
 
 document.addEventListener("pointerover", (event) => {
   const target = event.target.closest("[data-chart-tooltip]");
