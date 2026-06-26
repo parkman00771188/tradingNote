@@ -4616,3 +4616,334 @@
     font-size: 27px;
   }
 }
+
+/* Asset settings polish: typed badges, fitting edit forms, visible mobile dots */
+.asset-settings-logo-mark {
+  color: #ffffff;
+  background: linear-gradient(145deg, #2f86ff 0%, #1767e8 100%);
+  border-color: rgba(184, 210, 255, 0.96);
+}
+
+.asset-settings-logo-mark.domestic {
+  background: linear-gradient(145deg, #2f86ff 0%, #155bd0 100%);
+}
+
+.asset-settings-logo-mark.crypto {
+  background: linear-gradient(145deg, #19c37d 0%, #047857 100%);
+  border-color: rgba(167, 243, 208, 0.96);
+}
+
+.asset-settings-logo-mark.future {
+  background: linear-gradient(145deg, #f59e0b 0%, #b45309 100%);
+  border-color: rgba(253, 230, 138, 0.96);
+}
+
+.asset-settings-logo-mark.etf {
+  background: linear-gradient(145deg, #8b5cf6 0%, #6d28d9 100%);
+  border-color: rgba(221, 214, 254, 0.96);
+}
+
+.asset-settings-logo-mark.global {
+  background: linear-gradient(145deg, #64748b 0%, #334155 100%);
+  border-color: rgba(203, 213, 225, 0.96);
+}
+
+.asset-settings-logo-mark img,
+.asset-settings-logo-wordmark {
+  display: none !important;
+}
+
+.asset-settings-logo-fallback {
+  position: static;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  color: #ffffff;
+  background: transparent;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.asset-settings-modal .asset-settings-body {
+  scrollbar-gutter: stable;
+}
+
+.asset-settings-display-card.is-editing {
+  justify-content: flex-start;
+}
+
+.asset-settings-display-card.is-editing .asset-settings-card-actions {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.15fr);
+}
+
+@media (min-width: 768px) {
+  .asset-settings-modal {
+    width: min(1040px, calc(100vw - 72px));
+    height: min(760px, calc(100dvh - 72px));
+  }
+
+  .asset-settings-cards {
+    --asset-settings-card-width: min(760px, calc(100vw - 220px));
+    --asset-settings-card-edge: max(28px, calc((100% - var(--asset-settings-card-width)) / 2));
+    align-items: flex-start;
+    overflow-y: visible;
+    padding-bottom: 54px;
+  }
+
+  .asset-settings-summary-card {
+    min-height: auto;
+  }
+
+  .asset-settings-summary-card .asset-settings-menu {
+    top: 46px;
+    right: 42px;
+  }
+
+  .asset-settings-display-card.is-editing {
+    min-height: 0;
+    padding: 24px 30px 26px;
+    border-radius: 20px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-chip-row {
+    min-height: 28px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-title-wrap {
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-market-search-box {
+    min-height: 48px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-market-code-field {
+    min-height: 42px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-tile-grid {
+    gap: 16px;
+    margin-top: 18px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-tile {
+    min-height: 106px;
+    padding: 18px 20px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-value-panel {
+    min-height: 86px;
+    margin-top: 18px;
+    padding: 18px 22px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-card-actions {
+    gap: 14px;
+    margin-top: 22px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-card-actions .btn {
+    min-height: 50px;
+  }
+}
+
+@media (max-width: 767px) {
+  .asset-settings-modal {
+    width: min(430px, calc(100vw - 24px));
+    height: auto;
+    min-height: 0;
+    max-height: calc(100dvh - 32px);
+  }
+
+  .asset-settings-modal .asset-settings-body {
+    max-height: calc(100dvh - 156px);
+    overflow-y: auto;
+  }
+
+  .asset-settings-header {
+    min-height: 116px;
+    padding: 58px 30px 18px;
+  }
+
+  .asset-settings-heading .modal-title {
+    font-size: 28px;
+  }
+
+  .asset-settings-cards {
+    --asset-settings-card-width: min(338px, calc(100vw - 56px));
+    --asset-settings-card-edge: max(18px, calc((100% - var(--asset-settings-card-width)) / 2));
+    align-items: flex-start;
+    min-height: auto;
+    padding-bottom: 8px;
+    overflow-y: visible;
+  }
+
+  .asset-settings-summary-card {
+    gap: 12px;
+    min-height: auto;
+    padding-bottom: 6px;
+  }
+
+  .asset-settings-summary-card .asset-settings-menu {
+    top: 34px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .asset-settings-summary-hero {
+    min-height: 158px;
+    padding: 20px 16px;
+  }
+
+  .asset-settings-summary-content {
+    gap: 14px;
+    min-height: 104px;
+  }
+
+  .asset-settings-logo-mark {
+    width: 68px;
+    height: 68px;
+  }
+
+  .asset-settings-logo-fallback {
+    font-size: 23px;
+  }
+
+  .asset-settings-summary-title {
+    gap: 4px;
+    padding-right: 52px;
+  }
+
+  .asset-settings-summary-badge-row {
+    gap: 6px;
+    margin-bottom: 7px;
+  }
+
+  .asset-settings-summary-title strong {
+    font-size: 20px;
+  }
+
+  .asset-settings-summary-title > span {
+    font-size: 15px;
+  }
+
+  .asset-settings-summary-metric {
+    min-height: 62px;
+    gap: 12px;
+    padding: 0 16px;
+  }
+
+  .asset-settings-summary-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .asset-settings-summary-label {
+    font-size: 14px;
+  }
+
+  .asset-settings-summary-metric strong {
+    font-size: 22px;
+  }
+
+  .asset-settings-summary-value {
+    min-height: 74px;
+    margin-top: 12px;
+  }
+
+  .asset-settings-summary-value .asset-settings-summary-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .asset-settings-summary-value strong {
+    font-size: 26px;
+  }
+
+  .asset-settings-summary-note {
+    min-height: 64px;
+    padding: 12px 16px;
+  }
+
+  .asset-settings-summary-note p {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .asset-settings-slide-dots {
+    position: relative;
+    z-index: 4;
+    min-height: 22px;
+    margin-top: -4px;
+    padding: 0 0 8px;
+  }
+
+  .asset-settings-display-card.is-editing {
+    min-height: 0;
+    padding: 20px 22px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-title-wrap {
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-market-search-box {
+    min-height: 42px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-market-code-field {
+    min-height: 38px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-tile-grid {
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-tile {
+    min-height: 86px;
+    padding: 14px 15px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-value-panel {
+    min-height: 74px;
+    margin-top: 14px;
+    padding: 14px 16px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-card-actions {
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-card-actions .btn {
+    min-height: 46px;
+  }
+}
+
+@media (max-width: 390px) {
+  .asset-settings-cards {
+    --asset-settings-card-width: min(326px, calc(100vw - 48px));
+    --asset-settings-card-edge: max(14px, calc((100% - var(--asset-settings-card-width)) / 2));
+  }
+
+  .asset-settings-summary-hero {
+    min-height: 158px;
+  }
+
+  .asset-settings-logo-mark {
+    width: 68px;
+    height: 68px;
+  }
+
+  .asset-settings-summary-metric {
+    min-height: 64px;
+  }
+
+  .asset-settings-summary-value {
+    min-height: 76px;
+  }
+}

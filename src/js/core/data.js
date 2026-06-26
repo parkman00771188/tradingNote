@@ -158,7 +158,8 @@ function getWatchStock(name, code = "") {
   const row = findWatchListRow(name, code);
   if (!row) return null;
   const storedLogoOrCurrency = row[10] || "";
-  const hasStoredLogo = isStoredAssetLogoUrl(storedLogoOrCurrency);
+  const hasStoredLogoColumn = row.length >= 15;
+  const hasStoredLogo = hasStoredLogoColumn && isStoredAssetLogoUrl(storedLogoOrCurrency);
 
   return {
     name: row[0],
@@ -173,10 +174,10 @@ function getWatchStock(name, code = "") {
     exchange: row[8] || "",
     source: row[9] || "",
     logoUrl: hasStoredLogo ? storedLogoOrCurrency : "",
-    currency: hasStoredLogo ? row[11] || "" : storedLogoOrCurrency,
-    marketPrice: Number(hasStoredLogo ? row[12] : row[11]) || 0,
-    exchangeRateToKrw: Number(hasStoredLogo ? row[13] : row[12]) || 0,
-    priceDisplayCurrency: hasStoredLogo ? row[14] || "" : row[13] || ""
+    currency: hasStoredLogoColumn ? row[11] || "" : storedLogoOrCurrency,
+    marketPrice: Number(hasStoredLogoColumn ? row[12] : row[11]) || 0,
+    exchangeRateToKrw: Number(hasStoredLogoColumn ? row[13] : row[12]) || 0,
+    priceDisplayCurrency: hasStoredLogoColumn ? row[14] || "" : row[13] || ""
   };
 }
 
@@ -201,12 +202,13 @@ function getHoldingData() {
       storedExchangeRateOrPriceDisplay,
       storedPriceDisplayCurrencyNew
     ] = holdingRow;
-    const hasStoredLogo = isStoredAssetLogoUrl(storedLogoOrCurrency);
+    const hasStoredLogoColumn = holdingRow.length >= 17;
+    const hasStoredLogo = hasStoredLogoColumn && isStoredAssetLogoUrl(storedLogoOrCurrency);
     const storedLogoUrl = hasStoredLogo ? storedLogoOrCurrency : "";
-    const storedCurrency = hasStoredLogo ? storedCurrencyOrMarketPrice : storedLogoOrCurrency;
-    const storedMarketPrice = hasStoredLogo ? storedMarketPriceOrExchangeRate : storedCurrencyOrMarketPrice;
-    const storedExchangeRateToKrw = hasStoredLogo ? storedExchangeRateOrPriceDisplay : storedMarketPriceOrExchangeRate;
-    const storedPriceDisplayCurrency = hasStoredLogo ? storedPriceDisplayCurrencyNew : storedExchangeRateOrPriceDisplay;
+    const storedCurrency = hasStoredLogoColumn ? storedCurrencyOrMarketPrice : storedLogoOrCurrency;
+    const storedMarketPrice = hasStoredLogoColumn ? storedMarketPriceOrExchangeRate : storedCurrencyOrMarketPrice;
+    const storedExchangeRateToKrw = hasStoredLogoColumn ? storedExchangeRateOrPriceDisplay : storedMarketPriceOrExchangeRate;
+    const storedPriceDisplayCurrency = hasStoredLogoColumn ? storedPriceDisplayCurrencyNew : storedExchangeRateOrPriceDisplay;
     const quantity = parseMarketNumber(quantityText);
     const previousAmount = parseMarketNumber(amountText);
     const previousProfit = parseSignedMarketNumber(profitText);

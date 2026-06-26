@@ -70,6 +70,8 @@ var assetMarketSearch = {
 };
 var assetMarketSearchTimer = 0;
 var assetMarketMetaCache = new Map();
+var assetPriceRefreshTimer = 0;
+var assetPriceRefreshRunning = false;
 var settingsActiveSection = "broker";
 const assetSettingsVisibleDotLimit = 5;
 const assetSettingsDotSize = 10;
@@ -128,29 +130,6 @@ const knownDomesticMarketByCode = {
   "035720": "KOSPI",
   "207940": "KOSPI",
   "373220": "KOSPI"
-};
-
-const assetLogoDomainsByCode = {
-  "000270": "kia.com",
-  "000660": "skhynix.com",
-  "005380": "hyundai.com",
-  "005930": "samsung.com",
-  "035420": "navercorp.com",
-  "035720": "kakaocorp.com",
-  "207940": "samsungbiologics.com",
-  "373220": "lgensol.com"
-};
-
-const assetLogoDomainsBySymbol = {
-  AAPL: "apple.com",
-  AMZN: "amazon.com",
-  GOOGL: "abc.xyz",
-  GOOG: "abc.xyz",
-  META: "meta.com",
-  MSFT: "microsoft.com",
-  NFLX: "netflix.com",
-  NVDA: "nvidia.com",
-  TSLA: "tesla.com"
 };
 
 function formatKRW(value) {
@@ -376,8 +355,10 @@ async function loadUserDataFromServer(userId = getCurrentUserStorageId()) {
     }
 
     userDataServerLoadedFor = userId;
+    queueStoredAssetMarketPriceRefresh({ delay: 500, syncRemote: true });
   } catch (error) {
     console.warn("User data could not be loaded from the server.", error);
+    queueStoredAssetMarketPriceRefresh({ delay: 900, syncRemote: false });
   } finally {
     if (userDataServerLoadingFor === userId) userDataServerLoadingFor = "";
   }
@@ -411,6 +392,7 @@ function initializeUserDataState({ force = false } = {}) {
   loadAssetStateFromStorage();
   loadMemoStateFromStorage();
   loadUserDataFromServer(userId);
+  queueStoredAssetMarketPriceRefresh({ delay: 1200, syncRemote: true });
 }
 
 function renderSidebarUser() {
@@ -1585,59 +1567,6 @@ function getDomesticMarketFallback(code) {
   return /^\d{6}$/.test(normalizedCode) ? "KRX" : "";
 }
 
-function getSafeAssetLogoUrl(value) {
-  const text = String(value || "").trim();
-  if (!text) return "";
-
-  try {
-    const url = new URL(text);
-    return ["https:", "http:"].includes(url.protocol) ? url.href : "";
-  } catch (error) {
-    return "";
-  }
-}
-
-function getAssetLogoDomain(item = {}) {
-  const rawCode = String(item.code || item.symbol || "").trim().toUpperCase();
-  const normalizedCode = rawCode.replace(/\.(KS|KQ)$/i, "");
-  const symbolRoot = rawCode.split(/[.\-]/)[0];
-  return assetLogoDomainsByCode[normalizedCode] || assetLogoDomainsBySymbol[rawCode] || assetLogoDomainsBySymbol[symbolRoot] || "";
-}
-
-function getAssetLogoUrl(item = {}) {
-  const apiLogo = getSafeAssetLogoUrl(item.logoUrl);
-  if (apiLogo) return apiLogo;
-
-  const domain = getAssetLogoDomain(item);
-  return domain ? `https://www.google.com/s2/favicons?sz=128&domain=${encodeURIComponent(domain)}` : "";
-}
-
-function getAssetLogoInitial(item = {}) {
-  const name = String(item.name || "").trim();
-  const code = String(item.code || item.symbol || "").trim();
-  return Array.from(name || code || "?")[0]?.toUpperCase() || "?";
-}
-
-function getAssetLogoWordmark(item = {}) {
-  const code = String(item.code || item.symbol || "").trim().toUpperCase().replace(/\.(KS|KQ)$/i, "");
-  const name = String(item.name || "").trim().toLowerCase();
-  if (code === "005930" || /samsung|삼성/.test(name)) return "SAMSUNG";
-  return "";
-}
-
-function renderAssetLogoMark(item = {}) {
-  const wordmark = getAssetLogoWordmark(item);
-  const logoUrl = getAssetLogoUrl(item);
-  const initial = getAssetLogoInitial(item);
-  return `
-    <span class="asset-settings-logo-mark ${wordmark ? "has-wordmark" : ""}" aria-hidden="true">
-      <span class="asset-settings-logo-fallback">${escapeChartText(initial)}</span>
-      ${wordmark ? `<span class="asset-settings-logo-wordmark samsung">${escapeChartText(wordmark)}</span>` : ""}
-      ${!wordmark && logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}
-    </span>
-  `;
-}
-
 function getAssetMarketChipTone(label) {
   const text = String(label || "");
   if (/암호화폐|crypto/i.test(text)) return "crypto";
@@ -1645,6 +1574,22 @@ function getAssetMarketChipTone(label) {
   if (/ETF/i.test(text)) return "etf";
   if (/KOSPI|KOSDAQ|KONEX|국내/i.test(text)) return "domestic";
   return "global";
+}
+
+function getAssetLogoInitials(item = {}) {
+  const source = String(item.name || item.code || item.symbol || "?").trim().replace(/\s+/g, "");
+  const initials = Array.from(source).slice(0, 2).join("");
+  return /[a-z]/i.test(initials) ? initials.toUpperCase() : initials || "?";
+}
+
+function renderAssetLogoMark(item = {}) {
+  const categoryLabel = getAssetMarketLabel(item);
+  const tone = getAssetMarketChipTone(categoryLabel);
+  return `
+    <span class="asset-settings-logo-mark ${tone}" aria-hidden="true">
+      <span class="asset-settings-logo-fallback">${escapeChartText(getAssetLogoInitials(item))}</span>
+    </span>
+  `;
 }
 
 function clearAssetMarketMeta(item = {}) {
@@ -1951,6 +1896,39 @@ function getAssetMarketMetaPatch(result = {}) {
   return Object.fromEntries(Object.entries(patch).filter(([, value]) => value));
 }
 
+function getAssetMarketResultPatch(result = {}, currentDraft = {}, { includeIdentity = false } = {}) {
+  const resultCurrency = normalizeAssetCurrency(result.currency || "");
+  const exchangeRateToKrw = Math.max(0, Number(result.exchangeRateToKrw) || (resultCurrency === "KRW" ? 1 : 0));
+  const marketPrice = Math.max(0, Number(result.currentPrice) || 0);
+  const currentPrice = Number(result.currentPriceKrw || 0) > 0
+    ? Math.round(Number(result.currentPriceKrw))
+    : resultCurrency === "KRW" && marketPrice > 0
+      ? Math.round(marketPrice)
+      : marketPrice && exchangeRateToKrw
+        ? Math.round(marketPrice * exchangeRateToKrw)
+        : Math.max(0, Number(currentDraft.currentPrice) || 0);
+
+  return {
+    ...(includeIdentity
+      ? {
+          name: result.name || currentDraft.name || result.symbol || "",
+          code: result.code || result.symbol || currentDraft.code || ""
+        }
+      : {}),
+    currentPrice: Math.max(0, Number(currentPrice) || 0),
+    type: result.type || currentDraft.type || "",
+    quoteType: result.quoteType || currentDraft.quoteType || "",
+    market: result.market || currentDraft.market || "",
+    exchange: result.exchange || currentDraft.exchange || "",
+    source: result.source || currentDraft.source || "",
+    logoUrl: result.logoUrl || currentDraft.logoUrl || "",
+    currency: resultCurrency || getAssetCurrency(currentDraft),
+    marketPrice: marketPrice || getAssetMarketPrice(currentDraft),
+    exchangeRateToKrw: exchangeRateToKrw || getAssetExchangeRateToKrw(currentDraft),
+    priceDisplayCurrency: "KRW"
+  };
+}
+
 async function enrichAssetSettingsMarketMeta() {
   if (activeModal !== "assetSettings" || !assetSettingsDrafts.length) return;
 
@@ -1987,6 +1965,68 @@ function queueAssetSettingsMarketMetaEnrichment() {
   }, 0);
 }
 
+function hasAssetMarketPatchChanged(previous = {}, next = {}) {
+  return Math.round(Number(previous.currentPrice) || 0) !== Math.round(Number(next.currentPrice) || 0) ||
+    Math.round(Number(previous.marketPrice) * 1000000 || 0) !== Math.round(Number(next.marketPrice) * 1000000 || 0) ||
+    String(previous.type || "") !== String(next.type || "") ||
+    String(previous.quoteType || "") !== String(next.quoteType || "") ||
+    String(previous.market || "") !== String(next.market || "") ||
+    String(previous.exchange || "") !== String(next.exchange || "") ||
+    String(previous.currency || "") !== String(next.currency || "") ||
+    Number(previous.exchangeRateToKrw || 0) !== Number(next.exchangeRateToKrw || 0);
+}
+
+async function refreshStoredAssetMarketPrices({ syncRemote = true } = {}) {
+  if (assetPriceRefreshRunning) return;
+  if (activeModal === "assetSettings") return;
+  if (typeof getHoldingData !== "function") return;
+
+  const holdingData = getHoldingData().filter((item) => String(item.code || item.name || "").trim());
+  if (!holdingData.length) return;
+
+  assetPriceRefreshRunning = true;
+  let changed = false;
+  const refreshedRows = [];
+
+  try {
+    for (const item of holdingData) {
+      const result = await fetchAssetMarketMeta(item).catch(() => null);
+      if (!result) {
+        refreshedRows.push(item);
+        continue;
+      }
+
+      const patch = getAssetMarketResultPatch(result, item);
+      const nextItem = { ...item, ...patch };
+      if (hasAssetMarketPatchChanged(item, nextItem)) changed = true;
+      refreshedRows.push(nextItem);
+    }
+
+    if (!changed) return;
+    if (!replaceAssetHoldings(refreshedRows)) return;
+
+    saveAssetStateToStorage({ syncRemote });
+    if (!activeModal) {
+      render();
+    } else if (activeModal !== "assetSettings") {
+      renderModal();
+      hydrateIcons(document);
+    }
+  } finally {
+    assetPriceRefreshRunning = false;
+  }
+}
+
+function queueStoredAssetMarketPriceRefresh({ delay = 700, syncRemote = true } = {}) {
+  if (assetPriceRefreshTimer) window.clearTimeout(assetPriceRefreshTimer);
+  assetPriceRefreshTimer = window.setTimeout(() => {
+    assetPriceRefreshTimer = 0;
+    refreshStoredAssetMarketPrices({ syncRemote }).catch((error) => {
+      console.warn("Stored asset prices could not be refreshed.", error);
+    });
+  }, delay);
+}
+
 function scheduleAssetMarketSearch(rowId, query) {
   const nextQuery = String(query || "").trim();
   if (assetMarketSearchTimer) window.clearTimeout(assetMarketSearchTimer);
@@ -2017,35 +2057,7 @@ function applyAssetMarketResult(rowId, resultIndex) {
   if (!result) return false;
 
   const currentDraft = assetSettingsDrafts.find((item) => item.id === rowId) || {};
-  const resultCurrency = normalizeAssetCurrency(result.currency || "");
-  const exchangeRateToKrw = Math.max(0, Number(result.exchangeRateToKrw) || (resultCurrency === "KRW" ? 1 : 0));
-  const marketPrice = Math.max(0, Number(result.currentPrice) || 0);
-  const currentPrice = Number(result.currentPriceKrw || 0) > 0
-    ? Math.round(Number(result.currentPriceKrw))
-    : resultCurrency === "KRW" && marketPrice > 0
-      ? Math.round(marketPrice)
-      : marketPrice && exchangeRateToKrw
-        ? Math.round(marketPrice * exchangeRateToKrw)
-        : currentDraft.currentPrice;
-  const priceDisplayCurrency = resultCurrency && resultCurrency !== "KRW" && exchangeRateToKrw
-    ? "KRW"
-    : "KRW";
-
-  patchAssetSettingsDraft(rowId, {
-    name: result.name || currentDraft.name || result.symbol || "",
-    code: result.code || result.symbol || currentDraft.code || "",
-    currentPrice: Math.max(0, Number(currentPrice) || 0),
-    type: result.type || "",
-    quoteType: result.quoteType || "",
-    market: result.market || "",
-    exchange: result.exchange || "",
-    source: result.source || "",
-    logoUrl: result.logoUrl || "",
-    currency: resultCurrency || "KRW",
-    marketPrice,
-    exchangeRateToKrw,
-    priceDisplayCurrency
-  });
+  patchAssetSettingsDraft(rowId, getAssetMarketResultPatch(result, currentDraft, { includeIdentity: true }));
 
   assetSettingsEditingId = rowId;
   assetSettingsOpenMenuId = null;
