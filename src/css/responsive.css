@@ -2979,6 +2979,17 @@
     border-radius: 34px 34px 0 0;
     box-shadow: 0 -22px 64px rgba(15, 23, 42, 0.2);
     overscroll-behavior: contain;
+    transform: translateY(0);
+    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+
+  .mobile-more-sheet.is-dragging {
+    transition: none;
+  }
+
+  .mobile-more-sheet.is-dismissing {
+    transition: transform 0.18s cubic-bezier(0.4, 0, 1, 1);
   }
 
   .mobile-sheet-handle {
@@ -2991,6 +3002,14 @@
     background: #c7cdd8;
     border-radius: 999px;
     transform: translateX(-50%);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .mobile-sheet-handle:active {
+    cursor: grabbing;
   }
 
   .mobile-sheet-handle img {

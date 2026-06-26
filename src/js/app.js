@@ -14,6 +14,7 @@ const renderers = {
 
 var activeModal = null;
 var mobileSheetOpen = false;
+var mobileSheetDragState = null;
 var chartTooltip = null;
 var pinnedChartTooltipTarget = null;
 var chartTooltipPointerTapTarget = null;
@@ -4629,11 +4630,74 @@ function mobileMoreIcon(slug, className = "") {
   return `<img class="${className}" src="${mobileMoreIconBase}/${slug}.svg" alt="" aria-hidden="true" loading="lazy">`;
 }
 
+function clearMobileSheetDragState() {
+  if (mobileSheetDragState?.sheet) {
+    mobileSheetDragState.sheet.classList.remove("is-dragging", "is-dismissing");
+    mobileSheetDragState.sheet.style.transform = "";
+  }
+  mobileSheetDragState = null;
+}
+
+function beginMobileSheetDrag(event) {
+  const handle = event.target.closest("[data-mobile-sheet-drag]");
+  if (!handle || !mobileSheetOpen) return false;
+
+  const sheet = handle.closest(".mobile-more-sheet");
+  if (!sheet) return false;
+
+  mobileSheetDragState = {
+    pointerId: event.pointerId,
+    startY: event.clientY,
+    deltaY: 0,
+    sheet,
+    handle
+  };
+  sheet.classList.add("is-dragging");
+  handle.setPointerCapture?.(event.pointerId);
+  event.preventDefault();
+  return true;
+}
+
+function moveMobileSheetDrag(event) {
+  if (!mobileSheetDragState || event.pointerId !== mobileSheetDragState.pointerId) return false;
+
+  const deltaY = Math.max(0, event.clientY - mobileSheetDragState.startY);
+  mobileSheetDragState.deltaY = deltaY;
+  mobileSheetDragState.sheet.style.transform = `translateY(${deltaY}px)`;
+  event.preventDefault();
+  return true;
+}
+
+function endMobileSheetDrag(event) {
+  if (!mobileSheetDragState || event.pointerId !== mobileSheetDragState.pointerId) return false;
+
+  const { deltaY, sheet, handle } = mobileSheetDragState;
+  handle?.releasePointerCapture?.(event.pointerId);
+  sheet.classList.remove("is-dragging");
+
+  if (deltaY >= 84) {
+    sheet.classList.add("is-dismissing");
+    sheet.style.transform = "translateY(100%)";
+    window.setTimeout(() => {
+      mobileSheetOpen = false;
+      clearMobileSheetDragState();
+      renderMobileSheet();
+    }, 190);
+  } else {
+    sheet.style.transform = "";
+    mobileSheetDragState = null;
+  }
+
+  event.preventDefault();
+  return true;
+}
+
 function renderMobileSheet() {
   const sheetRoot = document.querySelector("#mobileSheetRoot");
   if (!sheetRoot) return;
 
   if (!mobileSheetOpen) {
+    clearMobileSheetDragState();
     sheetRoot.innerHTML = "";
     if (!activeModal && document.body) document.body.classList.remove("modal-open");
     return;
@@ -4655,7 +4719,7 @@ function renderMobileSheet() {
   sheetRoot.innerHTML = `
     <div class="mobile-sheet-backdrop" data-mobile-sheet-close>
       <section class="mobile-more-sheet" role="dialog" aria-modal="true" aria-label="더보기 메뉴">
-        <span class="mobile-sheet-handle" aria-hidden="true">${mobileMoreIcon("drag_handle")}</span>
+        <span class="mobile-sheet-handle" data-mobile-sheet-drag aria-hidden="true">${mobileMoreIcon("drag_handle")}</span>
         <div class="mobile-profile-row">
           ${renderUserAvatar(getCurrentUser(), "mobile-profile-avatar")}
           <div>
@@ -5726,6 +5790,10 @@ document.addEventListener("input", (event) => {
   }
 });
 
+document.addEventListener("pointerdown", (event) => {
+  beginMobileSheetDrag(event);
+});
+
 document.addEventListener("pointerover", (event) => {
   const target = event.target.closest("[data-chart-tooltip]");
   if (!target) return;
@@ -5734,10 +5802,16 @@ document.addEventListener("pointerover", (event) => {
 });
 
 document.addEventListener("pointermove", (event) => {
+  if (moveMobileSheetDrag(event)) return;
+
   const target = event.target.closest("[data-chart-tooltip]");
   if (!target) return;
   if (pinnedChartTooltipTarget) return;
   positionChartTooltip(event);
+});
+
+document.addEventListener("pointercancel", (event) => {
+  endMobileSheetDrag(event);
 });
 
 document.addEventListener("change", (event) => {
@@ -5758,6 +5832,8 @@ document.addEventListener("pointerout", (event) => {
 });
 
 document.addEventListener("pointerup", (event) => {
+  if (endMobileSheetDrag(event)) return;
+
   const target = event.target.closest("[data-chart-tooltip]");
   if (!target || !isTouchChartTooltipMode()) return;
 
