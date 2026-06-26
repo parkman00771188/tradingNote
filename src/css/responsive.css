@@ -4947,3 +4947,314 @@
     min-height: 76px;
   }
 }
+
+/* Final asset settings modal balance: centered vertical sheet and visible carousel dots */
+.asset-settings-backdrop {
+  align-items: center;
+  justify-items: center;
+}
+
+@media (min-width: 768px) {
+  .asset-settings-backdrop {
+    padding: 34px;
+  }
+
+  .asset-settings-modal {
+    width: min(560px, calc(100vw - 68px));
+    height: auto;
+    min-height: 0;
+    max-height: calc(100dvh - 68px);
+    border-radius: 24px;
+  }
+
+  .asset-settings-modal .asset-settings-body {
+    max-height: calc(100dvh - 206px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .asset-settings-header {
+    min-height: 118px;
+    padding: 34px 40px 22px;
+  }
+
+  .asset-settings-heading .eyebrow {
+    margin-bottom: 7px;
+    font-size: 13px;
+  }
+
+  .asset-settings-heading .modal-title {
+    font-size: 33px;
+    line-height: 1.05;
+  }
+
+  .asset-settings-header-actions {
+    gap: 12px;
+  }
+
+  .asset-settings-header-actions .asset-settings-header-add {
+    width: 52px;
+    min-height: 52px;
+    padding: 0;
+    color: var(--blue);
+    background: #ffffff;
+    border-color: #d8e4f2;
+    border-radius: 16px;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+    font-size: 0;
+  }
+
+  .asset-settings-header-actions .asset-settings-header-add:hover:not(:disabled) {
+    color: var(--blue);
+    background: #ffffff;
+    border-color: #bcd2ee;
+  }
+
+  .asset-settings-header-add svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .asset-settings-nav-button {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    font-size: 24px;
+  }
+
+  .asset-settings-cards {
+    --asset-settings-card-width: min(430px, calc(100vw - 118px));
+    --asset-settings-card-edge: max(24px, calc((100% - var(--asset-settings-card-width)) / 2));
+    align-items: flex-start;
+    min-height: auto;
+    overflow-y: visible;
+    padding: 0 var(--asset-settings-card-edge) 6px;
+  }
+
+  .asset-settings-cards.is-single,
+  .asset-settings-cards.is-empty {
+    justify-content: flex-start;
+  }
+
+  .asset-settings-summary-card {
+    gap: 14px;
+    min-height: auto;
+    padding: 0 0 4px;
+  }
+
+  .asset-settings-summary-card .asset-settings-menu {
+    top: 34px;
+    right: 16px;
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+  }
+
+  .asset-settings-summary-hero {
+    min-height: 166px;
+    padding: 22px 16px;
+    border-radius: 18px;
+  }
+
+  .asset-settings-summary-content {
+    gap: 16px;
+    min-height: 108px;
+  }
+
+  .asset-settings-logo-mark {
+    width: 76px;
+    height: 76px;
+  }
+
+  .asset-settings-logo-fallback {
+    font-size: 25px;
+  }
+
+  .asset-settings-summary-wave {
+    width: 100%;
+    height: 46%;
+    opacity: 0.96;
+  }
+
+  .asset-settings-summary-title {
+    gap: 5px;
+    padding-right: 52px;
+  }
+
+  .asset-settings-summary-badge-row {
+    gap: 7px;
+    margin-bottom: 8px;
+  }
+
+  .asset-settings-summary-title strong {
+    font-size: 22px;
+    line-height: 1.12;
+  }
+
+  .asset-settings-summary-title > span {
+    font-size: 16px;
+  }
+
+  .asset-settings-summary-metrics {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .asset-settings-summary-metric {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    align-items: center;
+    justify-items: stretch;
+    gap: 14px;
+    min-height: 70px;
+    padding: 0 18px;
+    border-radius: 14px;
+    text-align: left;
+  }
+
+  .asset-settings-summary-metric::after {
+    display: none;
+  }
+
+  .asset-settings-summary-quantity {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .asset-settings-summary-price {
+    margin-top: -1px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  .asset-settings-summary-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .asset-settings-summary-label {
+    font-size: 15px;
+  }
+
+  .asset-settings-summary-metric strong {
+    justify-content: flex-end;
+    font-size: 24px;
+    line-height: 1;
+    text-align: right;
+  }
+
+  .asset-settings-summary-metric small {
+    font-size: 14px;
+  }
+
+  .asset-settings-summary-value {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    min-height: 82px;
+    margin-top: 12px;
+    padding: 0 18px;
+    border-radius: 14px;
+  }
+
+  .asset-settings-summary-value .asset-settings-summary-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .asset-settings-summary-value strong {
+    font-size: 30px;
+  }
+
+  .asset-settings-summary-note {
+    gap: 14px;
+    min-height: 72px;
+    padding: 13px 18px;
+    border-radius: 14px;
+  }
+
+  .asset-settings-summary-note span {
+    width: 24px;
+    height: 24px;
+  }
+
+  .asset-settings-summary-note p {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .asset-settings-slide-dots {
+    display: flex;
+    position: relative;
+    z-index: 4;
+    min-height: 24px;
+    margin-top: -2px;
+    padding: 0 0 8px;
+  }
+
+  .asset-settings-slide-nav {
+    display: none;
+  }
+
+  .asset-settings-display-card.is-editing {
+    min-height: 0;
+    padding: 22px 24px;
+    border-radius: 18px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-title-wrap {
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-market-search-box {
+    min-height: 44px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-market-code-field {
+    min-height: 40px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-tile-grid {
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-tile {
+    min-height: 94px;
+    padding: 16px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-value-panel {
+    min-height: 80px;
+    margin-top: 14px;
+    padding: 14px 16px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-card-actions {
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .asset-settings-display-card.is-editing .asset-settings-card-actions .btn {
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 767px) {
+  .asset-settings-backdrop {
+    align-items: center;
+    padding: 16px 12px;
+  }
+
+  .asset-settings-modal {
+    width: min(430px, calc(100vw - 24px));
+    height: auto;
+    min-height: 0;
+    max-height: calc(100dvh - 32px);
+  }
+
+  .asset-settings-modal .asset-settings-body {
+    max-height: calc(100dvh - 156px);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+}

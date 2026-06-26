@@ -162,13 +162,15 @@ function assetRate(value) {
 }
 
 function getAssetHoldingMeta(item, index) {
-  const fallbackColors = ["#2474f2", "#f05267", "#22c55e", "#f59e0b", "#2356a6", "#7c3aed"];
+  const fallbackColor = typeof getAssetPortfolioColor === "function"
+    ? getAssetPortfolioColor(index, item.code || item.name)
+    : "#2474f2";
   const marketLabel = typeof getAssetMarketLabel === "function" ? getAssetMarketLabel(item) : "";
   return assetHoldingMeta[item.name] || {
     code: item.code || "------",
     sector: marketLabel || "자산",
     badge: String(item.name || "?").slice(0, 2),
-    color: fallbackColors[index % fallbackColors.length]
+    color: fallbackColor
   };
 }
 
@@ -215,11 +217,14 @@ function getAssetHoldingSegments(holdingData) {
 
   return sortedHoldings.map((item, index) => {
     const meta = getAssetHoldingMeta(item, index);
+    const color = typeof getAssetPortfolioColor === "function"
+      ? getAssetPortfolioColor(index, item.code || item.name)
+      : meta.color;
     return {
       label: item.name,
       value: totalHoldingValue ? Number(((item.amount / totalHoldingValue) * 100).toFixed(1)) : 0,
       amount: formatKRW(item.amount),
-      color: meta.color
+      color
     };
   });
 }

@@ -288,6 +288,53 @@ function donutChart(segments, center, small = false) {
   `;
 }
 
+const assetPortfolioColorPalette = [
+  "#2474f2",
+  "#f05267",
+  "#22c55e",
+  "#f59e0b",
+  "#8b5cf6",
+  "#06b6d4",
+  "#ef4444",
+  "#14b8a6",
+  "#a855f7",
+  "#84cc16",
+  "#ec4899",
+  "#0ea5e9",
+  "#f97316",
+  "#10b981",
+  "#6366f1",
+  "#eab308",
+  "#d946ef",
+  "#38bdf8",
+  "#fb7185",
+  "#34d399",
+  "#64748b",
+  "#c084fc",
+  "#2dd4bf",
+  "#facc15",
+  "#60a5fa",
+  "#fb923c",
+  "#4ade80",
+  "#818cf8",
+  "#f43f5e",
+  "#0891b2"
+];
+
+function getAssetPortfolioColor(index = 0, key = "") {
+  const normalizedIndex = Number.isFinite(Number(index)) ? Math.max(0, Math.floor(Number(index))) : 0;
+  if (normalizedIndex < assetPortfolioColorPalette.length) {
+    return assetPortfolioColorPalette[normalizedIndex];
+  }
+
+  const source = String(key || normalizedIndex);
+  let hash = 0;
+  for (let i = 0; i < source.length; i += 1) {
+    hash = (hash * 31 + source.charCodeAt(i)) >>> 0;
+  }
+  return assetPortfolioColorPalette[hash % assetPortfolioColorPalette.length];
+}
+
 function candleChart() {
   const compact = isCompactChart();
   const width = compact ? 420 : 900;

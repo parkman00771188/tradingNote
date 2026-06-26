@@ -184,7 +184,6 @@ function renderAssetTrendPanel(options = {}) {
 }
 
 function getDashboardPortfolioSegments(totalAssets, cashBalance) {
-  const colors = ["#2474f2", "#22c55e", "#8b5cf6", "#f79009", "#0ea5e9"];
   const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
   const sortedHoldings = holdingData.slice().sort((a, b) => b.amount - a.amount);
   const topHoldings = sortedHoldings.slice(0, 3);
@@ -193,14 +192,24 @@ function getDashboardPortfolioSegments(totalAssets, cashBalance) {
   const segments = topHoldings.map((item, index) => ({
     label: item.name,
     amountValue: item.amount,
-    color: colors[index]
+    color: typeof getAssetPortfolioColor === "function"
+      ? getAssetPortfolioColor(index, item.code || item.name)
+      : "#2474f2"
   }));
 
   if (otherAmount > 0) {
-    segments.push({ label: "기타", amountValue: otherAmount, color: colors[3] });
+    segments.push({
+      label: "기타",
+      amountValue: otherAmount,
+      color: typeof getAssetPortfolioColor === "function" ? getAssetPortfolioColor(28, "other") : "#f43f5e"
+    });
   }
   if (cashBalance > 0) {
-    segments.push({ label: "현금", amountValue: cashBalance, color: colors[4] });
+    segments.push({
+      label: "현금",
+      amountValue: cashBalance,
+      color: typeof getAssetPortfolioColor === "function" ? getAssetPortfolioColor(29, "cash") : "#0891b2"
+    });
   }
 
   return segments.map((item) => ({
