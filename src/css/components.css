@@ -2046,6 +2046,29 @@
   font-weight: 750;
 }
 
+.asset-trend-legend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  min-width: 0;
+}
+
+.asset-trend-legend-row .legend {
+  min-width: 0;
+}
+
+.asset-trend-cash-toggle {
+  flex: 0 0 auto;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.asset-trend-cash-toggle input {
+  width: 15px;
+  height: 15px;
+}
+
 .dot {
   display: inline-block;
   width: 9px;

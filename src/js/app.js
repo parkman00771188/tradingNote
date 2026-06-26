@@ -58,6 +58,7 @@ var assetCashDraftAmount = "";
 var assetCashPendingAmount = 0;
 var assetCashPendingMode = "deposit";
 var assetTrendRange = "6m";
+var assetTrendIncludeCash = true;
 var assetTrendHistory = [];
 var assetSettingsDrafts = [];
 var assetSettingsError = "";
@@ -357,6 +358,14 @@ function setAssetTrendRange(nextRange = "6m") {
   return true;
 }
 
+function getAssetTrendIncludeCash() {
+  return assetTrendIncludeCash;
+}
+
+function setAssetTrendIncludeCash(includeCash = true) {
+  assetTrendIncludeCash = Boolean(includeCash);
+}
+
 function parseKRWInput(value) {
   return Math.max(0, Number(String(value).replace(/[^0-9]/g, "")) || 0);
 }
@@ -459,6 +468,7 @@ function getUserScopedStorageKey(baseKey) {
 function clearRuntimeUserData() {
   assetCashBalance = 0;
   assetTrendRange = "6m";
+  assetTrendIncludeCash = true;
   assetTrendHistory = [];
   userMemos = [];
   userJournalRecords = [];
@@ -6012,6 +6022,13 @@ document.addEventListener("change", (event) => {
   const assetPortfolioCashToggle = event.target.closest("[data-asset-portfolio-cash-toggle]");
   if (assetPortfolioCashToggle && getRoute() === "assets") {
     assetPortfolioIncludeCash = assetPortfolioCashToggle.checked;
+    render();
+    return;
+  }
+
+  const assetTrendCashToggle = event.target.closest("[data-asset-trend-cash-toggle]");
+  if (assetTrendCashToggle && getRoute() === "dashboard") {
+    setAssetTrendIncludeCash(assetTrendCashToggle.checked);
     render();
     return;
   }

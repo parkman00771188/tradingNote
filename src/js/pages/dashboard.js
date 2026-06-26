@@ -218,16 +218,22 @@ function buildDashboardTrendAxisLabels(sampleDates) {
 
 function getAssetTrendChartData(targetLines = []) {
   const rangeOption = getDashboardAssetTrendRangeOption();
+  const includeCash = typeof getAssetTrendIncludeCash === "function" ? getAssetTrendIncludeCash() : true;
   const endDate = getDashboardStartOfDay(new Date());
   const startDate = getDashboardAssetTrendStartDate(rangeOption, endDate);
   const sampleDates = buildDashboardAssetTrendSampleDates(startDate, endDate, rangeOption.points);
   const entries = getDashboardAssetTrendEntries();
   const sampledEntries = sampleDates.map((sampleDate) => pickDashboardAssetTrendEntry(entries, sampleDate));
-  const primaryTrend = sampledEntries.map((entry) => Math.round((entry?.totalAssets || 0) / 10000));
+  const getPrimaryValue = (entry = {}) => {
+    const totalAssets = Number(entry.totalAssets) || 0;
+    const cashBalance = Number(entry.cashBalance) || 0;
+    return includeCash ? totalAssets : Math.max(0, totalAssets - cashBalance);
+  };
+  const primaryTrend = sampledEntries.map((entry) => Math.round(getPrimaryValue(entry) / 10000));
   const secondaryTrend = sampledEntries.map((entry) => Math.round((entry?.investmentPrincipal || 0) / 10000));
   const tertiaryTrend = sampledEntries.map((entry) => Math.round((entry?.cashBalance || 0) / 10000));
   const lastEntry = sampledEntries[sampledEntries.length - 1] || entries[entries.length - 1] || {};
-  const totalUnit = Math.round((lastEntry.totalAssets || 0) / 10000);
+  const totalUnit = Math.round(getPrimaryValue(lastEntry) / 10000);
   const principalUnit = Math.round((lastEntry.investmentPrincipal || 0) / 10000);
   const cashUnit = Math.round((lastEntry.cashBalance || 0) / 10000);
   const targetValues = targetLines.map((line) => Number(line.value) || 0);
@@ -240,6 +246,7 @@ function getAssetTrendChartData(targetLines = []) {
     primaryTrend,
     secondaryTrend,
     tertiaryTrend,
+    includeCash,
     labels: buildDashboardTrendAxisLabels(sampleDates),
     tooltipLabels: sampleDates.map((date) => formatDashboardTrendDateLabel(date)),
     chartMax
@@ -281,8 +288,8 @@ function renderAssetTrendChart(options = {}) {
     endPrimary: formatDashboardChartLabel(trend.totalUnit),
     endSecondary: formatDashboardChartLabel(trend.principalUnit),
     endTertiary: formatDashboardChartLabel(trend.cashUnit),
-    ariaLabel: "총자산, 투자원금, 보유현금 추이 차트",
-    primaryName: "총자산",
+    ariaLabel: `${trend.includeCash ? "현금 포함 총자산" : "현금 제외 총자산"}, 투자원금, 보유현금 추이 차트`,
+    primaryName: trend.includeCash ? "총자산" : "총자산(현금 제외)",
     secondaryName: "투자원금",
     tertiaryName: "보유현금",
     tertiaryColor: "#2aa7a1",
@@ -324,6 +331,7 @@ function renderAssetTrendPanel(options = {}) {
   };
   const panelCompactViewBox = compactViewBox || (showTargetSettings ? targetSettingsCompactViewBox : null);
   const selectedRange = getDashboardAssetTrendRangeKey();
+  const includeCash = typeof getAssetTrendIncludeCash === "function" ? getAssetTrendIncludeCash() : true;
   const rangeButtons = assetTrendRangeOptions.map((option) => `
             <button class="${selectedRange === option.key ? "active" : ""}" type="button" data-asset-trend-range="${option.key}" aria-pressed="${selectedRange === option.key ? "true" : "false"}">${option.label}</button>
           `).join("");
@@ -339,7 +347,13 @@ function renderAssetTrendPanel(options = {}) {
           ${showTargetSettings ? `<button class="mini-action" type="button" data-modal="assetTrendTargets" aria-label="목표가 설정">${icon("settings")}</button>` : ""}
         </div>
       </div>
-      <div class="legend"><span><i class="dot"></i>총자산</span><span><i class="dot gray"></i>투자원금</span><span><i class="dot teal"></i>보유현금</span></div>
+      <div class="asset-trend-legend-row">
+        <div class="legend"><span><i class="dot"></i>총자산</span><span><i class="dot gray"></i>투자원금</span><span><i class="dot teal"></i>보유현금</span></div>
+        <label class="asset-cash-include-toggle asset-trend-cash-toggle">
+          <input type="checkbox" data-asset-trend-cash-toggle ${includeCash ? "checked" : ""}>
+          <span>현금 포함</span>
+        </label>
+      </div>
       ${renderAssetTrendChart({ targetLines, compactViewBox: panelCompactViewBox })}
     </article>
   `;

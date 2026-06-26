@@ -3419,6 +3419,15 @@
     font-size: 13px;
   }
 
+  body[data-route="dashboard"] .asset-trend-legend-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  body[data-route="dashboard"] .asset-trend-cash-toggle {
+    margin-left: auto;
+  }
+
   .dashboard-portfolio {
     --dashboard-donut-size: clamp(176px, 44vw, 188px);
     --dashboard-donut-center-inset: clamp(39px, 10vw, 42px);
