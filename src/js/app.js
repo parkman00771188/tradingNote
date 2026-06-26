@@ -3154,6 +3154,38 @@ function updateAssetSettingsDraft(rowId, field, value) {
   assetSettingsMessage = "";
 }
 
+function syncAssetSettingsDraftFieldsFromDom(root = document) {
+  root.querySelectorAll("[data-asset-setting-field][data-asset-setting-id]").forEach((field) => {
+    const rowId = field.dataset.assetSettingId;
+    const fieldName = field.dataset.assetSettingField;
+    const current = assetSettingsDrafts.find((item) => item.id === rowId);
+    if (!current || !fieldName) return;
+
+    const rawValue = field.value;
+    if (fieldName === "name" || fieldName === "code") {
+      if (String(current[fieldName] || "") !== String(rawValue || "")) {
+        updateAssetSettingsDraft(rowId, fieldName, rawValue);
+      }
+      return;
+    }
+
+    if (fieldName === "currentPrice") {
+      const nextValue = parseKRWInput(rawValue);
+      if (Number(current.currentPrice || 0) !== nextValue) {
+        updateAssetSettingsDraft(rowId, fieldName, rawValue);
+      }
+      return;
+    }
+
+    if (fieldName === "quantity" || fieldName === "averagePrice") {
+      const nextValue = parseKRWInput(rawValue);
+      if (Number(current[fieldName] || 0) !== nextValue) {
+        updateAssetSettingsDraft(rowId, fieldName, rawValue);
+      }
+    }
+  });
+}
+
 function patchAssetSettingsDraft(rowId, patch = {}) {
   assetSettingsDrafts = assetSettingsDrafts.map((item) =>
     item.id === rowId ? { ...item, ...patch } : item
@@ -3918,7 +3950,7 @@ function renderAssetSettingsCardView(item, index) {
   const favoriteCount = getAssetFavoriteMarketItems().length;
   if (!isEditing) {
     const quantityText = formatMarketNumber(Number(item.quantity) || 0);
-    const priceText = formatMarketNumber(Number(item.currentPrice) || 0);
+    const priceText = formatMarketNumber(Number(item.averagePrice) || getAssetSettingsValuationPrice(item, inputMode) || 0);
     const amountText = formatMarketNumber(amount);
     const assetCodeText = displayCode || "코드 미입력";
 
@@ -3960,7 +3992,7 @@ function renderAssetSettingsCardView(item, index) {
           </div>
           <div class="asset-settings-summary-metric asset-settings-summary-price">
             <span class="asset-settings-summary-icon" aria-hidden="true">${icon("chart")}</span>
-            <span class="asset-settings-summary-label">현재가</span>
+            <span class="asset-settings-summary-label">평균단가</span>
             <strong>${priceText}<small>원</small></strong>
           </div>
           <div class="asset-settings-summary-metric asset-settings-summary-value">
@@ -3972,7 +4004,7 @@ function renderAssetSettingsCardView(item, index) {
 
         <div class="asset-settings-summary-note">
           <span aria-hidden="true">${icon("info")}</span>
-          <p>평가금액은 보유 수량을 기준으로 실시간 현재가를 반영하여 계산됩니다.</p>
+          <p>평가금액은 보유 수량과 평균단가를 기준으로 계산됩니다.</p>
         </div>
       </article>
     `;
@@ -5465,6 +5497,8 @@ document.addEventListener("click", async (event) => {
       if (assetSettingsSaving) return;
       assetSettingsSaving = true;
       assetSettingsError = "";
+      syncAssetSettingsDraftFieldsFromDom();
+      syncAssetSettingsActiveIndexFromDom();
       assetSettingsMessage = "자산 데이터를 저장하고 있습니다.";
       renderModal();
       hydrateIcons(document);
@@ -5479,6 +5513,9 @@ document.addEventListener("click", async (event) => {
       assetSettingsSaving = false;
       activeModal = null;
       render();
+      window.setTimeout(() => {
+        if (!activeModal && getRoute() === "assets") render();
+      }, 0);
       return;
     }
 
