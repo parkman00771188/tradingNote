@@ -3786,16 +3786,9 @@ function renderAssetSettingsModal() {
                         </div>
                       </div>
                       <div class="field">
-                        <label for="assetSettingAverage${index}">매수평균가</label>
+                        <label for="assetSettingAverage${index}">매수평균가 <span class="asset-settings-inline-badge">현재가</span></label>
                         <div class="journal-input-shell">
                           <input id="assetSettingAverage${index}" type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="평단" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}">
-                          <span>원</span>
-                        </div>
-                      </div>
-                      <div class="field">
-                        <label for="assetSettingCurrent${index}">현재가</label>
-                        <div class="journal-input-shell">
-                          <input id="assetSettingCurrent${index}" type="text" value="${item.currentPrice ? formatMarketNumber(item.currentPrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="현재가" data-number-input data-asset-setting-field="currentPrice" data-asset-setting-id="${item.id}">
                           <span>원</span>
                         </div>
                       </div>
