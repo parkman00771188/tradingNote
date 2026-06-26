@@ -6374,8 +6374,8 @@ body.modal-open {
 
 .calendar-day-appbar {
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) 38px;
-  gap: 12px;
+  grid-template-columns: 38px minmax(0, 1fr) auto 38px;
+  gap: 8px;
   align-items: center;
   padding: 14px 18px 8px;
   background: #ffffff;
@@ -6459,6 +6459,39 @@ body.modal-open {
 
 .calendar-day-top-button.menu span::after {
   bottom: 12px;
+}
+
+.calendar-day-write-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 54px;
+  min-height: 30px;
+  padding: 0 10px;
+  color: var(--blue);
+  background: var(--blue-soft);
+  border: 1px solid #cfe0ff;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.calendar-day-write-button svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.calendar-day-write-button:hover {
+  color: #ffffff;
+  background: var(--blue);
+  border-color: var(--blue);
 }
 
 .calendar-day-records {
@@ -6564,7 +6597,7 @@ body.modal-open {
 
 .calendar-day-filter-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
   align-items: center;
   margin-top: 2px;
@@ -6628,14 +6661,6 @@ body.modal-open {
   transform: rotate(225deg);
 }
 
-.calendar-day-filter-chip.synced span::before {
-  content: "";
-  position: absolute;
-  inset: 2px;
-  border: 2px solid currentColor;
-  border-radius: 3px;
-}
-
 .calendar-day-filter-chip.active {
   color: #ffffff;
   background: var(--blue);
@@ -6649,10 +6674,6 @@ body.modal-open {
 
 .calendar-day-filter-chip.sell:not(.active) {
   color: var(--blue);
-}
-
-.calendar-day-filter-chip.synced:not(.active) {
-  color: #475569;
 }
 
 .calendar-day-record {
@@ -6834,7 +6855,7 @@ body.modal-open {
 
 .calendar-day-record-meta {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   margin-top: 5px;
 }

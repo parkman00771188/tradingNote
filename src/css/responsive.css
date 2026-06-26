@@ -1218,8 +1218,8 @@
   }
 
   .calendar-day-appbar {
-    grid-template-columns: 36px minmax(0, 1fr) 36px;
-    gap: 8px;
+    grid-template-columns: 34px minmax(0, 1fr) auto 32px;
+    gap: 6px;
     padding: 12px 14px 7px;
   }
 
@@ -1229,6 +1229,18 @@
 
   .calendar-day-heading .modal-title {
     font-size: 16px;
+  }
+
+  .calendar-day-write-button {
+    min-width: 48px;
+    min-height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .calendar-day-write-button svg {
+    width: 13px;
+    height: 13px;
   }
 
   .calendar-day-summary-grid {
@@ -1335,7 +1347,7 @@
   }
 
   .calendar-day-record-meta {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 3px;
   }
 

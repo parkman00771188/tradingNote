@@ -2,7 +2,7 @@ var calendarViewDate = new Date();
 var calendarSelectedDate = new Date();
 var calendarDayDetailDate = "";
 var calendarDayDetailFilter = "all";
-const calendarDayDetailFilterKeys = new Set(["all", "buy", "sell", "synced"]);
+const calendarDayDetailFilterKeys = new Set(["all", "buy", "sell"]);
 
 function formatCalendarDateValue(date) {
   const year = date.getFullYear();
@@ -264,7 +264,6 @@ function renderCalendarDaySummary(summary) {
 function getCalendarFilteredDayRows(rows) {
   if (calendarDayDetailFilter === "buy") return rows.filter((row) => !isCalendarSellRow(row));
   if (calendarDayDetailFilter === "sell") return rows.filter((row) => isCalendarSellRow(row));
-  if (calendarDayDetailFilter === "synced") return rows.filter((row) => row?.[12]);
   return rows;
 }
 
@@ -272,8 +271,7 @@ function renderCalendarDayFilters(summary) {
   const filters = [
     { key: "all", label: "전체", count: summary.tradeCount },
     { key: "buy", label: "매수", count: summary.buyCount },
-    { key: "sell", label: "매도", count: summary.sellCount },
-    { key: "synced", label: "자산반영", count: summary.tradeCount }
+    { key: "sell", label: "매도", count: summary.sellCount }
   ];
 
   return `
@@ -295,7 +293,6 @@ function renderCalendarDayRecordCard(row, dateValue) {
   const amountLabel = sell ? "매도금액" : "매수금액";
   const codeText = String(row[11] || "").trim();
   const resultClass = getCalendarRecordResultClass(row);
-  const syncLabel = recordId ? "반영" : "미반영";
   const memoText = String(row[9] || "").trim();
   const profitText = row[6] || "+0";
   const rateText = row[7] || "+0.00%";
@@ -322,7 +319,6 @@ function renderCalendarDayRecordCard(row, dateValue) {
           <span><em>${priceLabel}</em><b>${escapeChartText(getCalendarTradePrice(row) || "-")}원</b></span>
           <span><em>수익률</em><b class="${resultClass}">${escapeChartText(rateText)}</b></span>
           <span><em>${amountLabel}</em><b>${totalText}</b></span>
-          <span><em>자산반영</em><b>${syncLabel}</b></span>
         </div>
         ${memoText ? `<div class="calendar-day-record-note"><em>메모</em><b>${escapeChartText(memoText)}</b></div>` : ""}
       </div>
@@ -351,6 +347,7 @@ function renderCalendarDayDetailModal() {
             <p>TRADING DAY</p>
             <h2 class="modal-title" id="calendarDayModalTitle">${formatCalendarDetailDateWithWeekday(dateValue)} <span>${icon("calendar")}</span></h2>
           </div>
+          <button class="calendar-day-write-button" type="button" data-calendar-write-journal="${dateValue}" aria-label="매매일지 기록 작성">${icon("plus")}기록</button>
           <button class="calendar-day-top-button close" type="button" data-modal-close aria-label="닫기">X</button>
         </div>
         <div class="modal-body">
