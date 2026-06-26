@@ -92,6 +92,7 @@ var stockSearchState = {
 };
 var stockSearchTimer = 0;
 var stockAnalysisAutoRefreshKey = "";
+var stockAnalysisRefreshKey = "";
 var stockChartPeriod = "1d";
 var stockChartState = {
   key: "",
@@ -308,6 +309,7 @@ function clearRuntimeUserData() {
   stockFavoriteItems = [];
   stockFavoritesOpen = false;
   stockAnalysisAutoRefreshKey = "";
+  stockAnalysisRefreshKey = "";
   stockChartState = {
     key: "",
     loading: false,
@@ -1423,11 +1425,26 @@ function normalizeStockSymbolCode(symbol = "") {
   return String(symbol || "").trim().replace(/\.(KS|KQ)$/i, "");
 }
 
+function getCanonicalStockSymbol(value = "") {
+  return String(value || "").trim().toUpperCase();
+}
+
+function getCanonicalDomesticStockCode(value = "") {
+  const normalized = normalizeStockSymbolCode(getCanonicalStockSymbol(value));
+  return /^\d{6}$/.test(normalized) ? normalized : "";
+}
+
 function getStockItemKey(item = {}) {
   item = item || {};
-  const symbol = String(item.symbol || "").trim().toUpperCase();
+  const symbol = getCanonicalStockSymbol(item.symbol);
+  const domesticSymbolCode = getCanonicalDomesticStockCode(symbol);
+  if (domesticSymbolCode) return `KRX:${domesticSymbolCode}`;
   if (symbol) return symbol;
-  const code = String(item.code || "").trim().toUpperCase();
+
+  const code = getCanonicalStockSymbol(item.code);
+  const domesticCode = getCanonicalDomesticStockCode(code);
+  if (domesticCode) return `KRX:${domesticCode}`;
+
   const exchange = String(item.exchange || item.market || "").trim().toUpperCase();
   if (code) return `${exchange || "MARKET"}:${code}`;
   return normalizeStockKey(item.name || "");
@@ -2103,27 +2120,34 @@ async function refreshStockAnalysisSelection(item = getStockAnalysisSelectedStoc
   const target = normalizeStockAnalysisItem(item);
   const targetKey = getStockItemKey(target);
   if (!targetKey) return;
+  if (stockAnalysisRefreshKey === targetKey) return;
 
-  const beforeSignature = JSON.stringify(getStockAnalysisSelectedStock() || {});
-  const result = await fetchAssetMarketMeta(target).catch(() => null);
-  if (!result) return;
+  stockAnalysisRefreshKey = targetKey;
 
-  const refreshed = stockMarketResultToItem(result, target);
-  if (getStockItemKey(getStockAnalysisSelectedStock()) === targetKey) {
-    stockAnalysisSelected = refreshed;
+  try {
+    const beforeSignature = JSON.stringify(getStockAnalysisSelectedStock() || {});
+    const result = await fetchAssetMarketMeta(target).catch(() => null);
+    if (!result) return;
+
+    const refreshed = stockMarketResultToItem(result, target);
+    if (getStockItemKey(getStockAnalysisSelectedStock()) === targetKey) {
+      stockAnalysisSelected = refreshed;
+    }
+    if (isStockAnalysisFavorite(refreshed)) {
+      updateStockFavoriteItem(refreshed);
+      scheduleStockFavoritesSave();
+    }
+    const afterSignature = JSON.stringify(getStockAnalysisSelectedStock() || {});
+    if (getRoute() === "stock" && beforeSignature !== afterSignature) render();
+    loadStockChartForSelection(refreshed).catch((error) => {
+      console.warn("Refreshed stock chart could not be loaded.", error);
+    });
+    loadStockNewsForSelection(refreshed).catch((error) => {
+      console.warn("Refreshed stock news could not be loaded.", error);
+    });
+  } finally {
+    if (stockAnalysisRefreshKey === targetKey) stockAnalysisRefreshKey = "";
   }
-  if (isStockAnalysisFavorite(refreshed)) {
-    updateStockFavoriteItem(refreshed);
-    scheduleStockFavoritesSave();
-  }
-  const afterSignature = JSON.stringify(getStockAnalysisSelectedStock() || {});
-  if (getRoute() === "stock" && beforeSignature !== afterSignature) render();
-  loadStockChartForSelection(refreshed).catch((error) => {
-    console.warn("Refreshed stock chart could not be loaded.", error);
-  });
-  loadStockNewsForSelection(refreshed).catch((error) => {
-    console.warn("Refreshed stock news could not be loaded.", error);
-  });
 }
 
 function refreshCurrentStockAnalysisPrices() {
