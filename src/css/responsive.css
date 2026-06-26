@@ -1574,20 +1574,61 @@
     stroke-width: 2;
   }
 
-  .nav-list .nav-link:nth-child(4),
-  .nav-list .nav-link:nth-child(6),
+  .nav-list .nav-link:nth-child(2),
+  .nav-list .nav-link:nth-child(5),
   .nav-list .nav-link:nth-child(7),
   .nav-list .nav-link:nth-child(8) {
     display: none;
   }
 
-  .nav-list .nav-link:nth-child(5) {
+  .nav-list .nav-link:nth-child(1) {
+    order: 1;
+  }
+
+  .nav-list .nav-link:nth-child(3) {
+    order: 2;
+  }
+
+  .nav-list .nav-link:nth-child(4) {
+    order: 3;
+  }
+
+  .nav-list .nav-link:nth-child(6) {
     order: 4;
   }
 
   .mobile-more-tab {
     display: flex;
     order: 5;
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .mobile-more-tab .nav-icon {
+    position: relative;
+    color: inherit;
+  }
+
+  .mobile-more-tab .nav-icon svg {
+    opacity: 0;
+  }
+
+  .mobile-more-tab .nav-icon::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    background: currentColor;
+    border-radius: 999px;
+    box-shadow: -8px 0 0 currentColor, 8px 0 0 currentColor;
+    transform: translate(-50%, -50%);
+  }
+
+  .mobile-more-tab span:last-child {
+    display: block;
+    color: inherit;
   }
 
   .main {
@@ -2278,6 +2319,21 @@
     text-align: center;
   }
 
+  .mobile-month-title {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .mobile-calendar-month-input {
+    width: min(180px, 100%);
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 13px;
+    text-align: center;
+  }
+
   .mobile-month-nav button {
     display: grid;
     place-items: center;
@@ -2316,27 +2372,38 @@
     text-align: center;
   }
 
-  .mobile-calendar-card div {
+  .mobile-calendar-card div,
+  .mobile-calendar-card button {
+    position: relative;
     display: grid;
     align-content: start;
     gap: 5px;
     min-height: 64px;
     padding: 8px 2px;
+    border: 0;
     border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
     text-align: center;
+    appearance: none;
   }
 
-  .mobile-calendar-card div.selected {
+  .mobile-calendar-card div.selected,
+  .mobile-calendar-card button.selected {
     border: 1.5px solid var(--blue);
     background: #f5f9ff;
   }
 
   .mobile-calendar-card div.muted span,
-  .mobile-calendar-card div.muted em {
+  .mobile-calendar-card div.muted em,
+  .mobile-calendar-card button.muted span,
+  .mobile-calendar-card button.muted em {
     color: #94a3b8;
   }
 
-  .mobile-calendar-card div.sunday span {
+  .mobile-calendar-card div.sunday span,
+  .mobile-calendar-card button.sunday span {
     color: var(--red);
   }
 
@@ -2352,6 +2419,22 @@
     font-size: 12px;
     line-height: 1.1;
     font-weight: 750;
+  }
+
+  .mobile-day-dot {
+    position: absolute;
+    right: 9px;
+    bottom: 9px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--red);
+    box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.1);
+  }
+
+  .mobile-day-dot.blue {
+    background: var(--blue);
+    box-shadow: 0 0 0 3px rgba(36, 116, 242, 0.1);
   }
 
   .mobile-month-summary > div {
@@ -2696,6 +2779,10 @@
     height: 38px;
     flex-basis: 38px;
     border-radius: 10px;
+    background: #f8fafc;
+  }
+
+  body[data-route="stock"] .stock-favorite.active {
     background: #f8fbff;
   }
 

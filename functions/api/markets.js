@@ -200,11 +200,97 @@ async function searchYahoo(query, limit) {
     .slice(0, limit);
 }
 
-async function fetchYahooChart(symbol) {
+function mapYahooNews(item) {
+  const title = String(item.title || "").trim();
+  if (!title) return null;
+
+  const publishedAt = Number(item.providerPublishTime || item.providerPublishTimeMs / 1000 || 0);
+  return {
+    title,
+    publisher: String(item.publisher || "").trim(),
+    link: String(item.link || "").trim(),
+    publishedAt: publishedAt ? new Date(publishedAt * 1000).toISOString() : "",
+    source: "Yahoo Finance"
+  };
+}
+
+async function fetchYahooNews(query, limit = 5) {
+  const trimmedQuery = String(query || "").trim();
+  if (!trimmedQuery) return [];
+
+  const newsLimit = Math.min(Math.max(Number(limit) || 5, 1), 10);
+  const requestNews = async (locale = {}) => {
+    const url = new URL(YAHOO_SEARCH_URL);
+    url.searchParams.set("q", trimmedQuery);
+    url.searchParams.set("quotesCount", "0");
+    url.searchParams.set("newsCount", String(newsLimit));
+    if (locale.lang) url.searchParams.set("lang", locale.lang);
+    if (locale.region) url.searchParams.set("region", locale.region);
+
+    const response = await fetch(url.toString(), {
+      headers: REQUEST_HEADERS,
+      cf: { cacheTtl: 300, cacheEverything: true }
+    });
+    if (!response.ok) return [];
+
+    const payload = await response.json().catch(() => ({}));
+    return (payload.news || [])
+      .map(mapYahooNews)
+      .filter(Boolean)
+      .slice(0, newsLimit);
+  };
+
+  const localizedNews = await requestNews({ lang: "ko-KR", region: "KR" });
+  return localizedNews.length ? localizedNews : requestNews();
+}
+
+function sanitizeChartParam(value, fallback) {
+  const normalized = String(value || "").trim();
+  return /^[0-9]+[a-z]+$/i.test(normalized) ? normalized : fallback;
+}
+
+function normalizeYahooCandles(result) {
+  const timestamps = Array.isArray(result?.timestamp) ? result.timestamp : [];
+  const quote = result?.indicators?.quote?.[0] || {};
+  const opens = Array.isArray(quote.open) ? quote.open : [];
+  const highs = Array.isArray(quote.high) ? quote.high : [];
+  const lows = Array.isArray(quote.low) ? quote.low : [];
+  const closes = Array.isArray(quote.close) ? quote.close : [];
+  const volumes = Array.isArray(quote.volume) ? quote.volume : [];
+
+  return timestamps
+    .map((timestamp, index) => {
+      const close = Number(closes[index]);
+      if (!Number.isFinite(close) || close <= 0) return null;
+
+      const open = Number(opens[index]);
+      const high = Number(highs[index]);
+      const low = Number(lows[index]);
+
+      return {
+        time: Number(timestamp) * 1000,
+        open: Number.isFinite(open) && open > 0 ? open : close,
+        high: Number.isFinite(high) && high > 0 ? high : close,
+        low: Number.isFinite(low) && low > 0 ? low : close,
+        close,
+        volume: Math.max(0, Number(volumes[index]) || 0)
+      };
+    })
+    .filter(Boolean);
+}
+
+async function fetchYahooChart(symbol, options = {}) {
   if (!symbol) return null;
 
-  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(symbol)}?range=1d&interval=1d`;
-  const response = await fetch(url, {
+  const range = sanitizeChartParam(options.range, "1d");
+  const interval = sanitizeChartParam(options.interval, "1d");
+  const url = new URL(`${YAHOO_CHART_URL}/${encodeURIComponent(symbol)}`);
+  url.searchParams.set("range", range);
+  url.searchParams.set("interval", interval);
+  url.searchParams.set("includePrePost", "false");
+  url.searchParams.set("events", "div,splits");
+
+  const response = await fetch(url.toString(), {
     headers: REQUEST_HEADERS,
     cf: { cacheTtl: 60, cacheEverything: true }
   });
@@ -230,7 +316,8 @@ async function fetchYahooChart(symbol) {
     currency: meta.currency || "",
     currentPrice: price ? Math.round(price * 100) / 100 : 0,
     change,
-    changeRate
+    changeRate,
+    candles: options.includeCandles ? normalizeYahooCandles(result) : undefined
   };
 }
 
@@ -332,7 +419,28 @@ export async function onRequestGet(context) {
   try {
     const url = new URL(context.request.url);
     const action = url.searchParams.get("action") || "search";
-    if (action !== "search") return json({ ok: false, error: "지원하지 않는 시장 데이터 작업입니다." }, 400);
+    if (!["search", "chart", "news"].includes(action)) return json({ ok: false, error: "지원하지 않는 시장 데이터 작업입니다." }, 400);
+
+    if (action === "chart") {
+      const symbol = String(url.searchParams.get("symbol") || "").trim().slice(0, 80);
+      if (!symbol) return json({ ok: false, error: "차트를 불러올 종목 코드가 필요합니다." }, 400);
+
+      const chart = await fetchYahooChart(symbol, {
+        range: url.searchParams.get("range") || "6mo",
+        interval: url.searchParams.get("interval") || "1d",
+        includeCandles: true
+      });
+      if (!chart) return json({ ok: false, error: "차트 데이터를 불러오지 못했습니다." }, 404);
+
+      return json({ ok: true, chart });
+    }
+
+    if (action === "news") {
+      const query = String(url.searchParams.get("q") || "").trim().slice(0, 120);
+      if (!query) return json({ ok: true, news: [] });
+      const news = await fetchYahooNews(query, 5);
+      return json({ ok: true, news });
+    }
 
     const query = url.searchParams.get("q") || "";
     const results = await searchMarkets(query);

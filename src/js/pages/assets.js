@@ -163,7 +163,7 @@ function assetRate(value) {
 
 function getAssetHoldingMeta(item, index) {
   const fallbackColor = typeof getAssetPortfolioColor === "function"
-    ? getAssetPortfolioColor(index, item.code || item.name)
+    ? getAssetPortfolioColor(30, item.code || item.name || index)
     : "#2474f2";
   const marketLabel = typeof getAssetMarketLabel === "function" ? getAssetMarketLabel(item) : "";
   return assetHoldingMeta[item.name] || {
@@ -217,14 +217,11 @@ function getAssetHoldingSegments(holdingData) {
 
   return sortedHoldings.map((item, index) => {
     const meta = getAssetHoldingMeta(item, index);
-    const color = typeof getAssetPortfolioColor === "function"
-      ? getAssetPortfolioColor(index, item.code || item.name)
-      : meta.color;
     return {
       label: item.name,
       value: totalHoldingValue ? Number(((item.amount / totalHoldingValue) * 100).toFixed(1)) : 0,
       amount: formatKRW(item.amount),
-      color
+      color: meta.color
     };
   });
 }

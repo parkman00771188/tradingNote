@@ -66,7 +66,7 @@ function tag(text, tone = "") {
 
 function renderNav(currentRoute) {
   const nav = document.querySelector("#navList");
-  const mobileMoreActive = ["memo", "calendar", "settings", "performance"].includes(currentRoute);
+  const mobileMoreActive = ["journal", "journalWrite", "memo", "settings", "performance"].includes(currentRoute);
   nav.innerHTML =
     navItems
     .map((item) => {
@@ -92,7 +92,7 @@ function renderPageActions(route) {
   const actionMap = {
     dashboard: "",
     journal: `<button class="btn primary" type="button" data-modal="journalWrite">${icon("edit")}매매 기록 작성</button>`,
-    journalWrite: `<button class="btn ghost" type="button" data-route="journal">${icon("chevronLeft")}목록으로</button>`,
+    journalWrite: `<button class="btn ghost" type="button" data-route="calendar">${icon("chevronLeft")}캘린더로</button>`,
     memo: `<button class="btn primary" type="button">${icon("plus")}새 메모 작성</button>`,
     stock: "",
     performance: `<button class="btn" type="button">${icon("calendar")}전체 기간</button>`,

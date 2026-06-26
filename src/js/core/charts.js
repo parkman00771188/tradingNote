@@ -335,7 +335,46 @@ function getAssetPortfolioColor(index = 0, key = "") {
   return assetPortfolioColorPalette[hash % assetPortfolioColorPalette.length];
 }
 
-function candleChart() {
+function normalizeCandleInput(candles = []) {
+  return (Array.isArray(candles) ? candles : [])
+    .map((candle) => {
+      const close = Number(candle.close);
+      if (!Number.isFinite(close) || close <= 0) return null;
+      const open = Number(candle.open);
+      const high = Number(candle.high);
+      const low = Number(candle.low);
+      return {
+        values: [
+          Number.isFinite(open) && open > 0 ? open : close,
+          Number.isFinite(high) && high > 0 ? high : close,
+          Number.isFinite(low) && low > 0 ? low : close,
+          close
+        ],
+        volume: Math.max(0, Number(candle.volume) || 0),
+        time: Number(candle.time) || 0
+      };
+    })
+    .filter(Boolean);
+}
+
+function formatCandleTick(value) {
+  const number = Number(value) || 0;
+  const abs = Math.abs(number);
+  const maximumFractionDigits = abs >= 1000 ? 0 : abs >= 100 ? 1 : abs >= 10 ? 2 : 4;
+  return number.toLocaleString(undefined, { maximumFractionDigits });
+}
+
+function formatCandleDate(timestamp, compact = false) {
+  const date = new Date(Number(timestamp) || Date.now());
+  if (Number.isNaN(date.getTime())) return "";
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  return compact ? `${month}/${day}` : `${month}/${day} ${hour}:${minute}`;
+}
+
+function candleChart(stock = null, options = {}) {
   const compact = isCompactChart();
   const width = compact ? 420 : 900;
   const height = compact ? 300 : 320;
@@ -385,15 +424,33 @@ function candleChart() {
     [78900, 80200, 77000, 77300],
     [77300, 79000, 76200, 78100]
   ];
-  const currentSamsungPrice = typeof getWatchStock === "function" ? getWatchStock("삼성전자", "005930")?.price : 0;
+  const providedRows = normalizeCandleInput(options.candles);
+  const hasProvidedRows = providedRows.length >= 2;
+  const currentStockPrice = stock && typeof stock === "object"
+    ? Number(stock.currentPriceKrw || stock.price || stock.currentPrice || 0)
+    : 0;
+  const currentSamsungPrice = currentStockPrice || (typeof getWatchStock === "function" ? getWatchStock("삼성전자", "005930")?.price : 0);
   const baseLastClose = rawPrices[rawPrices.length - 1][3];
   const priceScale = currentSamsungPrice ? currentSamsungPrice / baseLastClose : 1;
   const scaledRawPrices = rawPrices.map((row) => row.map((value) => Math.round((value * priceScale) / 100) * 100));
-  const prices = compact ? scaledRawPrices.slice(-32) : scaledRawPrices;
+  const chartRows = hasProvidedRows
+    ? providedRows.slice(-(compact ? 42 : 92))
+    : (compact ? scaledRawPrices.slice(-32) : scaledRawPrices).map((values, index) => ({ values, volume: 0, time: Date.now() - (scaledRawPrices.length - index) * 86400000 }));
+  const prices = chartRows.map((row) => row.values);
   const visibleValues = prices.flat();
-  const min = Math.floor(Math.min(...visibleValues) / 10000) * 10000;
-  const max = Math.ceil(Math.max(...visibleValues) / 10000) * 10000;
-  const priceTicks = Array.from({ length: 6 }, (_, index) => Math.round(max - ((max - min) * index) / 5));
+  const rawMin = Math.min(...visibleValues);
+  const rawMax = Math.max(...visibleValues);
+  const rawRange = Math.max(rawMax - rawMin, rawMax * 0.02, 1);
+  const min = hasProvidedRows
+    ? Math.max(0, rawMin - rawRange * 0.08)
+    : Math.floor(rawMin / 10000) * 10000;
+  const max = hasProvidedRows
+    ? rawMax + rawRange * 0.08
+    : Math.ceil(rawMax / 10000) * 10000;
+  const priceTicks = Array.from({ length: 6 }, (_, index) => {
+    const value = max - ((max - min) * index) / 5;
+    return hasProvidedRows ? value : Math.round(value);
+  });
   const sx = (i) => left + (i / (prices.length - 1)) * (width - left - right);
   const sy = (v) => top + ((max - v) / (max - min)) * candleArea;
   const closeValues = prices.map((p) => p[3]);
@@ -403,15 +460,24 @@ function candleChart() {
       return slice.reduce((sum, value) => sum + value, 0) / slice.length;
     });
   const pathFor = (values) => values.map((v, i) => `${i === 0 ? "M" : "L"} ${sx(i).toFixed(1)} ${sy(v).toFixed(1)}`).join(" ");
-  const volumes = prices.map((p, i) => 12 + ((p[1] - p[2]) / 800) + (i % 5) * 5);
+  const rawVolumes = chartRows.map((row, index) => Number(row.volume) || (12 + ((prices[index][1] - prices[index][2]) / Math.max(1, rawRange)) * 40 + (index % 5) * 5));
+  const maxVolume = Math.max(...rawVolumes, 1);
+  const volumes = rawVolumes.map((value) => 8 + (value / maxVolume) * (compact ? 34 : 42));
+  const labelIndexes = [...new Set([0, Math.floor((prices.length - 1) * 0.35), Math.floor((prices.length - 1) * 0.66), prices.length - 1])];
+  const xLabels = labelIndexes
+    .map((index) => {
+      const row = chartRows[index];
+      return `<text x="${sx(index)}" y="${height - 5}" fill="#64748b" font-size="${compact ? 10 : 12}" text-anchor="${index === 0 ? "start" : index === prices.length - 1 ? "end" : "middle"}">${escapeChartText(formatCandleDate(row?.time, compact))}</text>`;
+    })
+    .join("");
   return `
     <div class="chart candles">
-      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="삼성전자 캔들 차트">
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeChartText(stock?.name || "종목")} 캔들 차트">
         ${priceTicks
           .map(
             (tick) => `
               <line x1="${left}" y1="${sy(tick)}" x2="${width - right}" y2="${sy(tick)}" stroke="#e3eaf3" stroke-dasharray="4 5"/>
-              <text x="${left - 7}" y="${sy(tick) + 4}" fill="#64748b" font-size="${compact ? 10 : 12}" text-anchor="end">${tick.toLocaleString()}</text>
+              <text x="${left - 7}" y="${sy(tick) + 4}" fill="#64748b" font-size="${compact ? 10 : 12}" text-anchor="end">${formatCandleTick(tick)}</text>
             `
           )
           .join("")}
@@ -429,8 +495,9 @@ function candleChart() {
             `;
           })
           .join("")}
-        <path class="chart-line chart-line-secondary" d="${pathFor(ma(5))}" fill="none" stroke="#ef4444" stroke-width="${compact ? 1.2 : 1.4}" opacity=".65" pathLength="1"/>
-        <path class="chart-line chart-line-tertiary" d="${pathFor(ma(20))}" fill="none" stroke="#22c55e" stroke-width="${compact ? 1.2 : 1.4}" opacity=".65" pathLength="1"/>
+        <path class="chart-line chart-line-primary" d="${pathFor(ma(5))}" fill="none" stroke="#2474f2" stroke-width="${compact ? 1.15 : 1.35}" opacity=".62" pathLength="1"/>
+        <path class="chart-line chart-line-secondary" d="${pathFor(ma(20))}" fill="none" stroke="#ef4444" stroke-width="${compact ? 1.2 : 1.4}" opacity=".65" pathLength="1"/>
+        <path class="chart-line chart-line-tertiary" d="${pathFor(ma(60))}" fill="none" stroke="#22c55e" stroke-width="${compact ? 1.2 : 1.4}" opacity=".65" pathLength="1"/>
         ${volumes
           .map((v, i) => {
             const x = sx(i);
@@ -440,10 +507,7 @@ function candleChart() {
             return `<rect class="chart-bar chart-volume-bar" x="${x - bodyW / 2}" y="${height - bottom - h + (compact ? 24 : 28)}" width="${bodyW}" height="${h}" rx="1" fill="${up ? "#8bbcff" : "#ff9b9b"}" opacity=".85"/>`;
           })
           .join("")}
-        <text x="${left}" y="${height - 5}" fill="#64748b" font-size="${compact ? 10 : 12}">${compact ? "04/01" : "02/19"}</text>
-        <text x="${width * 0.35}" y="${height - 5}" fill="#64748b" font-size="${compact ? 10 : 12}" text-anchor="middle">${compact ? "05/01" : "04/01"}</text>
-        <text x="${width * 0.62}" y="${height - 5}" fill="#64748b" font-size="${compact ? 10 : 12}" text-anchor="middle">${compact ? "05/20" : "05/13"}</text>
-        <text x="${width - right}" y="${height - 5}" fill="#64748b" font-size="${compact ? 10 : 12}" text-anchor="end">06/10</text>
+        ${xLabels}
       </svg>
     </div>
   `;

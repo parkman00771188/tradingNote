@@ -301,7 +301,11 @@ function journalTradeId(index) {
 }
 
 function getJournalTrades() {
-  return trades
+  const sourceRows = typeof getAllJournalTradeRows === "function"
+    ? getAllJournalTradeRows()
+    : (typeof trades !== "undefined" && Array.isArray(trades) ? trades : []);
+
+  return sourceRows
     .map((trade, index) => ({ trade, id: journalTradeId(index) }))
     .filter(({ trade, id }) => !journalDeletedTradeIds.has(id) && journalStockMatchesFilter(trade[1]) && journalTradeTypeMatchesFilter(trade[2]));
 }

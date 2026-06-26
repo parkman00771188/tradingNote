@@ -18,6 +18,15 @@ const journalWriteStockAliases = {
   NAVER: ["네이버"]
 };
 
+var journalStockSearchState = {
+  query: "",
+  loading: false,
+  results: [],
+  error: "",
+  requestId: 0
+};
+var journalStockSearchTimer = 0;
+
 function normalizeJournalCurrentPriceText(value) {
   return String(value || "").replace(/\s+/g, "").toLowerCase();
 }
@@ -103,6 +112,47 @@ function findJournalWatchStock(name, code = "") {
   return null;
 }
 
+function normalizeJournalStockItem(item = {}) {
+  const stock = typeof normalizeStockAnalysisItem === "function"
+    ? normalizeStockAnalysisItem(item)
+    : item;
+  const priceMeta = typeof getStockAnalysisPriceMeta === "function"
+    ? getStockAnalysisPriceMeta(stock)
+    : { value: Number(stock.currentPriceKrw || stock.currentPrice || stock.price) || 0 };
+  const holding = findJournalHolding(stock.name, stock.code || stock.symbol || "");
+
+  return {
+    name: stock.name || stock.symbol || stock.code || "",
+    code: stock.code || stock.symbol || "",
+    symbol: stock.symbol || stock.code || "",
+    price: Number(priceMeta.value || stock.currentPriceKrw || stock.currentPrice || stock.price) || 0,
+    currentPrice: Number(stock.currentPrice || stock.price) || 0,
+    currentPriceKrw: Number(stock.currentPriceKrw || priceMeta.value || stock.price) || 0,
+    currency: stock.currency || priceMeta.currency || "KRW",
+    market: stock.market || "",
+    exchange: stock.exchange || "",
+    type: stock.type || "",
+    quoteType: stock.quoteType || "",
+    source: stock.source || "",
+    holdingQuantity: holding ? holding.quantity : Number(stock.holdingQuantity) || 0,
+    holdingAmount: holding ? holding.amount : Number(stock.holdingAmount) || 0
+  };
+}
+
+function journalMarketResultToStock(result = {}) {
+  const item = typeof stockMarketResultToItem === "function"
+    ? stockMarketResultToItem(result, {})
+    : result;
+  return normalizeJournalStockItem(item);
+}
+
+function getJournalFavoriteStocks() {
+  if (typeof stockFavoriteItems === "undefined" || !Array.isArray(stockFavoriteItems)) return [];
+  return stockFavoriteItems
+    .map((item) => normalizeJournalStockItem(item))
+    .filter((item) => item.name || item.code);
+}
+
 function getJournalStockByQuery(query, mode = "buy") {
   const universe = getJournalStockOptionsForMode(mode);
   return universe.find((stock) => journalStockMatchesQuery(stock, query)) || null;
@@ -132,6 +182,9 @@ function getJournalStockOptionsForMode(mode = "buy") {
     });
   }
 
+  const favorites = getJournalFavoriteStocks();
+  if (favorites.length) return favorites;
+
   if (typeof watchList !== "undefined" && Array.isArray(watchList)) {
     return watchList.map(([name, code, price]) => {
       const holding = findJournalHolding(name, code);
@@ -145,13 +198,134 @@ function getJournalStockOptionsForMode(mode = "buy") {
     });
   }
 
-  return [{
-    name: journalDefaultHolding.stock,
-    code: "",
-    price: journalDefaultHolding.currentPrice,
-    holdingQuantity: journalDefaultHolding.quantity,
-    holdingAmount: journalDefaultHolding.amount
-  }];
+  return [];
+}
+
+function resetJournalStockSearchState() {
+  if (journalStockSearchTimer) window.clearTimeout(journalStockSearchTimer);
+  journalStockSearchTimer = 0;
+  journalStockSearchState = {
+    query: "",
+    loading: false,
+    results: [],
+    error: "",
+    requestId: journalStockSearchState.requestId + 1
+  };
+}
+
+function formatJournalStockSearchPrice(stock = {}) {
+  if (typeof getStockAnalysisPriceMeta === "function") {
+    return getStockAnalysisPriceMeta(stock).text;
+  }
+  return stock.price ? formatKRW(stock.price) : "-";
+}
+
+function renderJournalStockSearchPanel() {
+  const query = String(journalStockSearchState.query || "").trim();
+  if (!query || query.length < 2) return "";
+
+  if (journalStockSearchState.loading) {
+    return `<div class="asset-market-search-state">종목을 검색하고 있습니다.</div>`;
+  }
+
+  if (journalStockSearchState.error) {
+    return `<div class="asset-market-search-state error">${escapeChartText(journalStockSearchState.error)}</div>`;
+  }
+
+  if (!journalStockSearchState.results.length) {
+    return `<div class="asset-market-search-state">검색 결과가 없습니다. 종목명이나 코드를 입력해보세요.</div>`;
+  }
+
+  return `
+    <div class="asset-market-search-results stock-search-results" role="listbox" aria-label="매매일지 종목 검색 결과">
+      ${journalStockSearchState.results.map((result, index) => {
+        const stock = normalizeJournalStockItem(result);
+        const marketText = [
+          stock.symbol || stock.code,
+          typeof getStockMarketLabel === "function" ? getStockMarketLabel(stock) : stock.market,
+          stock.exchange || stock.source
+        ].filter(Boolean).join(" · ");
+        const avatar = typeof renderStockAvatar === "function"
+          ? renderStockAvatar(stock, "stock-search-avatar")
+          : `<span class="stock-search-avatar">${escapeChartText((stock.name || stock.code || "?").slice(0, 2))}</span>`;
+        return `
+          <button class="asset-market-search-result stock-search-result" type="button" role="option" data-journal-stock-search-result="${index}">
+            ${avatar}
+            <span>
+              <strong>${escapeChartText(stock.name || stock.code)}</strong>
+              <em>${escapeChartText(marketText || stock.code)}</em>
+            </span>
+            <b>${escapeChartText(formatJournalStockSearchPrice(stock))}</b>
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function updateJournalStockSearchPanel(form) {
+  const targetForm = form || document.querySelector("[data-journal-entry-form]");
+  const panel = targetForm ? targetForm.querySelector("[data-journal-stock-search-panel]") : null;
+  if (!panel) return;
+  panel.innerHTML = renderJournalStockSearchPanel();
+}
+
+async function runJournalStockSearch(query, requestId, form) {
+  try {
+    const response = await fetch(`/api/markets?action=search&q=${encodeURIComponent(query)}`, {
+      credentials: "include",
+      headers: { Accept: "application/json" }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (journalStockSearchState.requestId !== requestId) return;
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.error || "종목 검색에 실패했습니다.");
+    }
+
+    journalStockSearchState.loading = false;
+    journalStockSearchState.results = (Array.isArray(payload.results) ? payload.results : [])
+      .map((result) => journalMarketResultToStock(result))
+      .filter((stock) => stock.name || stock.code);
+    journalStockSearchState.error = "";
+    updateJournalStockSearchPanel(form);
+  } catch (error) {
+    if (journalStockSearchState.requestId !== requestId) return;
+    journalStockSearchState.loading = false;
+    journalStockSearchState.results = [];
+    journalStockSearchState.error = error?.message || "종목 검색에 실패했습니다.";
+    updateJournalStockSearchPanel(form);
+  }
+}
+
+function scheduleJournalStockSearch(input) {
+  const form = input ? input.closest("[data-journal-entry-form]") : null;
+  const query = String(input ? input.value : "").trim();
+  if (journalStockSearchTimer) window.clearTimeout(journalStockSearchTimer);
+
+  const requestId = journalStockSearchState.requestId + 1;
+  journalStockSearchState = {
+    query,
+    loading: query.length >= 2,
+    results: [],
+    error: "",
+    requestId
+  };
+  updateJournalStockSearchPanel(form);
+  if (query.length < 2) return;
+
+  journalStockSearchTimer = window.setTimeout(() => {
+    journalStockSearchTimer = 0;
+    runJournalStockSearch(query, requestId, form);
+  }, 260);
+}
+
+function applyJournalStockSearchResult(button) {
+  const form = button ? button.closest("[data-journal-entry-form]") : null;
+  const stock = journalStockSearchState.results[Number(button?.dataset.journalStockSearchResult)];
+  if (!form || !stock) return;
+  setJournalSelectedStock(form, normalizeJournalStockItem(stock));
+  resetJournalStockSearchState();
+  updateJournalStockSearchPanel(form);
 }
 
 function fillJournalPriceFromStock(form, stock) {
@@ -196,6 +370,8 @@ function setJournalSelectedStock(form, stock) {
     input.value = "";
   });
   fillJournalPriceFromStock(form, stock);
+  resetJournalStockSearchState();
+  updateJournalStockSearchPanel(form);
 
   updateJournalHoldingInfo(form);
   updateJournalTradeEstimate(form);
@@ -356,27 +532,37 @@ function applyJournalQuantityPreset(button) {
   updateJournalTradeEstimate(form);
 }
 
-function renderJournalStockPickerOption(stock, active) {
+function renderJournalStockPickerOption(stock, active, index) {
   const hasHolding = stock.holdingQuantity > 0 || stock.holdingAmount > 0;
+  const marketText = [
+    stock.code,
+    typeof getStockMarketLabel === "function" ? getStockMarketLabel(stock) : stock.market
+  ].filter(Boolean).join(" · ");
+  const priceText = stock.price ? formatKRW(stock.price) : "-";
 
   return `
-    <button class="journal-option journal-option-stock ${active ? "active" : ""}" type="button" data-journal-write-stock-option="${stock.name}" data-stock-code="${stock.code || ""}" data-search-text="${normalizeJournalCurrentPriceText(getJournalStockCandidates(stock.name, stock.code).join(" "))}">
+    <button class="journal-option journal-option-stock ${active ? "active" : ""}" type="button" data-journal-write-stock-option="${stock.name}" data-journal-write-stock-index="${index}" data-stock-code="${stock.code || ""}" data-search-text="${normalizeJournalCurrentPriceText(getJournalStockCandidates(stock.name, stock.code).join(" "))}">
       <span class="journal-option-icon">${icon("star")}</span>
       <span>
-        <strong>${stock.name}</strong>
-        <em>${stock.code || "코드 없음"} · 현재가 ${formatKRW(stock.price)}${hasHolding ? ` · 보유 ${stock.holdingQuantity.toLocaleString()}주` : ""}</em>
+        <strong>${escapeChartText(stock.name)}</strong>
+        <em>${escapeChartText(marketText || "코드 없음")} · 현재가 ${escapeChartText(priceText)}${hasHolding ? ` · 보유 ${stock.holdingQuantity.toLocaleString()}주` : ""}</em>
       </span>
       <b>${active ? "선택됨" : ""}</b>
     </button>
   `;
 }
 
+function getJournalStockPickerOptions(mode = "buy") {
+  return mode === "sell" ? getJournalStockOptionsForMode(mode) : getJournalFavoriteStocks();
+}
+
 function renderJournalStockPicker(form) {
   const mode = form.dataset.tradeMode === "sell" ? "sell" : "buy";
-  const title = mode === "sell" ? "보유 종목 선택" : "종목 선택";
-  const description = mode === "sell" ? "보유 중인 종목만 표시됩니다." : "전체 관심 종목에서 선택합니다.";
+  const title = mode === "sell" ? "보유 종목 선택" : "관심 종목 선택";
+  const description = mode === "sell" ? "보유 중인 종목을 선택하면 현재가가 자동 입력됩니다." : "별표로 추가한 관심 종목을 선택하면 현재가가 매수가에 입력됩니다.";
   const selected = getJournalSelectedStock(form);
-  const options = getJournalStockOptionsForMode(mode);
+  const options = getJournalStockPickerOptions(mode);
+  const emptyText = mode === "sell" ? "선택할 보유 종목이 없습니다." : "추가된 관심 종목이 없습니다.";
 
   return `
     <div class="journal-stock-picker-backdrop" data-journal-write-stock-backdrop>
@@ -395,12 +581,8 @@ function renderJournalStockPicker(form) {
             <span>${icon("search")}</span>
           </div>
           <div class="journal-option-list" data-journal-write-stock-options>
-            ${options.map((stock) => renderJournalStockPickerOption(stock, selected && selected.name === stock.name)).join("")}
-            <p class="journal-empty-option" data-journal-write-stock-empty hidden>검색 결과가 없습니다.</p>
-          </div>
-          <div class="journal-date-actions">
-            <button class="btn" type="button" data-journal-write-stock-cancel>취소</button>
-            <button class="btn primary" type="button" data-journal-write-stock-apply>확인</button>
+            ${options.map((stock, index) => renderJournalStockPickerOption(stock, selected && selected.name === stock.name, index)).join("")}
+            <p class="journal-empty-option" data-journal-write-stock-empty data-empty-text="${escapeChartText(emptyText)}" ${options.length ? "hidden" : ""}>${emptyText}</p>
           </div>
         </div>
       </section>
@@ -427,7 +609,8 @@ function closeJournalWriteStockPicker(form) {
 
 function selectJournalWriteStockDraft(option) {
   const picker = option ? option.closest(".journal-stock-picker-backdrop") : null;
-  if (!picker) return;
+  const form = option ? option.closest("[data-journal-entry-form]") : null;
+  if (!picker || !form) return;
 
   picker.querySelectorAll("[data-journal-write-stock-option]").forEach((button) => {
     const active = button === option;
@@ -435,6 +618,8 @@ function selectJournalWriteStockDraft(option) {
     const badge = button.querySelector("b");
     if (badge) badge.textContent = active ? "선택됨" : "";
   });
+
+  applyJournalWriteStockSelection(option);
 }
 
 function applyJournalWriteStockSelection(button) {
@@ -444,7 +629,10 @@ function applyJournalWriteStockSelection(button) {
   if (!form || !activeOption) return;
 
   const mode = form.dataset.tradeMode === "sell" ? "sell" : "buy";
-  const stock = getJournalStockOptionsForMode(mode).find((item) => item.name === activeOption.dataset.journalWriteStockOption) || null;
+  const options = getJournalStockPickerOptions(mode);
+  const stock = options[Number(activeOption.dataset.journalWriteStockIndex)]
+    || options.find((item) => item.name === activeOption.dataset.journalWriteStockOption)
+    || null;
   if (!stock) return;
 
   setJournalSelectedStock(form, stock);
@@ -464,7 +652,10 @@ function filterJournalWriteStockPicker(input) {
   });
 
   const empty = picker.querySelector("[data-journal-write-stock-empty]");
-  if (empty) empty.hidden = visibleCount > 0;
+  if (empty) {
+    empty.textContent = query ? "검색 결과가 없습니다." : (empty.dataset.emptyText || empty.textContent);
+    empty.hidden = visibleCount > 0;
+  }
 }
 
 function journalTradeTotalBox(type) {
@@ -527,7 +718,32 @@ function updateJournalTradeEstimate(form) {
   return !invalid;
 }
 
+var journalWriteInitialDate = "";
+
+function getJournalWriteTodayValue() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getJournalWriteDateValue() {
+  return /^\d{4}-\d{2}-\d{2}$/.test(journalWriteInitialDate)
+    ? journalWriteInitialDate
+    : getJournalWriteTodayValue();
+}
+
+function setJournalWriteInitialDate(value) {
+  journalWriteInitialDate = /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? String(value) : "";
+}
+
+function clearJournalWriteInitialDate() {
+  journalWriteInitialDate = "";
+}
+
 function renderJournalWrite({ showTitle = true } = {}) {
+  const journalDateValue = getJournalWriteDateValue();
   return `
     <form class="journal-entry-form" data-journal-entry-form data-trade-mode="buy">
       <div class="journal-entry-content">
@@ -536,7 +752,7 @@ function renderJournalWrite({ showTitle = true } = {}) {
         ${journalWriteField(
           "일자",
           `<div class="input-with-icon journal-date-control">
-            <input class="input" type="date" value="2024-06-20" data-date-picker>
+            <input class="input" type="date" value="${journalDateValue}" data-date-picker>
             <button class="field-icon field-icon-button" type="button" data-date-picker-trigger aria-label="날짜 선택">${icon("calendar")}</button>
           </div>`
         )}
@@ -551,8 +767,11 @@ function renderJournalWrite({ showTitle = true } = {}) {
 
         ${journalWriteField(
           "종목명",
-          `<div class="journal-stock-control">
-            <input class="input" placeholder="종목명을 입력하세요" autocomplete="off" data-journal-stock-name>
+          `<div class="journal-stock-control" data-journal-stock-control>
+            <div class="journal-stock-search-field">
+              <input class="input" placeholder="종목명을 입력하세요" autocomplete="off" data-journal-stock-name>
+              <div class="asset-market-search-panel journal-stock-search-panel" data-journal-stock-search-panel></div>
+            </div>
             <button class="journal-stock-pick-button" type="button" data-journal-write-stock-open aria-label="종목 선택">${icon("star")}</button>
           </div>`
         )}

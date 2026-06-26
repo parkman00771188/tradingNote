@@ -189,13 +189,14 @@ function getDashboardPortfolioSegments(totalAssets, cashBalance) {
   const topHoldings = sortedHoldings.slice(0, 3);
   const topAmount = topHoldings.reduce((sum, item) => sum + item.amount, 0);
   const otherAmount = Math.max(0, sortedHoldings.reduce((sum, item) => sum + item.amount, 0) - topAmount);
-  const segments = topHoldings.map((item, index) => ({
-    label: item.name,
-    amountValue: item.amount,
-    color: typeof getAssetPortfolioColor === "function"
-      ? getAssetPortfolioColor(index, item.code || item.name)
-      : "#2474f2"
-  }));
+  const segments = topHoldings.map((item, index) => {
+    const meta = typeof getAssetHoldingMeta === "function" ? getAssetHoldingMeta(item, index) : null;
+    return {
+      label: item.name,
+      amountValue: item.amount,
+      color: meta?.color || (typeof getAssetPortfolioColor === "function" ? getAssetPortfolioColor(30, item.code || item.name || index) : "#2474f2")
+    };
+  });
 
   if (otherAmount > 0) {
     segments.push({

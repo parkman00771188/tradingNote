@@ -33,8 +33,12 @@ var databaseState = {
 };
 var userDataServerLoadedFor = "";
 var userDataServerLoadingFor = "";
+var userDataServerLoadPromise = null;
+var userDataServerLoadPromiseFor = "";
+var userDataServerLoadError = "";
 var userDataServerSaveTimer = 0;
 var userDataServerSavePendingFor = "";
+var userDataServerSavePendingSource = "";
 var pendingAssetStorageCleanupKey = "";
 var authState = {
   checked: false,
@@ -61,6 +65,7 @@ var assetSettingsMotion = null;
 var assetSettingsMotionTimer = 0;
 var assetSettingsPendingRemoveId = null;
 var assetSettingsDeleteTargetId = "";
+var assetSettingsSaving = false;
 var assetMarketSearch = {
   rowId: "",
   query: "",
@@ -73,6 +78,35 @@ var assetMarketSearchTimer = 0;
 var assetMarketMetaCache = new Map();
 var assetPriceRefreshTimer = 0;
 var assetPriceRefreshRunning = false;
+var stockAnalysisSelected = null;
+var stockFavoriteItems = [];
+var stockFavoritesOpen = false;
+var stockFavoritesServerSaveTimer = 0;
+var stockFavoritesServerSavePendingFor = "";
+var stockSearchState = {
+  query: "",
+  loading: false,
+  results: [],
+  error: "",
+  requestId: 0
+};
+var stockSearchTimer = 0;
+var stockAnalysisAutoRefreshKey = "";
+var stockChartPeriod = "1d";
+var stockChartState = {
+  key: "",
+  loading: false,
+  error: "",
+  candles: [],
+  requestId: 0
+};
+var stockNewsState = {
+  key: "",
+  loading: false,
+  error: "",
+  items: [],
+  requestId: 0
+};
 var settingsActiveSection = "broker";
 const assetSettingsVisibleDotLimit = 5;
 const assetSettingsDotSize = 10;
@@ -81,8 +115,12 @@ const assetSettingsDotActiveWidth = 34;
 const authRequiredRoutes = new Set(["dashboard", "journal", "journalWrite", "stock", "performance", "assets", "memo", "calendar", "settings"]);
 const assetStorageKey = "trading-note-assets-v1";
 const memoStorageKey = "trading-note-memos-v1";
+const journalRecordsStorageKey = "trading-note-journals-v1";
 var userDataInitializedFor = "";
 var userMemos = [];
+var userJournalRecords = [];
+var userJournalServerSaveTimer = 0;
+var userJournalServerSavePendingFor = "";
 const assetXlsxLibraryUrl = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
 var assetXlsxLibraryPromise = null;
 const assetSpreadsheetHeaders = [
@@ -132,6 +170,16 @@ const knownDomesticMarketByCode = {
   "207940": "KOSPI",
   "373220": "KOSPI"
 };
+const stockChartPeriodOptions = [
+  { key: "1d", label: "일봉", range: "6mo", interval: "1d" },
+  { key: "1wk", label: "주봉", range: "2y", interval: "1wk" },
+  { key: "1mo", label: "월봉", range: "5y", interval: "1mo" },
+  { key: "1m", label: "1분", range: "1d", interval: "1m" },
+  { key: "5m", label: "5분", range: "5d", interval: "5m" },
+  { key: "15m", label: "15분", range: "5d", interval: "15m" },
+  { key: "30m", label: "30분", range: "1mo", interval: "30m" },
+  { key: "60m", label: "60분", range: "3mo", interval: "60m" }
+];
 
 function formatKRW(value) {
   return `${Math.max(0, Math.round(Number(value) || 0)).toLocaleString()}원`;
@@ -251,6 +299,33 @@ function getUserScopedStorageKey(baseKey) {
 function clearRuntimeUserData() {
   assetCashBalance = 0;
   userMemos = [];
+  userJournalRecords = [];
+  stockAnalysisSelected = null;
+  stockFavoriteItems = [];
+  stockFavoritesOpen = false;
+  stockAnalysisAutoRefreshKey = "";
+  stockChartState = {
+    key: "",
+    loading: false,
+    error: "",
+    candles: [],
+    requestId: stockChartState.requestId + 1
+  };
+  stockNewsState = {
+    key: "",
+    loading: false,
+    error: "",
+    items: [],
+    requestId: stockNewsState.requestId + 1
+  };
+  if (stockFavoritesServerSaveTimer) window.clearTimeout(stockFavoritesServerSaveTimer);
+  stockFavoritesServerSaveTimer = 0;
+  stockFavoritesServerSavePendingFor = "";
+  if (userJournalServerSaveTimer) window.clearTimeout(userJournalServerSaveTimer);
+  userJournalServerSaveTimer = 0;
+  userJournalServerSavePendingFor = "";
+  clearPendingUserAssetSave();
+  resetStockSearchState();
 
   if (typeof holdings !== "undefined") holdings.splice(0, holdings.length);
   if (typeof watchList !== "undefined") watchList.splice(0, watchList.length);
@@ -271,8 +346,106 @@ function getUserMemos() {
   return userMemos.slice();
 }
 
+function normalizeJournalRecord(record = {}) {
+  const now = new Date().toISOString();
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(record.date || "")) ? String(record.date) : getJournalWriteTodayValue();
+  const type = String(record.type || "buy") === "sell" ? "sell" : "buy";
+  const price = Math.max(0, Number(record.price || (type === "sell" ? record.sellPrice : record.buyPrice)) || 0);
+
+  return {
+    id: String(record.id || `journal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+    date,
+    type,
+    name: String(record.name || "").trim(),
+    code: String(record.code || "").trim(),
+    symbol: String(record.symbol || record.code || "").trim(),
+    quantity: Math.max(0, Number(record.quantity) || 0),
+    price,
+    buyPrice: Math.max(0, Number(record.buyPrice || (type === "buy" ? price : 0)) || 0),
+    sellPrice: Math.max(0, Number(record.sellPrice || (type === "sell" ? price : 0)) || 0),
+    memo: String(record.memo || "").trim(),
+    createdAt: record.createdAt || now,
+    updatedAt: record.updatedAt || now
+  };
+}
+
+function applyUserJournalRecords(records = []) {
+  userJournalRecords = (Array.isArray(records) ? records : [])
+    .map((record) => normalizeJournalRecord(record))
+    .filter((record) => record.name && record.quantity > 0)
+    .slice(0, 500);
+}
+
+function getJournalRecordsSnapshot() {
+  return userJournalRecords.map((record) => normalizeJournalRecord(record));
+}
+
+function formatJournalRecordDate(record = {}) {
+  const match = String(record.date || "").match(/^\d{4}-(\d{2})-(\d{2})$/);
+  return match ? `${match[1]}/${match[2]}` : "";
+}
+
+function getJournalRecordDisplayType(record = {}) {
+  return record.type === "sell" ? "매도" : "매수";
+}
+
+function getJournalRecordRows() {
+  return getJournalRecordsSnapshot().map((record) => {
+    const price = Math.round(Number(record.price || record.buyPrice || record.sellPrice) || 0);
+    const priceText = price ? formatMarketNumber(price) : "-";
+    const quantity = Number(record.quantity || 0);
+    return [
+      formatJournalRecordDate(record),
+      record.name,
+      getJournalRecordDisplayType(record),
+      Number.isInteger(quantity) ? String(quantity) : String(quantity),
+      record.type === "sell" ? "-" : priceText,
+      record.type === "sell" ? priceText : "-",
+      "+0",
+      "+0.00%",
+      "직접 기록",
+      record.memo || "",
+      record.date,
+      record.code || record.symbol || ""
+    ];
+  });
+}
+
+function getAllJournalTradeRows() {
+  const runtimeRows = typeof trades !== "undefined" && Array.isArray(trades) ? trades : [];
+  return [...getJournalRecordRows(), ...runtimeRows];
+}
+
 function hasAssetSnapshotData(snapshot = {}) {
   return Number(snapshot.cashBalance || 0) > 0 || (Array.isArray(snapshot.holdings) && snapshot.holdings.length > 0);
+}
+
+function getAssetSnapshotTimestamp(snapshot = {}) {
+  const time = Date.parse(snapshot.savedAt || snapshot.updatedAt || "");
+  return Number.isFinite(time) ? time : 0;
+}
+
+function shouldPreferLocalAssetSnapshot(localSnapshot = {}, remoteSnapshot = {}) {
+  const localHasAssets = hasAssetSnapshotData(localSnapshot);
+  if (!localHasAssets) return false;
+  const remoteHasAssets = hasAssetSnapshotData(remoteSnapshot);
+  if (!remoteHasAssets) return true;
+  const localTime = getAssetSnapshotTimestamp(localSnapshot);
+  const remoteTime = getAssetSnapshotTimestamp(remoteSnapshot);
+  return localTime > 0 && localTime >= remoteTime;
+}
+
+function shouldAllowEmptyAssetSave(source = "") {
+  return source === "user_clear";
+}
+
+function isUserAssetSaveSource(source = "") {
+  return String(source || "").startsWith("user");
+}
+
+function clearPendingUserAssetSave() {
+  userDataServerSavePendingFor = "";
+  userDataServerSavePendingSource = "";
 }
 
 function applyUserAssetSnapshot(snapshot = {}) {
@@ -285,38 +458,69 @@ function applyUserAssetSnapshot(snapshot = {}) {
   }
 }
 
-function scheduleUserDataSave() {
+function scheduleUserDataSave({ source = "user" } = {}) {
   if (!authState.authenticated) return;
   const userId = getCurrentUserStorageId();
   if (!userId) return;
+  const snapshot = getAssetSnapshot();
+  const hasLocalAssets = hasAssetSnapshotData(snapshot);
+  const allowEmpty = shouldAllowEmptyAssetSave(source);
+
   if (userDataServerLoadedFor !== userId) {
+    if (!hasLocalAssets && !allowEmpty) {
+      if (userDataServerLoadingFor !== userId) {
+        loadUserDataFromServer(userId);
+      }
+      return;
+    }
     userDataServerSavePendingFor = userId;
+    userDataServerSavePendingSource = source;
     if (userDataServerLoadingFor !== userId) {
       loadUserDataFromServer(userId);
     }
     return;
   }
+
+  if (!hasLocalAssets && !allowEmpty) return;
+
   if (userDataServerSaveTimer) window.clearTimeout(userDataServerSaveTimer);
   userDataServerSaveTimer = window.setTimeout(() => {
     userDataServerSaveTimer = 0;
-    saveUserAssetStateToServer();
+    saveUserAssetStateToServer({ allowEmpty, source }).catch((error) => {
+      console.warn("Scheduled user asset save failed.", error);
+    });
   }, 700);
 }
 
-async function saveUserAssetStateToServer() {
-  if (!authState.authenticated) return;
+async function saveUserAssetStateToServer({ allowEmpty = false, source = "user", waitForLoad = false } = {}) {
+  if (!authState.authenticated) return false;
   const userId = getCurrentUserStorageId();
-  if (!userId) return;
+  if (!userId) return false;
+  const snapshot = getAssetSnapshot();
+  if (!hasAssetSnapshotData(snapshot) && !allowEmpty) return false;
+
   if (userDataServerLoadedFor !== userId) {
-    userDataServerSavePendingFor = userId;
-    if (userDataServerLoadingFor !== userId) {
-      loadUserDataFromServer(userId);
+    if (!hasAssetSnapshotData(snapshot) && !allowEmpty) {
+      if (userDataServerLoadingFor !== userId) {
+        loadUserDataFromServer(userId);
+      }
+      return false;
     }
-    return;
+    userDataServerSavePendingFor = userId;
+    userDataServerSavePendingSource = source;
+    const loadResult = loadUserDataFromServer(userId);
+    if (waitForLoad) {
+      const loaded = await loadResult;
+      if (!loaded || userDataServerLoadedFor !== userId) {
+        throw new Error("저장된 자산 데이터를 먼저 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+      return true;
+    }
+    return false;
   }
 
   try {
-    const response = await fetch("/api/data", {
+    const response = await fetchWithTimeout("/api/data", {
       method: "POST",
       credentials: "include",
       headers: {
@@ -325,11 +529,18 @@ async function saveUserAssetStateToServer() {
       },
       body: JSON.stringify({
         action: "save_assets",
-        assets: getAssetSnapshot()
+        assets: snapshot,
+        allowEmptyAssets: allowEmpty
       })
     });
-    const { data } = await readApiJsonResponse(response);
+    const { data, text } = await readApiJsonResponse(response);
+    if (!response.ok || !data.ok) {
+      throw new Error(getApiErrorMessage(response, data, text, "자산 데이터를 저장하지 못했습니다."));
+    }
+
     if (response.ok && data.ok) {
+      const savedAssets = data.data?.assets || {};
+      const savedHasAssets = hasAssetSnapshotData(savedAssets);
       setDatabaseState({
         checked: true,
         connected: true,
@@ -337,54 +548,113 @@ async function saveUserAssetStateToServer() {
         message: "Cloudflare D1에 자동 저장되었습니다.",
         error: ""
       });
-      clearPlainAssetStateFromStorage(pendingAssetStorageCleanupKey || undefined);
-      pendingAssetStorageCleanupKey = "";
+      if (allowEmpty || savedHasAssets) {
+        clearPlainAssetStateFromStorage(pendingAssetStorageCleanupKey || undefined);
+        pendingAssetStorageCleanupKey = "";
+      }
     }
+    return true;
   } catch (error) {
     console.warn("User asset data could not be saved to the server.", error);
+    throw error;
   }
 }
 
 async function loadUserDataFromServer(userId = getCurrentUserStorageId()) {
-  if (!authState.authenticated || !userId) return;
-  if (userDataServerLoadedFor === userId || userDataServerLoadingFor === userId) return;
+  if (!authState.authenticated || !userId) return false;
+  if (userDataServerLoadedFor === userId) return true;
+  if (userDataServerLoadingFor === userId && userDataServerLoadPromiseFor === userId && userDataServerLoadPromise) {
+    return userDataServerLoadPromise;
+  }
 
   userDataServerLoadingFor = userId;
-  const localAssetSnapshot = getAssetSnapshot();
+  userDataServerLoadPromiseFor = userId;
+  userDataServerLoadError = "";
+  userDataServerLoadPromise = doLoadUserDataFromServer(userId);
+  return userDataServerLoadPromise;
+}
+
+async function doLoadUserDataFromServer(userId) {
+  const localAssetSnapshotAtStart = getAssetSnapshot();
 
   try {
-    const response = await fetch("/api/data", {
+    const response = await fetchWithTimeout("/api/data", {
       credentials: "include",
       headers: { Accept: "application/json" }
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok || !payload.ok) return;
-    if (getCurrentUserStorageId() !== userId) return;
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.error || `자산 데이터를 불러오지 못했습니다. (HTTP ${response.status})`);
+    }
+    if (getCurrentUserStorageId() !== userId) return false;
+    userDataServerLoadError = "";
 
     const remoteAssets = payload.data?.assets || {};
+    const remoteStockFavorites = Array.isArray(payload.data?.stockFavorites) ? payload.data.stockFavorites : [];
+    const remoteJournalRecords = Array.isArray(payload.data?.journalRecords) ? payload.data.journalRecords : [];
     const remoteHasAssets = hasAssetSnapshotData(remoteAssets);
+    const pendingAssetSave = userDataServerSavePendingFor === userId;
+    const pendingSource = userDataServerSavePendingSource;
+    const localAssetSnapshot = pendingAssetSave ? getAssetSnapshot() : localAssetSnapshotAtStart;
     const localHasAssets = hasAssetSnapshotData(localAssetSnapshot);
+    const pendingAllowsEmpty = shouldAllowEmptyAssetSave(pendingSource);
+    const pendingCanOverwriteRemote = isUserAssetSaveSource(pendingSource);
+    const shouldApplyStockFavorites = stockFavoritesServerSavePendingFor !== userId;
+    if (shouldApplyStockFavorites) {
+      applyUserStockFavorites(remoteStockFavorites);
+    }
+    if (userJournalServerSavePendingFor !== userId) {
+      applyUserJournalRecords(remoteJournalRecords);
+    }
 
-    if (userDataServerSavePendingFor === userId) {
+    if (pendingAssetSave) {
       userDataServerLoadedFor = userId;
-      userDataServerSavePendingFor = "";
-      await saveUserAssetStateToServer();
-    } else if (remoteHasAssets || !localHasAssets) {
+      clearPendingUserAssetSave();
+
+      if (pendingCanOverwriteRemote && (localHasAssets || pendingAllowsEmpty)) {
+        await saveUserAssetStateToServer({ allowEmpty: pendingAllowsEmpty, source: pendingSource });
+      } else {
+        applyUserAssetSnapshot(remoteAssets);
+        render();
+      }
+    } else if (!shouldPreferLocalAssetSnapshot(localAssetSnapshot, remoteAssets) && (remoteHasAssets || !localHasAssets)) {
       applyUserAssetSnapshot(remoteAssets);
-      saveAssetStateToStorage({ syncRemote: false });
       userDataServerLoadedFor = userId;
       render();
     } else {
       userDataServerLoadedFor = userId;
-      await saveUserAssetStateToServer();
+      await saveUserAssetStateToServer({ source: "migration" });
+    }
+
+    if (stockFavoritesServerSavePendingFor === userId) {
+      stockFavoritesServerSavePendingFor = "";
+      await saveStockFavoritesToServer();
+    }
+
+    if (userJournalServerSavePendingFor === userId) {
+      userJournalServerSavePendingFor = "";
+      await saveJournalRecordsToServer();
     }
 
     queueStoredAssetMarketPriceRefresh({ delay: 500, syncRemote: true });
+    if (shouldApplyStockFavorites && getRoute() === "stock") render();
+    return true;
   } catch (error) {
     console.warn("User data could not be loaded from the server.", error);
+    userDataServerLoadError = error?.message || "저장된 자산 데이터를 불러오지 못했습니다.";
     queueStoredAssetMarketPriceRefresh({ delay: 900, syncRemote: false });
+    return false;
   } finally {
     if (userDataServerLoadingFor === userId) userDataServerLoadingFor = "";
+    if (userDataServerLoadPromiseFor === userId) {
+      userDataServerLoadPromise = null;
+      userDataServerLoadPromiseFor = "";
+    }
+    if (getCurrentUserStorageId() === userId && isAuthRequiredRoute(getRoute())) {
+      window.setTimeout(() => {
+        if (getCurrentUserStorageId() === userId && userDataServerLoadingFor !== userId) render();
+      }, 0);
+    }
   }
 }
 
@@ -409,7 +679,14 @@ function loadMemoStateFromStorage() {
 function initializeUserDataState({ force = false } = {}) {
   const userId = getCurrentUserStorageId();
   if (!userId) return;
-  if (!force && userDataInitializedFor === userId) return;
+  if (!authState.authenticated) return;
+
+  if (!force && userDataInitializedFor === userId) {
+    if (userDataServerLoadedFor !== userId && userDataServerLoadingFor !== userId) {
+      loadUserDataFromServer(userId);
+    }
+    return;
+  }
 
   userDataInitializedFor = userId;
   clearRuntimeUserData();
@@ -468,7 +745,10 @@ function setAuthenticatedUser(user) {
     console.warn("로그인 사용자 정보를 브라우저 저장소에 저장하지 못했습니다.", error);
   }
 
-  initializeUserDataState({ force: true });
+  const userId = getCurrentUserStorageId();
+  initializeUserDataState({
+    force: userDataInitializedFor !== userId || (userDataServerLoadedFor !== userId && userDataServerLoadingFor !== userId)
+  });
 }
 
 function clearAuthenticatedUser() {
@@ -488,7 +768,10 @@ function clearAuthenticatedUser() {
   userDataInitializedFor = "";
   userDataServerLoadedFor = "";
   userDataServerLoadingFor = "";
-  userDataServerSavePendingFor = "";
+  userDataServerLoadPromise = null;
+  userDataServerLoadPromiseFor = "";
+  userDataServerLoadError = "";
+  clearPendingUserAssetSave();
   if (userDataServerSaveTimer) window.clearTimeout(userDataServerSaveTimer);
   userDataServerSaveTimer = 0;
   pendingAssetStorageCleanupKey = "";
@@ -536,6 +819,19 @@ function renderAuthGate(message = "로그인 상태를 확인하고 있습니다
         <span class="auth-gate-icon">${icon("shield")}</span>
         <strong>${message}</strong>
         <p>잠시만 기다려주세요.</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderUserDataLoadError() {
+  return `
+    <div class="auth-gate">
+      <div class="auth-gate-panel">
+        <span class="auth-gate-icon">${icon("warning")}</span>
+        <strong>저장된 자산 데이터를 불러오지 못했습니다.</strong>
+        <p>${escapeHtml(userDataServerLoadError || "잠시 후 다시 시도해 주세요.")}</p>
+        <button class="btn primary" type="button" data-user-data-retry>다시 불러오기</button>
       </div>
     </div>
   `;
@@ -768,16 +1064,31 @@ function clearPlainAssetStateFromStorage(storageKey = getUserScopedStorageKey(as
   }
 }
 
-function saveAssetStateToStorage({ syncRemote = true } = {}) {
-  clearPlainAssetStateFromStorage();
-  if (pendingAssetStorageCleanupKey) {
-    clearPlainAssetStateFromStorage(pendingAssetStorageCleanupKey);
-    pendingAssetStorageCleanupKey = "";
+function saveAssetStateToStorage({ syncRemote = true, source = "user", immediate = false } = {}) {
+  const snapshot = getAssetSnapshot();
+  const storageKey = getUserScopedStorageKey(assetStorageKey);
+
+  if (typeof localStorage !== "undefined" && storageKey) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(snapshot));
+      pendingAssetStorageCleanupKey = storageKey;
+    } catch (error) {
+      console.warn("Asset fallback cache could not be written.", error);
+    }
   }
 
   if (syncRemote) {
-    scheduleUserDataSave();
+    if (immediate) {
+      return saveUserAssetStateToServer({
+        allowEmpty: shouldAllowEmptyAssetSave(source),
+        source,
+        waitForLoad: true
+      });
+    }
+    scheduleUserDataSave({ source });
   }
+
+  return Promise.resolve(false);
 }
 
 function loadAssetStateFromStorage() {
@@ -903,6 +1214,22 @@ async function readApiJsonResponse(response) {
   }
 }
 
+async function fetchWithTimeout(input, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("요청 시간이 초과되었습니다. 네트워크 상태를 확인한 뒤 다시 시도해 주세요.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 function getApiErrorMessage(response, data, text, fallback) {
   if (data?.error) return data.error;
   const cleanText = String(text || "").trim();
@@ -925,11 +1252,853 @@ function formatStorageDate(value) {
 
 function summarizeDatabaseData(data = {}) {
   const assets = data.assets || {};
+  const stockFavorites = Array.isArray(data.stockFavorites) ? data.stockFavorites : [];
   return {
     updatedAt: data.updatedAt || assets.savedAt || "",
     assetCount: Array.isArray(assets.holdings) ? assets.holdings.length : 0,
-    cashBalance: Number(assets.cashBalance || 0)
+    cashBalance: Number(assets.cashBalance || 0),
+    stockFavoriteCount: stockFavorites.length
   };
+}
+
+function normalizeStockSymbolCode(symbol = "") {
+  return String(symbol || "").trim().replace(/\.(KS|KQ)$/i, "");
+}
+
+function getStockItemKey(item = {}) {
+  item = item || {};
+  const symbol = String(item.symbol || "").trim().toUpperCase();
+  if (symbol) return symbol;
+  const code = String(item.code || "").trim().toUpperCase();
+  const exchange = String(item.exchange || item.market || "").trim().toUpperCase();
+  if (code) return `${exchange || "MARKET"}:${code}`;
+  return normalizeStockKey(item.name || "");
+}
+
+function getStockItemDisplayName(item = {}) {
+  item = item || {};
+  return String(item.name || item.symbol || item.code || "선택 종목").trim();
+}
+
+function getStockInitials(item = {}) {
+  const source = getStockItemDisplayName(item).replace(/\s+/g, "");
+  return (source.slice(0, 2) || "TN").toUpperCase();
+}
+
+function getStockAvatarColor(item = {}) {
+  const marketLabel = getStockMarketLabel(item).toUpperCase();
+  const quoteType = String(item.quoteType || "").toUpperCase();
+  if (marketLabel === "KOSPI") return "#2474f2";
+  if (marketLabel === "KOSDAQ") return "#0ea5e9";
+  if (marketLabel === "KONEX") return "#38bdf8";
+  if (marketLabel === "암호화폐" || quoteType === "CRYPTOCURRENCY") return "#10b981";
+  if (marketLabel === "ETF" || quoteType === "ETF") return "#7c3aed";
+  if (marketLabel === "선물" || quoteType === "FUTURE") return "#f59e0b";
+
+  const key = getStockItemKey(item);
+  if (typeof getAssetPortfolioColor === "function") return getAssetPortfolioColor(32, key);
+
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  const colors = ["#2474f2", "#16a34a", "#7c3aed", "#0891b2", "#dc2626", "#ea580c"];
+  return colors[hash % colors.length];
+}
+
+function renderStockAvatar(item = {}, className = "stock-symbol-avatar") {
+  return `<span class="${className}" style="--stock-avatar-color:${getStockAvatarColor(item)}">${escapeChartText(getStockInitials(item))}</span>`;
+}
+
+function getStockMarketLabel(item = {}) {
+  const label = typeof getAssetMarketLabel === "function" ? getAssetMarketLabel(item) : "";
+  if (label) return label;
+
+  const quoteType = String(item.quoteType || "").toUpperCase();
+  if (quoteType === "CRYPTOCURRENCY") return "암호화폐";
+  if (quoteType === "ETF") return "ETF";
+
+  const market = String(item.market || item.exchange || "").trim();
+  if (/KOSDAQ/i.test(market)) return "KOSDAQ";
+  if (/KOSPI|KSC|KRX/i.test(market)) return "KOSPI";
+  return market || (String(item.code || "").match(/^\d{6}$/) ? "KOSPI" : "시장");
+}
+
+function normalizeStockAnalysisItem(item = {}) {
+  item = item || {};
+  const symbol = String(item.symbol || "").trim();
+  const code = String(item.code || normalizeStockSymbolCode(symbol)).trim();
+  const currency = normalizeAssetCurrency(item.currency || (Number(item.currentPriceKrw || 0) ? "KRW" : ""));
+  const exchangeRateToKrw = Math.max(0, Number(item.exchangeRateToKrw) || (currency === "KRW" ? 1 : 0));
+  const parsedPriceText = parseMarketNumber(item.priceText || item.price);
+  const marketPrice = Math.max(0, Number(item.currentPrice || item.marketPrice || item.price || 0));
+  const currentPriceKrw = Number(item.currentPriceKrw || 0) > 0
+    ? Math.round(Number(item.currentPriceKrw))
+    : currency === "KRW" && marketPrice > 0
+      ? Math.round(marketPrice)
+      : marketPrice && exchangeRateToKrw
+        ? Math.round(marketPrice * exchangeRateToKrw)
+        : parsedPriceText;
+  const rawChange = typeof item.change === "string" ? parseSignedMarketNumber(item.change) : Number(item.change || 0);
+  const rawRate = Number.isFinite(Number(item.changeRate))
+    ? Number(item.changeRate)
+    : Number(String(item.rate || "").replace(/[^0-9.-]/g, "")) || 0;
+
+  return {
+    name: getStockItemDisplayName(item),
+    code,
+    symbol: symbol || code,
+    type: String(item.type || "").trim(),
+    quoteType: String(item.quoteType || "").trim(),
+    market: String(item.market || "").trim(),
+    exchange: String(item.exchange || "").trim(),
+    industry: String(item.industry || "").trim(),
+    currency: currency || (currentPriceKrw ? "KRW" : ""),
+    currentPrice: marketPrice || currentPriceKrw,
+    currentPriceKrw,
+    exchangeRateToKrw,
+    change: rawChange,
+    changeRate: rawRate,
+    source: String(item.source || "").trim(),
+    savedAt: item.savedAt || ""
+  };
+}
+
+function stockMarketResultToItem(result = {}, current = {}) {
+  const patch = typeof getAssetMarketResultPatch === "function"
+    ? getAssetMarketResultPatch(result, current, { includeIdentity: true })
+    : {};
+  return normalizeStockAnalysisItem({
+    ...current,
+    ...result,
+    ...patch,
+    currentPrice: result.currentPrice || patch.marketPrice || patch.currentPrice || current.currentPrice,
+    currentPriceKrw: result.currentPriceKrw || patch.currentPrice || current.currentPriceKrw,
+    change: result.change,
+    changeRate: result.changeRate
+  });
+}
+
+function getStockAnalysisDefaultStock() {
+  const favorite = stockFavoriteItems[0];
+  if (favorite) return normalizeStockAnalysisItem(favorite);
+  return null;
+}
+
+function getStockAnalysisSelectedStock() {
+  if (stockAnalysisSelected) return normalizeStockAnalysisItem(stockAnalysisSelected);
+  return getStockAnalysisDefaultStock();
+}
+
+function getStockAnalysisPriceMeta(item = getStockAnalysisSelectedStock()) {
+  if (!item) return { value: 0, text: "-", currency: "" };
+  const stock = normalizeStockAnalysisItem(item);
+  if (stock.currentPriceKrw) {
+    return {
+      value: stock.currentPriceKrw,
+      text: `${formatMarketNumber(stock.currentPriceKrw)}원`,
+      currency: "KRW"
+    };
+  }
+
+  const price = Number(stock.currentPrice || 0);
+  const currency = stock.currency || "";
+  return {
+    value: price,
+    text: price ? `${price.toLocaleString(undefined, { maximumFractionDigits: 6 })}${currency ? ` ${currency}` : ""}` : "-",
+    currency
+  };
+}
+
+function getStockAnalysisChangeMeta(item = getStockAnalysisSelectedStock()) {
+  if (!item) return { change: 0, changeRate: 0, text: "+0 (+0.00%)", className: "text-red" };
+  const stock = normalizeStockAnalysisItem(item);
+  const changeRate = Number(stock.changeRate || 0);
+  const currency = stock.currency || "";
+  const changeKrw = stock.currentPriceKrw && currency !== "KRW" && stock.exchangeRateToKrw
+    ? Number(stock.change || 0) * stock.exchangeRateToKrw
+    : Number(stock.change || 0);
+  const changeText = stock.currentPriceKrw || currency === "KRW"
+    ? `${formatSignedMarketNumber(changeKrw)}원`
+    : `${changeKrw >= 0 ? "+" : "-"}${Math.abs(changeKrw).toLocaleString(undefined, { maximumFractionDigits: 4 })}${currency ? ` ${currency}` : ""}`;
+
+  return {
+    change: changeKrw,
+    changeRate,
+    text: `${changeText} (${formatSignedRate(changeRate)})`,
+    className: changeKrw >= 0 ? "text-red" : "text-blue"
+  };
+}
+
+function getStockChartPeriodConfig(period = stockChartPeriod) {
+  return stockChartPeriodOptions.find((item) => item.key === period) || stockChartPeriodOptions[0];
+}
+
+function renderStockChartControls() {
+  return stockChartPeriodOptions
+    .map((item) => `<button class="${item.key === stockChartPeriod ? "active" : ""}" type="button" data-stock-chart-period="${item.key}">${item.label}</button>`)
+    .join("");
+}
+
+function getStockChartSymbol(item = getStockAnalysisSelectedStock()) {
+  if (!item) return "";
+  const stock = normalizeStockAnalysisItem(item);
+  const symbol = String(stock.symbol || "").trim();
+  if (symbol && symbol !== stock.code) return symbol;
+
+  const code = String(stock.code || symbol || "").trim();
+  if (/^\d{6}$/.test(code)) {
+    const market = getStockMarketLabel(stock).toUpperCase();
+    return `${code}.${market === "KOSDAQ" ? "KQ" : "KS"}`;
+  }
+
+  return code || stock.name;
+}
+
+function getStockChartKey(item = getStockAnalysisSelectedStock(), period = stockChartPeriod) {
+  if (!item) return "";
+  const symbol = getStockChartSymbol(item);
+  return symbol ? `${symbol.toUpperCase()}:${period}` : "";
+}
+
+function renderStockAnalysisCandleChart(selected = getStockAnalysisSelectedStock()) {
+  const chartKey = getStockChartKey(selected);
+  const hasCurrentCandles = stockChartState.key === chartKey && Array.isArray(stockChartState.candles) && stockChartState.candles.length >= 2;
+
+  if (stockChartState.key === chartKey && stockChartState.loading) {
+    return `
+      <div class="stock-chart-status">
+        <span class="status-icon">${icon("chart")}</span>
+        <strong>차트 데이터를 불러오고 있습니다.</strong>
+      </div>
+      ${candleChart(selected, { candles: hasCurrentCandles ? stockChartState.candles : [] })}
+    `;
+  }
+
+  if (stockChartState.key === chartKey && stockChartState.error && !hasCurrentCandles) {
+    return `
+      <div class="stock-chart-status error">
+        <span class="status-icon red">${icon("warning")}</span>
+        <strong>${escapeHtml(stockChartState.error)}</strong>
+      </div>
+      ${candleChart(selected)}
+    `;
+  }
+
+  return candleChart(selected, { candles: hasCurrentCandles ? stockChartState.candles : [] });
+}
+
+async function loadStockChartForSelection(item = getStockAnalysisSelectedStock(), { force = false } = {}) {
+  if (!item) return false;
+  const stock = normalizeStockAnalysisItem(item);
+  const config = getStockChartPeriodConfig();
+  const symbol = getStockChartSymbol(stock);
+  const key = getStockChartKey(stock, config.key);
+  if (!symbol || !key) return false;
+  if (!force && stockChartState.key === key && (stockChartState.loading || stockChartState.candles.length)) return true;
+
+  const requestId = stockChartState.requestId + 1;
+  stockChartState = {
+    key,
+    loading: true,
+    error: "",
+    candles: stockChartState.key === key ? stockChartState.candles : [],
+    requestId
+  };
+  if (getRoute() === "stock") render();
+
+  try {
+    const chartUrl = `/api/markets?action=chart&symbol=${encodeURIComponent(symbol)}&range=${encodeURIComponent(config.range)}&interval=${encodeURIComponent(config.interval)}`;
+    const response = await fetch(chartUrl, {
+      credentials: "include",
+      headers: { Accept: "application/json" }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (stockChartState.requestId !== requestId) return false;
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.error || "차트 데이터를 불러오지 못했습니다.");
+    }
+
+    const candles = Array.isArray(payload.chart?.candles) ? payload.chart.candles : [];
+    stockChartState = {
+      key,
+      loading: false,
+      error: candles.length >= 2 ? "" : "표시할 차트 데이터가 충분하지 않습니다.",
+      candles,
+      requestId
+    };
+    if (getRoute() === "stock") render();
+    return true;
+  } catch (error) {
+    if (stockChartState.requestId !== requestId) return false;
+    stockChartState = {
+      key,
+      loading: false,
+      error: error?.message || "차트 데이터를 불러오지 못했습니다.",
+      candles: [],
+      requestId
+    };
+    if (getRoute() === "stock") render();
+    return false;
+  }
+}
+
+function ensureStockChartForSelection() {
+  const selected = getStockAnalysisSelectedStock();
+  if (!selected) return;
+  const key = getStockChartKey(selected);
+  if (!key) return;
+  if (stockChartState.key === key && (stockChartState.loading || stockChartState.candles.length || stockChartState.error)) return;
+  window.setTimeout(() => {
+    if (getRoute() === "stock") loadStockChartForSelection(selected).catch((error) => {
+      console.warn("Stock chart could not be loaded.", error);
+    });
+  }, 0);
+}
+
+function getStockNewsKey(item = getStockAnalysisSelectedStock()) {
+  if (!item) return "";
+  return getStockItemKey(item);
+}
+
+function formatStockNewsDate(value) {
+  const time = Date.parse(value || "");
+  if (!Number.isFinite(time)) return "";
+  const date = new Date(time);
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${month}/${day}`;
+}
+
+function renderStockNewsRows(selected = getStockAnalysisSelectedStock()) {
+  const key = getStockNewsKey(selected);
+  if (!selected || !key) return "";
+
+  if (stockNewsState.key === key && stockNewsState.loading) {
+    return `<div class="list-row news-row"><p class="news-title">뉴스를 불러오고 있습니다.</p><span class="tiny">-</span></div>`;
+  }
+
+  if (stockNewsState.key === key && stockNewsState.items.length) {
+    return stockNewsState.items.map((item) => {
+      const dateText = formatStockNewsDate(item.publishedAt) || item.publisher || "";
+      const content = `
+        <p class="news-title">${escapeChartText(item.title)}</p>
+        <span class="tiny">${escapeChartText(dateText)}</span>
+      `;
+      return item.link
+        ? `<a class="list-row news-row stock-news-link" href="${escapeChartText(item.link)}" target="_blank" rel="noopener noreferrer">${content}</a>`
+        : `<div class="list-row news-row">${content}</div>`;
+    }).join("");
+  }
+
+  if (stockNewsState.key === key && stockNewsState.error) {
+    return `<div class="list-row news-row"><p class="news-title">${escapeChartText(stockNewsState.error)}</p><span class="tiny">-</span></div>`;
+  }
+
+  if (stockNewsState.key === key && !stockNewsState.loading) {
+    return `<div class="list-row news-row"><p class="news-title">불러온 뉴스가 없습니다.</p><span class="tiny">-</span></div>`;
+  }
+
+  return `<div class="list-row news-row"><p class="news-title">${escapeChartText(selected.name)} 관련 뉴스를 준비하고 있습니다.</p><span class="tiny">-</span></div>`;
+}
+
+async function loadStockNewsForSelection(item = getStockAnalysisSelectedStock(), { force = false } = {}) {
+  if (!item) return false;
+  const selected = normalizeStockAnalysisItem(item);
+  const key = getStockNewsKey(selected);
+  if (!key) return false;
+  if (!force && stockNewsState.key === key && (stockNewsState.loading || stockNewsState.items.length)) return true;
+
+  const requestId = stockNewsState.requestId + 1;
+  stockNewsState = {
+    key,
+    loading: true,
+    error: "",
+    items: stockNewsState.key === key ? stockNewsState.items : [],
+    requestId
+  };
+  if (getRoute() === "stock") render();
+
+  try {
+    const marketHint = `${selected.market || ""} ${selected.exchange || ""} ${selected.symbol || ""}`;
+    const isKoreanMarket = /(KOSPI|KOSDAQ|KONEX|KRX|\.KS|\.KQ)/i.test(marketHint);
+    const query = isKoreanMarket
+      ? selected.name || selected.code || selected.symbol
+      : selected.symbol || selected.code || selected.name;
+    const response = await fetchWithTimeout(`/api/markets?action=news&q=${encodeURIComponent(query)}`, {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+      timeout: 9000
+    });
+    const { data, text } = await readApiJsonResponse(response);
+    if (stockNewsState.requestId !== requestId) return false;
+    if (!response.ok || !data.ok) {
+      throw new Error(getApiErrorMessage(response, data, text, "뉴스를 불러오지 못했습니다."));
+    }
+
+    stockNewsState = {
+      key,
+      loading: false,
+      error: "",
+      items: Array.isArray(data.news) ? data.news : [],
+      requestId
+    };
+    if (getRoute() === "stock") render();
+    return true;
+  } catch (error) {
+    if (stockNewsState.requestId !== requestId) return false;
+    stockNewsState = {
+      key,
+      loading: false,
+      error: error?.message || "뉴스를 불러오지 못했습니다.",
+      items: [],
+      requestId
+    };
+    if (getRoute() === "stock") render();
+    return false;
+  }
+}
+
+function ensureStockNewsForSelection() {
+  const selected = getStockAnalysisSelectedStock();
+  if (!selected) return;
+  const key = getStockNewsKey(selected);
+  if (!key) return;
+  if (stockNewsState.key === key && (stockNewsState.loading || stockNewsState.items.length || stockNewsState.error)) return;
+  window.setTimeout(() => {
+    if (getRoute() === "stock") loadStockNewsForSelection(selected).catch((error) => {
+      console.warn("Stock news could not be loaded.", error);
+    });
+  }, 0);
+}
+
+function getStockFavoritesSnapshot() {
+  return stockFavoriteItems.map((item) => {
+    const stock = normalizeStockAnalysisItem(item);
+    return {
+      name: stock.name,
+      code: stock.code,
+      symbol: stock.symbol,
+      type: stock.type,
+      quoteType: stock.quoteType,
+      market: stock.market,
+      exchange: stock.exchange,
+      industry: stock.industry,
+      currency: stock.currency,
+      currentPrice: stock.currentPrice,
+      currentPriceKrw: stock.currentPriceKrw,
+      exchangeRateToKrw: stock.exchangeRateToKrw,
+      change: stock.change,
+      changeRate: stock.changeRate,
+      source: stock.source,
+      savedAt: stock.savedAt || new Date().toISOString()
+    };
+  });
+}
+
+function applyUserStockFavorites(items = []) {
+  const seen = new Set();
+  stockFavoriteItems = (Array.isArray(items) ? items : [])
+    .map((item) => normalizeStockAnalysisItem(item))
+    .filter((item) => {
+      const key = getStockItemKey(item);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 100);
+}
+
+function isStockAnalysisFavorite(item = getStockAnalysisSelectedStock()) {
+  const key = getStockItemKey(item);
+  return Boolean(key && stockFavoriteItems.some((favorite) => getStockItemKey(favorite) === key));
+}
+
+function updateStockFavoriteItem(item = getStockAnalysisSelectedStock()) {
+  const stock = normalizeStockAnalysisItem(item);
+  const key = getStockItemKey(stock);
+  stockFavoriteItems = stockFavoriteItems.map((favorite) =>
+    getStockItemKey(favorite) === key ? { ...favorite, ...stock } : favorite
+  );
+}
+
+function scheduleStockFavoritesSave() {
+  if (!authState.authenticated) return;
+  const userId = getCurrentUserStorageId();
+  if (!userId) return;
+  if (userDataServerLoadedFor !== userId) {
+    stockFavoritesServerSavePendingFor = userId;
+    if (userDataServerLoadingFor !== userId) {
+      loadUserDataFromServer(userId);
+    }
+    return;
+  }
+
+  if (stockFavoritesServerSaveTimer) window.clearTimeout(stockFavoritesServerSaveTimer);
+  stockFavoritesServerSaveTimer = window.setTimeout(() => {
+    stockFavoritesServerSaveTimer = 0;
+    saveStockFavoritesToServer();
+  }, 600);
+}
+
+async function saveStockFavoritesToServer() {
+  if (!authState.authenticated) return;
+  const userId = getCurrentUserStorageId();
+  if (!userId) return;
+  if (userDataServerLoadedFor !== userId) {
+    stockFavoritesServerSavePendingFor = userId;
+    if (userDataServerLoadingFor !== userId) {
+      loadUserDataFromServer(userId);
+    }
+    return;
+  }
+
+  try {
+    const response = await fetchWithTimeout("/api/data", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        action: "save_stock_favorites",
+        stockFavorites: getStockFavoritesSnapshot()
+      })
+    });
+    const { data } = await readApiJsonResponse(response);
+    if (response.ok && data.ok) {
+      setDatabaseState({
+        checked: true,
+        connected: true,
+        data: summarizeDatabaseData(data.data || {}),
+        message: "관심 종목이 Cloudflare D1에 저장되었습니다.",
+        error: ""
+      });
+    }
+  } catch (error) {
+    console.warn("Stock favorites could not be saved to the server.", error);
+  }
+}
+
+function scheduleJournalRecordsSave() {
+  if (!authState.authenticated) return;
+  const userId = getCurrentUserStorageId();
+  if (!userId) return;
+  if (userDataServerLoadedFor !== userId) {
+    userJournalServerSavePendingFor = userId;
+    if (userDataServerLoadingFor !== userId) {
+      loadUserDataFromServer(userId);
+    }
+    return;
+  }
+
+  if (userJournalServerSaveTimer) window.clearTimeout(userJournalServerSaveTimer);
+  userJournalServerSaveTimer = window.setTimeout(() => {
+    userJournalServerSaveTimer = 0;
+    saveJournalRecordsToServer();
+  }, 500);
+}
+
+async function saveJournalRecordsToServer() {
+  if (!authState.authenticated) return false;
+  const userId = getCurrentUserStorageId();
+  if (!userId) return false;
+  if (userDataServerLoadedFor !== userId) {
+    userJournalServerSavePendingFor = userId;
+    if (userDataServerLoadingFor !== userId) {
+      loadUserDataFromServer(userId);
+    }
+    return false;
+  }
+
+  try {
+    const response = await fetchWithTimeout("/api/data", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        action: "save_journal_records",
+        journalRecords: getJournalRecordsSnapshot()
+      })
+    });
+    const { data } = await readApiJsonResponse(response);
+    if (response.ok && data.ok) {
+      setDatabaseState({
+        checked: true,
+        connected: true,
+        data: summarizeDatabaseData(data.data || {}),
+        message: "매매일지가 Cloudflare D1에 저장되었습니다.",
+        error: ""
+      });
+      return true;
+    }
+  } catch (error) {
+    console.warn("Journal records could not be saved to the server.", error);
+  }
+
+  return false;
+}
+
+function createJournalRecordFromForm(form) {
+  if (!form) return null;
+  const mode = form.dataset.tradeMode === "sell" ? "sell" : "buy";
+  const stock = typeof getJournalSelectedStock === "function" ? getJournalSelectedStock(form) : null;
+  const nameInput = form.querySelector("[data-journal-stock-name]");
+  const dateInput = form.querySelector("[data-date-picker]");
+  const quantityInput = form.querySelector("[data-journal-trade-quantity]");
+  const priceInput = form.querySelector(mode === "sell" ? "[data-journal-trade-sell-price]" : "[data-journal-trade-buy-price]");
+  const memoInput = form.querySelector("textarea");
+  const price = parseKRWInput(priceInput ? priceInput.value : "");
+  const quantity = parseKRWInput(quantityInput ? quantityInput.value : "");
+  const now = new Date().toISOString();
+  const record = normalizeJournalRecord({
+    id: `journal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    date: dateInput ? dateInput.value : "",
+    type: mode,
+    name: stock?.name || (nameInput ? nameInput.value : ""),
+    code: stock?.code || "",
+    symbol: stock?.symbol || stock?.code || "",
+    quantity,
+    price,
+    buyPrice: mode === "buy" ? price : 0,
+    sellPrice: mode === "sell" ? price : 0,
+    memo: memoInput ? memoInput.value : "",
+    createdAt: now,
+    updatedAt: now
+  });
+
+  return record.name && record.quantity > 0 && record.price > 0 ? record : null;
+}
+
+async function saveJournalEntryFromForm(form) {
+  if (!form) return false;
+  const record = createJournalRecordFromForm(form);
+  if (!record) return false;
+  userJournalRecords = [record, ...userJournalRecords.filter((item) => item.id !== record.id)].slice(0, 500);
+  await saveJournalRecordsToServer();
+  return true;
+}
+
+function toggleStockAnalysisFavorite() {
+  const selected = getStockAnalysisSelectedStock();
+  if (!selected) return;
+  const stock = normalizeStockAnalysisItem(selected);
+  const key = getStockItemKey(stock);
+  if (!key) return;
+
+  if (isStockAnalysisFavorite(stock)) {
+    stockFavoriteItems = stockFavoriteItems.filter((favorite) => getStockItemKey(favorite) !== key);
+  } else {
+    stockFavoriteItems = [{ ...stock, savedAt: new Date().toISOString() }, ...stockFavoriteItems]
+      .filter((item, index, list) => list.findIndex((other) => getStockItemKey(other) === getStockItemKey(item)) === index)
+      .slice(0, 100);
+  }
+
+  stockFavoritesOpen = false;
+  scheduleStockFavoritesSave();
+  render();
+}
+
+function setStockAnalysisSelection(item = {}, { refresh = true } = {}) {
+  if (!item) return;
+  stockAnalysisSelected = normalizeStockAnalysisItem(item);
+  stockSearchState = {
+    query: "",
+    loading: false,
+    results: [],
+    error: "",
+    requestId: stockSearchState.requestId + 1
+  };
+  stockFavoritesOpen = false;
+  render();
+
+  if (refresh) {
+    refreshStockAnalysisSelection(stockAnalysisSelected).catch((error) => {
+      console.warn("Selected stock could not be refreshed.", error);
+    });
+  }
+  loadStockChartForSelection(stockAnalysisSelected, { force: true }).catch((error) => {
+    console.warn("Selected stock chart could not be refreshed.", error);
+  });
+  loadStockNewsForSelection(stockAnalysisSelected, { force: true }).catch((error) => {
+    console.warn("Selected stock news could not be refreshed.", error);
+  });
+}
+
+async function refreshStockAnalysisSelection(item = getStockAnalysisSelectedStock()) {
+  if (!item) return;
+  const target = normalizeStockAnalysisItem(item);
+  const targetKey = getStockItemKey(target);
+  if (!targetKey) return;
+
+  const result = await fetchAssetMarketMeta(target).catch(() => null);
+  if (!result) return;
+
+  const refreshed = stockMarketResultToItem(result, target);
+  if (getStockItemKey(getStockAnalysisSelectedStock()) === targetKey) {
+    stockAnalysisSelected = refreshed;
+  }
+  if (isStockAnalysisFavorite(refreshed)) {
+    updateStockFavoriteItem(refreshed);
+    scheduleStockFavoritesSave();
+  }
+  if (getRoute() === "stock") render();
+  loadStockChartForSelection(refreshed).catch((error) => {
+    console.warn("Refreshed stock chart could not be loaded.", error);
+  });
+  loadStockNewsForSelection(refreshed, { force: true }).catch((error) => {
+    console.warn("Refreshed stock news could not be loaded.", error);
+  });
+}
+
+function refreshCurrentStockAnalysisPrices() {
+  const selected = getStockAnalysisSelectedStock();
+  if (!selected) return;
+  refreshStockAnalysisSelection(selected).catch((error) => {
+    console.warn("Stock analysis price could not be refreshed.", error);
+  });
+}
+
+function resetStockSearchState() {
+  if (stockSearchTimer) window.clearTimeout(stockSearchTimer);
+  stockSearchTimer = 0;
+  stockSearchState = {
+    query: "",
+    loading: false,
+    results: [],
+    error: "",
+    requestId: stockSearchState.requestId + 1
+  };
+}
+
+function formatStockSearchPrice(result = {}) {
+  const normalized = normalizeStockAnalysisItem(result);
+  return getStockAnalysisPriceMeta(normalized).text;
+}
+
+function renderStockSearchPanel() {
+  const query = String(stockSearchState.query || "").trim();
+  if (stockSearchState.loading) {
+    return `<div class="asset-market-search-state">종목을 검색하고 있습니다.</div>`;
+  }
+
+  if (stockSearchState.error) {
+    return `<div class="asset-market-search-state error">${escapeChartText(stockSearchState.error)}</div>`;
+  }
+
+  if (!query || query.length < 2) return "";
+
+  if (!stockSearchState.results.length) {
+    return `<div class="asset-market-search-state">검색 결과가 없습니다. 종목명이나 코드를 입력해보세요.</div>`;
+  }
+
+  return `
+    <div class="asset-market-search-results stock-search-results" role="listbox" aria-label="종목 검색 결과">
+      ${stockSearchState.results.map((result, index) => {
+        const stock = normalizeStockAnalysisItem(result);
+        const marketText = [stock.symbol, getStockMarketLabel(stock), stock.exchange || stock.source]
+          .filter(Boolean)
+          .join(" · ");
+        return `
+          <button class="asset-market-search-result stock-search-result" type="button" role="option" data-stock-search-result="${index}">
+            ${renderStockAvatar(stock, "stock-search-avatar")}
+            <span>
+              <strong>${escapeChartText(stock.name)}</strong>
+              <em>${escapeChartText(marketText || stock.code)}</em>
+            </span>
+            <b>${escapeChartText(formatStockSearchPrice(stock))}</b>
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function updateStockSearchPanel() {
+  const panel = document.querySelector("[data-stock-search-panel]");
+  if (!panel) return;
+  panel.innerHTML = renderStockSearchPanel();
+}
+
+async function runStockSearch(query, requestId) {
+  try {
+    const response = await fetch(`/api/markets?action=search&q=${encodeURIComponent(query)}`, {
+      credentials: "include",
+      headers: { Accept: "application/json" }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (stockSearchState.requestId !== requestId) return;
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.error || "종목 검색에 실패했습니다.");
+    }
+
+    stockSearchState.loading = false;
+    stockSearchState.results = Array.isArray(payload.results) ? payload.results : [];
+    stockSearchState.error = "";
+    updateStockSearchPanel();
+  } catch (error) {
+    if (stockSearchState.requestId !== requestId) return;
+    stockSearchState.loading = false;
+    stockSearchState.results = [];
+    stockSearchState.error = error?.message || "종목 검색에 실패했습니다.";
+    updateStockSearchPanel();
+  }
+}
+
+function scheduleStockSearch(query) {
+  const nextQuery = String(query || "").trim();
+  if (stockSearchTimer) window.clearTimeout(stockSearchTimer);
+
+  const requestId = stockSearchState.requestId + 1;
+  stockSearchState = {
+    query: nextQuery,
+    loading: nextQuery.length >= 2,
+    results: [],
+    error: "",
+    requestId
+  };
+  stockFavoritesOpen = false;
+  updateStockSearchPanel();
+
+  if (nextQuery.length < 2) return;
+
+  stockSearchTimer = window.setTimeout(() => {
+    stockSearchTimer = 0;
+    runStockSearch(nextQuery, requestId);
+  }, 260);
+}
+
+function applyStockSearchResult(resultIndex) {
+  const result = stockSearchState.results[Number(resultIndex)];
+  if (!result) return;
+  setStockAnalysisSelection(stockMarketResultToItem(result, getStockAnalysisSelectedStock() || {}), { refresh: false });
+}
+
+function renderStockFavoritesDropdown() {
+  if (!stockFavoritesOpen) return "";
+
+  if (!stockFavoriteItems.length) return "";
+
+  return `
+    <div class="stock-favorites-dropdown" role="listbox" aria-label="관심 종목 목록">
+      ${stockFavoriteItems.map((item, index) => {
+        const stock = normalizeStockAnalysisItem(item);
+        const change = getStockAnalysisChangeMeta(stock);
+        return `
+          <button class="stock-favorite-option" type="button" role="option" data-stock-favorite-select="${index}">
+            ${renderStockAvatar(stock, "stock-search-avatar")}
+            <span>
+              <strong>${escapeChartText(stock.name)}</strong>
+              <em>${escapeChartText([stock.code, getStockMarketLabel(stock)].filter(Boolean).join(" · "))}</em>
+            </span>
+            <b class="${change.className}">${escapeChartText(getStockAnalysisPriceMeta(stock).text)}</b>
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
 }
 
 async function fetchDatabaseStatus({ rerender = false } = {}) {
@@ -937,7 +2106,7 @@ async function fetchDatabaseStatus({ rerender = false } = {}) {
   setDatabaseState({ loading: true, error: "" });
 
   try {
-    const response = await fetch("/api/data", {
+    const response = await fetchWithTimeout("/api/data", {
       credentials: "include",
       headers: { Accept: "application/json" }
     });
@@ -990,14 +2159,18 @@ async function saveDatabaseAssets({ manual = false } = {}) {
 
   try {
     if (userId && userDataServerLoadedFor !== userId) {
-      userDataServerSavePendingFor = userId;
       await loadUserDataFromServer(userId);
       if (userDataServerLoadedFor !== userId) {
         throw new Error("Cloudflare D1 데이터를 먼저 불러오지 못했습니다. 잠시 후 다시 저장해 주세요.");
       }
     }
 
-    const response = await fetch("/api/data", {
+    const snapshot = getAssetSnapshot();
+    if (!hasAssetSnapshotData(snapshot)) {
+      throw new Error("현재 화면에 저장할 자산 데이터가 없습니다. 원격 데이터를 먼저 불러온 뒤 다시 시도하세요.");
+    }
+
+    const response = await fetchWithTimeout("/api/data", {
       method: "POST",
       credentials: "include",
       headers: {
@@ -1006,7 +2179,8 @@ async function saveDatabaseAssets({ manual = false } = {}) {
       },
       body: JSON.stringify({
         action: "save_assets",
-        assets: getAssetSnapshot()
+        assets: snapshot,
+        allowEmptyAssets: false
       })
     });
     const { data, text } = await readApiJsonResponse(response);
@@ -1230,7 +2404,7 @@ async function importAssetSettingsFile(file) {
     const rawRows = await readAssetSettingsFile(file);
     const rows = normalizeImportedAssetRows(rawRows);
     if (!replaceAssetHoldings(rows)) throw new Error(assetSettingsError || "자산 데이터를 적용하지 못했습니다.");
-    saveAssetStateToStorage();
+    await saveAssetStateToStorage({ source: "user_import", immediate: true });
     assetSettingsDrafts = rows.map((row) => createAssetSettingsDraft(row));
     assetSettingsError = "";
     assetSettingsMessage = `${file.name}에서 ${rows.length}개 자산을 불러왔습니다.`;
@@ -2039,7 +3213,7 @@ async function refreshStoredAssetMarketPrices({ syncRemote = true } = {}) {
     if (!changed) return;
     if (!replaceAssetHoldings(refreshedRows)) return;
 
-    saveAssetStateToStorage({ syncRemote });
+    saveAssetStateToStorage({ syncRemote, source: "system" });
     if (!activeModal) {
       render();
     } else if (activeModal !== "assetSettings") {
@@ -2170,10 +3344,8 @@ function normalizeAssetSettingsRow(item) {
   const quantity = Math.max(0, Number(item.quantity) || 0);
   const valuationPrice = getAssetSettingsValuationPrice(item, mode);
   const amount = Math.round(quantity * valuationPrice);
-  const averagePrice = mode === "quantity"
-    ? quantity ? Math.round(amount / quantity) : 0
-    : Math.max(0, Number(item.averagePrice) || 0);
-  const currentPrice = mode === "quantity" ? valuationPrice : averagePrice;
+  const averagePrice = Math.max(0, Number(item.averagePrice) || 0) || valuationPrice;
+  const currentPrice = valuationPrice || averagePrice;
 
   return {
     name: String(item.name || "").trim(),
@@ -2230,21 +3402,33 @@ function scheduleAssetSettingsMotionClear() {
   }, shouldReduceMotion() ? 0 : clearDelay);
 }
 
-function applyAssetSettingsEdit() {
+async function persistAssetSettingsChange(source = "user") {
+  try {
+    await saveAssetStateToStorage({ source, immediate: true });
+    assetSettingsError = "";
+    return true;
+  } catch (error) {
+    assetSettingsError = error?.message || "자산 데이터를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    assetSettingsMessage = "";
+    return false;
+  }
+}
+
+async function applyAssetSettingsEdit() {
   const rows = assetSettingsDrafts
     .filter((item) => !isEmptyAssetSettingsDraft(item))
     .map((item) => normalizeAssetSettingsRow(item));
 
   if (!rows.length) {
     clearAssetHoldingsRuntime();
-    saveAssetStateToStorage();
+    if (!(await persistAssetSettingsChange("user_clear"))) return false;
     cancelAssetSettingsEdit();
     return true;
   }
 
   if (!replaceAssetHoldings(rows)) return false;
 
-  saveAssetStateToStorage();
+  if (!(await persistAssetSettingsChange("user"))) return false;
   cancelAssetSettingsEdit();
   return true;
 }
@@ -2264,7 +3448,7 @@ function cancelAssetSettingsDelete() {
   activeModal = "assetSettings";
 }
 
-function confirmAssetSettingsDelete() {
+async function confirmAssetSettingsDelete() {
   const target = getAssetSettingsDeleteTarget();
   if (!target) {
     assetSettingsDeleteTargetId = "";
@@ -2272,6 +3456,7 @@ function confirmAssetSettingsDelete() {
     return false;
   }
 
+  const previousSnapshot = getAssetSnapshot();
   const rows = assetSettingsDrafts
     .filter((item) => item.id !== target.id && !isEmptyAssetSettingsDraft(item))
     .map((item) => normalizeAssetSettingsRow(item));
@@ -2286,7 +3471,13 @@ function confirmAssetSettingsDelete() {
     clearAssetHoldingsRuntime();
   }
 
-  saveAssetStateToStorage();
+  if (!(await persistAssetSettingsChange(rows.length ? "user" : "user_clear"))) {
+    applyUserAssetSnapshot(previousSnapshot);
+    activeModal = "assetSettings";
+    assetSettingsDeleteTargetId = "";
+    return false;
+  }
+
   const deletedName = String(target.name || target.code || "자산").trim();
   beginAssetSettingsEdit();
   assetSettingsMessage = `${deletedName}을 삭제했습니다.`;
@@ -2562,6 +3753,14 @@ function renderAssetSettingsCardView(item, index) {
           <div class="asset-settings-tile-input">
             <input type="text" value="${item.quantity ? formatMarketNumber(item.quantity) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="quantity" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
             <em>주</em>
+          </div>
+        </label>
+        <label class="asset-settings-tile">
+          <span class="asset-settings-tile-icon" aria-hidden="true">${icon("performance")}</span>
+          <span>평균단가</span>
+          <div class="asset-settings-tile-input">
+            <input type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
+            <em>원</em>
           </div>
         </label>
         <label class="asset-settings-tile">
@@ -2923,6 +4122,7 @@ function renderAssetCashModal() {
             <label for="assetCashAmount">${actionLabel}액</label>
             <div class="journal-input-shell">
               <input id="assetCashAmount" type="text" value="${assetCashDraftAmount}" ${isWithdraw ? `data-max="${assetCashBalance}"` : ""} inputmode="numeric" autocomplete="off" placeholder="${actionLabel}액을 입력하세요" data-number-input data-asset-cash-amount>
+              ${isWithdraw ? `<button class="field-chip-button" type="button" data-asset-cash-max>전액</button>` : ""}
               <span>원</span>
             </div>
             <p class="asset-cash-help">${isWithdraw ? `출금 가능 금액은 ${formatKRW(assetCashBalance)}입니다.` : "입금액은 현금 자산에 더해집니다."}</p>
@@ -3023,6 +4223,7 @@ function renderJournalDateRangeModal() {
 }
 
 function cancelActiveModalDraft(modalName = activeModal) {
+  if (modalName === "journalWrite" && typeof clearJournalWriteInitialDate === "function") clearJournalWriteInitialDate();
   if (modalName === "journalDateRange") cancelJournalDateRangeEdit();
   if (modalName === "journalStockFilter") cancelJournalStockFilterEdit();
   if (modalName === "journalTradeTypeFilter") cancelJournalTradeTypeFilterEdit();
@@ -3041,7 +4242,7 @@ function renderModal() {
   const modalRoot = document.querySelector("#modalRoot");
   if (!modalRoot) return;
 
-  if (!["journalWrite", "assetCash", "assetCashConfirm", "assetTrendTargets", "assetSettings", "assetSettingsDeleteConfirm", "journalDateRange", "journalStockFilter", "journalTradeTypeFilter"].includes(activeModal)) {
+  if (!["journalWrite", "calendarDayDetail", "assetCash", "assetCashConfirm", "assetTrendTargets", "assetSettings", "assetSettingsDeleteConfirm", "journalDateRange", "journalStockFilter", "journalTradeTypeFilter"].includes(activeModal)) {
     modalRoot.innerHTML = "";
     if (document.body) document.body.classList.remove("modal-open");
     return;
@@ -3060,6 +4261,11 @@ function renderModal() {
 
   if (activeModal === "journalTradeTypeFilter") {
     modalRoot.innerHTML = renderJournalTradeTypeFilterModal();
+    return;
+  }
+
+  if (activeModal === "calendarDayDetail" && typeof renderCalendarDayDetailModal === "function") {
+    modalRoot.innerHTML = renderCalendarDayDetailModal();
     return;
   }
 
@@ -3120,11 +4326,11 @@ function renderMobileSheetLegacy() {
   if (document.body) document.body.classList.add("modal-open");
   const quickItems = [
     ["dashboard", "home", "대시보드"],
-    ["journal", "journal", "매매일지"],
+    ["calendar", "calendar", "캘린더"],
     ["stock", "chart", "종목 분석"],
     ["assets", "wallet", "자산 현황"],
     ["memo", "memo", "메모"],
-    ["calendar", "calendar", "캘린더"],
+    ["journal", "journal", "매매일지"],
     ["performance", "performance", "리포트"],
     ["settings", "settings", "설정"]
   ];
@@ -3175,11 +4381,11 @@ function renderMobileSheet() {
 
   const quickItems = [
     ["dashboard", "dashboard_home", "대시보드"],
-    ["journal", "trading_journal", "매매일지"],
+    ["calendar", "calendar", "캘린더"],
     ["stock", "stock_analysis", "종목 분석"],
     ["assets", "asset_status", "자산 현황"],
     ["memo", "memo", "메모"],
-    ["calendar", "calendar", "캘린더"],
+    ["journal", "trading_journal", "매매일지"],
     ["performance", "report_chart", "리포트"],
     ["settings", "settings", "설정"]
   ];
@@ -3247,6 +4453,51 @@ function render() {
     return;
   }
 
+  const currentUserId = getCurrentUserStorageId();
+  if (
+    isAuthRequiredRoute(route) &&
+    authState.authenticated &&
+    currentUserId &&
+    userDataInitializedFor === currentUserId &&
+    userDataServerLoadingFor === currentUserId &&
+    userDataServerLoadedFor !== currentUserId
+  ) {
+    document.body.dataset.route = route;
+    document.querySelector("#pageTitle").textContent = meta.title;
+    document.querySelector("#pageDescription").textContent = meta.description;
+    document.querySelector("#pageEyebrow").textContent = route === "journalWrite" ? "New Record" : "Trading Journal";
+    renderNav(route);
+    renderSidebarUser();
+    renderPageActions(route);
+    document.querySelector("#app").innerHTML = renderAuthGate("저장된 자산 데이터를 불러오고 있습니다.");
+    renderModal();
+    renderMobileSheet();
+    hydrateIcons(document);
+    return;
+  }
+
+  if (
+    isAuthRequiredRoute(route) &&
+    authState.authenticated &&
+    currentUserId &&
+    userDataInitializedFor === currentUserId &&
+    userDataServerLoadedFor !== currentUserId &&
+    userDataServerLoadError
+  ) {
+    document.body.dataset.route = route;
+    document.querySelector("#pageTitle").textContent = meta.title;
+    document.querySelector("#pageDescription").textContent = meta.description;
+    document.querySelector("#pageEyebrow").textContent = route === "journalWrite" ? "New Record" : "Trading Journal";
+    renderNav(route);
+    renderSidebarUser();
+    renderPageActions(route);
+    document.querySelector("#app").innerHTML = renderUserDataLoadError();
+    renderModal();
+    renderMobileSheet();
+    hydrateIcons(document);
+    return;
+  }
+
   document.body.dataset.route = route;
   document.querySelector("#pageTitle").textContent = meta.title;
   document.querySelector("#pageDescription").textContent = meta.description;
@@ -3272,6 +4523,17 @@ function render() {
   if (route === "settings") {
     hydrateDatabaseSettingsPage();
   }
+  if (route === "stock") {
+    ensureStockChartForSelection();
+    ensureStockNewsForSelection();
+    const refreshKey = getStockItemKey(getStockAnalysisSelectedStock());
+    if (refreshKey && stockAnalysisAutoRefreshKey !== refreshKey) {
+      stockAnalysisAutoRefreshKey = refreshKey;
+      window.setTimeout(() => {
+        if (getRoute() === "stock") refreshCurrentStockAnalysisPrices();
+      }, 0);
+    }
+  }
   animateNumericValues(document.querySelector("#app"));
   scheduleFitValueText();
 }
@@ -3281,6 +4543,12 @@ function handleJournalWriteExtraClick(event) {
   const pickerCancel = event.target.closest("[data-journal-write-stock-cancel]");
   if (pickerBackdrop || pickerCancel) {
     closeJournalWriteStockPicker(event.target.closest("[data-journal-entry-form]"));
+    return true;
+  }
+
+  const journalStockSearchResult = event.target.closest("[data-journal-stock-search-result]");
+  if (journalStockSearchResult) {
+    applyJournalStockSearchResult(journalStockSearchResult);
     return true;
   }
 
@@ -3311,7 +4579,7 @@ function handleJournalWriteExtraClick(event) {
   return false;
 }
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const logoutButton = event.target.closest("[data-auth-logout]");
   if (logoutButton) {
     logoutUser();
@@ -3349,9 +4617,96 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const userDataRetryButton = event.target.closest("[data-user-data-retry]");
+  if (userDataRetryButton) {
+    const userId = getCurrentUserStorageId();
+    if (userId) {
+      userDataServerLoadError = "";
+      userDataServerLoadedFor = "";
+      loadUserDataFromServer(userId);
+      render();
+    }
+    return;
+  }
+
+  const calendarNavButton = event.target.closest("[data-calendar-nav]");
+  if (calendarNavButton && getRoute() === "calendar" && typeof shiftCalendarMonth === "function") {
+    shiftCalendarMonth(Number(calendarNavButton.dataset.calendarNav || 0));
+    render();
+    return;
+  }
+
+  const calendarTodayButton = event.target.closest("[data-calendar-today]");
+  if (calendarTodayButton && getRoute() === "calendar" && typeof resetCalendarMonth === "function") {
+    resetCalendarMonth();
+    render();
+    return;
+  }
+
+  const calendarDayButton = event.target.closest("[data-calendar-day]");
+  if (calendarDayButton && getRoute() === "calendar") {
+    const selectedDate = calendarDayButton.dataset.calendarDay || "";
+    if (typeof setCalendarDayDetailDate === "function") {
+      if (!setCalendarDayDetailDate(selectedDate)) return;
+    } else if (typeof setCalendarSelectedDateValue === "function" && !setCalendarSelectedDateValue(selectedDate)) {
+      return;
+    }
+    activeModal = "calendarDayDetail";
+    render();
+    return;
+  }
+
+  const stockSearchResult = event.target.closest("[data-stock-search-result]");
+  if (stockSearchResult && getRoute() === "stock") {
+    applyStockSearchResult(stockSearchResult.dataset.stockSearchResult);
+    return;
+  }
+
+  const stockFavoriteToggle = event.target.closest("[data-stock-favorite-toggle]");
+  if (stockFavoriteToggle && getRoute() === "stock") {
+    toggleStockAnalysisFavorite();
+    return;
+  }
+
+  const stockChartPeriodButton = event.target.closest("[data-stock-chart-period]");
+  if (stockChartPeriodButton && getRoute() === "stock") {
+    const nextPeriod = stockChartPeriodButton.dataset.stockChartPeriod;
+    if (stockChartPeriodOptions.some((item) => item.key === nextPeriod)) {
+      stockChartPeriod = nextPeriod;
+      loadStockChartForSelection(getStockAnalysisSelectedStock(), { force: true }).catch((error) => {
+        console.warn("Stock chart period could not be loaded.", error);
+      });
+    }
+    return;
+  }
+
+  const stockFavoritesToggle = event.target.closest("[data-stock-favorites-toggle]");
+  if (stockFavoritesToggle && getRoute() === "stock") {
+    stockFavoritesOpen = !stockFavoritesOpen;
+    stockSearchState = {
+      query: "",
+      loading: false,
+      results: [],
+      error: "",
+      requestId: stockSearchState.requestId + 1
+    };
+    render();
+    return;
+  }
+
+  const stockFavoriteSelect = event.target.closest("[data-stock-favorite-select]");
+  if (stockFavoriteSelect && getRoute() === "stock") {
+    const favorite = stockFavoriteItems[Number(stockFavoriteSelect.dataset.stockFavoriteSelect)];
+    if (favorite) setStockAnalysisSelection(favorite, { refresh: true });
+    return;
+  }
+
   const modalButton = event.target.closest("[data-modal]");
   if (modalButton) {
     activeModal = modalButton.dataset.modal;
+    if (activeModal === "journalWrite" && typeof clearJournalWriteInitialDate === "function") {
+      clearJournalWriteInitialDate();
+    }
     if (activeModal === "assetCash") {
       assetCashMode = "deposit";
       assetCashError = "";
@@ -3389,6 +4744,16 @@ document.addEventListener("click", (event) => {
     }
 
     if (handleJournalWriteExtraClick(event)) return;
+
+    const calendarWriteJournal = event.target.closest("[data-calendar-write-journal]");
+    if (calendarWriteJournal && activeModal === "calendarDayDetail") {
+      const selectedDate = calendarWriteJournal.dataset.calendarWriteJournal || "";
+      if (typeof setJournalWriteInitialDate === "function") setJournalWriteInitialDate(selectedDate);
+      activeModal = "journalWrite";
+      renderModal();
+      hydrateIcons(document);
+      return;
+    }
 
     const modalClose = event.target.closest("[data-modal-close]");
     if (modalClose && modalPanel) {
@@ -3459,6 +4824,20 @@ document.addEventListener("click", (event) => {
       return;
     }
 
+    const assetCashMaxButton = event.target.closest("[data-asset-cash-max]");
+    if (assetCashMaxButton && activeModal === "assetCash") {
+      assetCashDraftAmount = formatMarketNumber(assetCashBalance);
+      assetCashError = "";
+      assetCashMessage = "";
+      renderModal();
+      const amountInput = document.querySelector("[data-asset-cash-amount]");
+      if (amountInput) {
+        amountInput.focus();
+        amountInput.setSelectionRange(amountInput.value.length, amountInput.value.length);
+      }
+      return;
+    }
+
     const assetCashSubmit = event.target.closest("[data-asset-cash-submit]");
     if (assetCashSubmit && activeModal === "assetCash") {
       const amountInput = document.querySelector("[data-asset-cash-amount]");
@@ -3515,7 +4894,9 @@ document.addEventListener("click", (event) => {
       }
 
       assetCashBalance = assetCashPendingMode === "withdraw" ? assetCashBalance - assetCashPendingAmount : assetCashBalance + assetCashPendingAmount;
-      saveAssetStateToStorage();
+      saveAssetStateToStorage({ source: "user", immediate: true }).catch((error) => {
+        console.warn("Cash balance could not be saved immediately.", error);
+      });
       assetCashError = "";
       assetCashMessage = "";
       assetCashDraftAmount = "";
@@ -3536,11 +4917,15 @@ document.addEventListener("click", (event) => {
 
     const assetSettingsDeleteConfirm = event.target.closest("[data-asset-settings-delete-confirm]");
     if (assetSettingsDeleteConfirm && activeModal === "assetSettingsDeleteConfirm") {
-      if (confirmAssetSettingsDelete()) {
+      if (assetSettingsSaving) return;
+      assetSettingsSaving = true;
+      if (await confirmAssetSettingsDelete()) {
+        assetSettingsSaving = false;
         render();
         return;
       }
 
+      assetSettingsSaving = false;
       renderModal();
       hydrateIcons(document);
       return;
@@ -3693,11 +5078,21 @@ document.addEventListener("click", (event) => {
 
     const assetSettingsApply = event.target.closest("[data-asset-settings-apply]");
     if (assetSettingsApply && activeModal === "assetSettings") {
-      if (!applyAssetSettingsEdit()) {
+      if (assetSettingsSaving) return;
+      assetSettingsSaving = true;
+      assetSettingsError = "";
+      assetSettingsMessage = "자산 데이터를 저장하고 있습니다.";
+      renderModal();
+      hydrateIcons(document);
+
+      if (!(await applyAssetSettingsEdit())) {
+        assetSettingsSaving = false;
         renderModal();
         hydrateIcons(document);
         return;
       }
+
+      assetSettingsSaving = false;
       activeModal = null;
       render();
       return;
@@ -3728,8 +5123,10 @@ document.addEventListener("click", (event) => {
     if (journalEntrySave) {
       const form = journalEntrySave.closest("[data-journal-entry-form]");
       if (form && !updateJournalTradeEstimate(form)) return;
+      if (form && !(await saveJournalEntryFromForm(form))) return;
       activeModal = null;
-      renderModal();
+      if (typeof clearJournalWriteInitialDate === "function") clearJournalWriteInitialDate();
+      render();
       return;
     }
 
@@ -3781,8 +5178,9 @@ document.addEventListener("click", (event) => {
   if (pageJournalEntrySave) {
     const form = pageJournalEntrySave.closest("[data-journal-entry-form]");
     if (form && !updateJournalTradeEstimate(form)) return;
+    if (form && !(await saveJournalEntryFromForm(form))) return;
     if (getRoute() === "journalWrite") {
-      window.location.hash = "#journal";
+      window.location.hash = "#calendar";
     }
     return;
   }
@@ -3897,6 +5295,19 @@ document.addEventListener("input", (event) => {
     formatNumberInput(numberInput);
   }
 
+  const stockSearchInput = event.target.closest("[data-stock-search-input]");
+  if (stockSearchInput && getRoute() === "stock") {
+    scheduleStockSearch(stockSearchInput.value);
+    return;
+  }
+
+  const calendarMonthInput = event.target.closest("[data-calendar-month-input]");
+  if (calendarMonthInput && getRoute() === "calendar" && typeof setCalendarMonthValue === "function") {
+    setCalendarMonthValue(calendarMonthInput.value);
+    render();
+    return;
+  }
+
   const assetTargetAmount = event.target.closest("[data-asset-target-amount]");
   if (assetTargetAmount && activeModal === "assetTrendTargets") {
     updateAssetTrendTargetDraft(assetTargetAmount.dataset.assetTargetId, { amount: parseKRWInput(assetTargetAmount.value) });
@@ -3940,6 +5351,7 @@ document.addEventListener("input", (event) => {
   if (journalWriteStockName) {
     const form = journalWriteStockName.closest("[data-journal-entry-form]");
     clearJournalSelectedStock(form, { keepInput: true });
+    scheduleJournalStockSearch(journalWriteStockName);
     return;
   }
 
@@ -3976,6 +5388,14 @@ document.addEventListener("pointermove", (event) => {
   if (!target) return;
   if (pinnedChartTooltipTarget) return;
   positionChartTooltip(event);
+});
+
+document.addEventListener("change", (event) => {
+  const calendarMonthInput = event.target.closest("[data-calendar-month-input]");
+  if (calendarMonthInput && getRoute() === "calendar" && typeof setCalendarMonthValue === "function") {
+    setCalendarMonthValue(calendarMonthInput.value);
+    render();
+  }
 });
 
 document.addEventListener("pointerout", (event) => {

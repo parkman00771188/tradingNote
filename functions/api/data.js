@@ -155,6 +155,8 @@ function emptyUserData() {
       cashBalance: 0,
       holdings: []
     },
+    stockFavorites: [],
+    journalRecords: [],
     trades: [],
     memos: []
   };
@@ -208,6 +210,53 @@ function sanitizeAssets(input = {}) {
       rate: sanitizeRate(item.rate)
     })).filter((item) => item.name && item.quantity > 0)
   };
+}
+
+function hasAssetData(input = {}) {
+  return sanitizeNumber(input.cashBalance) > 0 || (Array.isArray(input.holdings) && input.holdings.length > 0);
+}
+
+function sanitizeStockFavorites(input = []) {
+  const rows = Array.isArray(input) ? input.slice(0, 100) : [];
+
+  return rows.map((item) => ({
+    name: sanitizeText(item.name, 80),
+    code: sanitizeText(item.code, 32),
+    symbol: sanitizeText(item.symbol, 40),
+    type: sanitizeText(item.type, 40),
+    quoteType: sanitizeText(item.quoteType, 40),
+    market: sanitizeText(item.market, 60),
+    exchange: sanitizeText(item.exchange, 40),
+    industry: sanitizeText(item.industry, 80),
+    currency: sanitizeText(item.currency, 12).toUpperCase(),
+    currentPrice: sanitizeDecimal(item.currentPrice),
+    currentPriceKrw: sanitizeNumber(item.currentPriceKrw),
+    exchangeRateToKrw: sanitizeDecimal(item.exchangeRateToKrw),
+    change: Number.isFinite(Number(item.change)) ? Number(Number(item.change).toFixed(4)) : 0,
+    changeRate: sanitizeRate(item.changeRate),
+    source: sanitizeText(item.source, 40),
+    savedAt: sanitizeText(item.savedAt, 40)
+  })).filter((item) => item.name || item.code || item.symbol);
+}
+
+function sanitizeJournalRecords(input = []) {
+  const rows = Array.isArray(input) ? input.slice(0, 500) : [];
+
+  return rows.map((item) => ({
+    id: sanitizeText(item.id, 80),
+    date: sanitizeText(item.date, 20),
+    type: sanitizeText(item.type, 20),
+    name: sanitizeText(item.name, 80),
+    code: sanitizeText(item.code, 32),
+    symbol: sanitizeText(item.symbol, 40),
+    quantity: sanitizeDecimal(item.quantity),
+    price: sanitizeDecimal(item.price),
+    buyPrice: sanitizeDecimal(item.buyPrice),
+    sellPrice: sanitizeDecimal(item.sellPrice),
+    memo: sanitizeText(item.memo, 2000),
+    createdAt: sanitizeText(item.createdAt, 40),
+    updatedAt: sanitizeText(item.updatedAt, 40)
+  })).filter((item) => item.id && item.date && item.name && item.quantity > 0);
 }
 
 async function requireSession(context) {
@@ -269,14 +318,30 @@ export async function onRequestPost(context) {
 
     const { config, session } = sessionResult;
     const body = await context.request.json().catch(() => ({}));
-    if (body.action !== "save_assets") return badRequest("지원하지 않는 데이터 작업입니다.");
+    if (!["save_assets", "save_stock_favorites", "save_journal_records"].includes(body.action)) {
+      return badRequest("지원하지 않는 데이터 작업입니다.");
+    }
 
     const currentData = await readUserData(config, session.userKey);
+    const sanitizedAssets = body.action === "save_assets" ? sanitizeAssets(body.assets) : null;
+    if (
+      body.action === "save_assets" &&
+      hasAssetData(currentData.assets) &&
+      !hasAssetData(sanitizedAssets) &&
+      body.allowEmptyAssets !== true
+    ) {
+      return badRequest("기존 자산을 빈 데이터로 덮어쓰지 않도록 저장을 중단했습니다.");
+    }
+
     const nextData = {
       ...currentData,
       version: DATA_VERSION,
       updatedAt: new Date().toISOString(),
-      assets: sanitizeAssets(body.assets)
+      ...(body.action === "save_assets"
+        ? { assets: sanitizedAssets }
+        : body.action === "save_stock_favorites"
+          ? { stockFavorites: sanitizeStockFavorites(body.stockFavorites) }
+          : { journalRecords: sanitizeJournalRecords(body.journalRecords) })
     };
 
     await saveUserData(config, session.userKey, nextData);
