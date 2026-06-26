@@ -1801,7 +1801,9 @@ async function loadStockNewsForSelection(item = getStockAnalysisSelectedStock(),
     const query = isKoreanMarket
       ? selected.name || selected.code || selected.symbol
       : selected.symbol || selected.code || selected.name;
-    const response = await fetchWithTimeout(`/api/markets?action=news&q=${encodeURIComponent(query)}`, {
+    const symbol = getStockChartSymbol(selected);
+    const newsUrl = `/api/markets?action=news&q=${encodeURIComponent(query)}${symbol ? `&symbol=${encodeURIComponent(symbol)}` : ""}`;
+    const response = await fetchWithTimeout(newsUrl, {
       credentials: "include",
       headers: { Accept: "application/json" },
       timeout: 9000
@@ -3467,7 +3469,11 @@ function applyAssetMarketResult(rowId, resultIndex) {
   if (!result) return false;
 
   const currentDraft = assetSettingsDrafts.find((item) => item.id === rowId) || {};
-  patchAssetSettingsDraft(rowId, getAssetMarketResultPatch(result, currentDraft, { includeIdentity: true }));
+  const patch = getAssetMarketResultPatch(result, currentDraft, { includeIdentity: true });
+  if (!Number(currentDraft.averagePrice || 0) && Number(patch.currentPrice || 0)) {
+    patch.averagePrice = patch.currentPrice;
+  }
+  patchAssetSettingsDraft(rowId, patch);
 
   assetSettingsEditingId = rowId;
   assetSettingsOpenMenuId = null;
@@ -3838,20 +3844,6 @@ function renderAssetSettingsCardView(item, index) {
   const readOnlyMeta = [displayCode, categoryLabel].filter(Boolean).join(" · ");
   const motionClass = getAssetSettingsCardMotionClass(item, index);
   const searchPanel = renderAssetMarketSearchPanel(item.id);
-  const currentDisplayCurrency = getAssetDisplayCurrency(item);
-  const currentUnit = getAssetCurrentPriceUnit(item);
-  const currentInputValue = getAssetCurrentPriceInputValue(item);
-  const currentNumberAttrs = currentDisplayCurrency === "KRW"
-    ? `inputmode="numeric" data-number-input`
-    : `inputmode="decimal"`;
-  const foreignCurrency = getAssetCurrency(item);
-  const currencyToggle = isEditing && hasAssetForeignDisplay(item)
-    ? `<div class="asset-settings-currency-toggle" role="group" aria-label="현재가 표시 통화">
-        <button class="${currentDisplayCurrency === "KRW" ? "active" : ""}" type="button" data-asset-settings-price-currency="KRW" data-asset-setting-id="${item.id}" aria-pressed="${currentDisplayCurrency === "KRW"}">원화</button>
-        <button class="${currentDisplayCurrency === foreignCurrency ? "active" : ""}" type="button" data-asset-settings-price-currency="${escapeChartText(foreignCurrency)}" data-asset-setting-id="${item.id}" aria-pressed="${currentDisplayCurrency === foreignCurrency}">${escapeChartText(foreignCurrency)}</button>
-      </div>`
-    : "";
-
   if (!isEditing) {
     const quantityText = formatMarketNumber(Number(item.quantity) || 0);
     const priceText = formatMarketNumber(Number(item.currentPrice) || 0);
@@ -3959,21 +3951,13 @@ function renderAssetSettingsCardView(item, index) {
         </label>
         <label class="asset-settings-tile">
           <span class="asset-settings-tile-icon" aria-hidden="true">${icon("performance")}</span>
-          <span>평균단가</span>
+          <span class="asset-settings-tile-label">
+            <b>평균단가</b>
+            <small>현재가</small>
+          </span>
           <div class="asset-settings-tile-input">
             <input type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
             <em>원</em>
-          </div>
-        </label>
-        <label class="asset-settings-tile">
-          <span class="asset-settings-tile-icon" aria-hidden="true">${icon("chart")}</span>
-          ${currencyToggle}
-          <span class="asset-settings-tile-label">
-            <b>현재가</b>
-          </span>
-          <div class="asset-settings-tile-input">
-            <input type="text" value="${escapeChartText(currentInputValue)}" ${currentNumberAttrs} autocomplete="off" placeholder="0" data-asset-setting-field="currentPrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
-            <em>${escapeChartText(currentUnit)}</em>
           </div>
         </label>
       </div>

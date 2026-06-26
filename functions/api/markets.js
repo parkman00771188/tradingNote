@@ -244,6 +244,48 @@ async function fetchYahooNews(query, limit = 5) {
   return localizedNews.length ? localizedNews : requestNews();
 }
 
+function addNewsQueryCandidate(candidates, seen, value) {
+  const query = String(value || "").replace(/\s+/g, " ").trim();
+  const key = normalizeText(query);
+  if (!query || !key || seen.has(key)) return;
+  seen.add(key);
+  candidates.push(query);
+}
+
+function simplifyCompanyNewsQuery(value = "") {
+  return String(value || "")
+    .replace(/[.,]/g, " ")
+    .replace(/\b(co|corp|corporation|inc|ltd|limited|plc|company)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function getNewsQueryCandidates(query, symbol = "") {
+  const candidates = [];
+  const seen = new Set();
+  addNewsQueryCandidate(candidates, seen, query);
+
+  const normalizedSymbol = String(symbol || "").trim();
+  if (normalizedSymbol) {
+    const chart = await fetchYahooChart(normalizedSymbol).catch(() => null);
+    const chartName = chart?.name || "";
+    addNewsQueryCandidate(candidates, seen, simplifyCompanyNewsQuery(chartName));
+    addNewsQueryCandidate(candidates, seen, chartName);
+    addNewsQueryCandidate(candidates, seen, normalizedSymbol);
+  }
+
+  return candidates;
+}
+
+async function fetchYahooNewsWithFallback(query, options = {}, limit = 5) {
+  const candidates = await getNewsQueryCandidates(query, options.symbol || "");
+  for (const candidate of candidates) {
+    const news = await fetchYahooNews(candidate, limit);
+    if (news.length) return news;
+  }
+  return [];
+}
+
 function sanitizeChartParam(value, fallback) {
   const normalized = String(value || "").trim();
   return /^[0-9]+[a-z]+$/i.test(normalized) ? normalized : fallback;
@@ -437,8 +479,9 @@ export async function onRequestGet(context) {
 
     if (action === "news") {
       const query = String(url.searchParams.get("q") || "").trim().slice(0, 120);
+      const symbol = String(url.searchParams.get("symbol") || "").trim().slice(0, 80);
       if (!query) return json({ ok: true, news: [] });
-      const news = await fetchYahooNews(query, 5);
+      const news = await fetchYahooNewsWithFallback(query, { symbol }, 5);
       return json({ ok: true, news });
     }
 
