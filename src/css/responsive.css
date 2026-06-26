@@ -3050,16 +3050,16 @@
     white-space: nowrap;
   }
 
-  .mobile-my-info {
+  .mobile-profile-logout {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-width: 76px;
     min-height: 48px;
     padding: 0 12px;
-    color: var(--blue);
-    background: white;
-    border: 1.5px solid var(--blue);
+    color: #ef4038;
+    background: #fff8f8;
+    border: 1.5px solid #ffb9b4;
     border-radius: 14px;
     font-size: 15px;
     font-weight: 900;
@@ -3108,34 +3108,6 @@
     letter-spacing: 0;
     text-align: center;
     white-space: nowrap;
-  }
-
-  .mobile-logout {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    width: 100%;
-    min-height: 64px;
-    margin-top: 36px;
-    padding: 0 20px;
-    color: #ef4038;
-    background: linear-gradient(180deg, #fff8f8, #fff4f3);
-    border: 1px solid #ffb9b4;
-    border-radius: 12px;
-    font-size: 18px;
-    font-weight: 900;
-  }
-
-  .mobile-logout img {
-    width: 34px;
-    height: 34px;
-    filter: invert(36%) sepia(96%) saturate(2163%) hue-rotate(340deg) brightness(102%) contrast(93%);
-  }
-
-  .mobile-logout strong {
-    color: inherit;
-    font: inherit;
   }
 
   .mobile-sheet-home-indicator {

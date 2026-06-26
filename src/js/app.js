@@ -4609,7 +4609,7 @@ function renderMobileSheetLegacy() {
             <strong>${escapeHtml(getUserDisplayName())}</strong>
             <p>${escapeHtml(getUserEmail())}</p>
           </div>
-          <button class="btn ghost" type="button">내 정보</button>
+          <button class="mobile-profile-logout" type="button" data-auth-logout>로그아웃</button>
         </div>
         <div class="mobile-more-grid">
           ${quickItems.map(([route, iconName, label]) => `
@@ -4619,7 +4619,6 @@ function renderMobileSheetLegacy() {
             </button>
           `).join("")}
         </div>
-        <button class="mobile-logout" type="button" data-auth-logout>${icon("logout")}로그아웃</button>
       </section>
     </div>
   `;
@@ -4665,7 +4664,7 @@ function renderMobileSheet() {
             <strong>${escapeHtml(getUserDisplayName())}</strong>
             <p>${escapeHtml(getUserEmail())}</p>
           </div>
-          <button class="mobile-my-info" type="button">내 정보</button>
+          <button class="mobile-profile-logout" type="button" data-auth-logout>로그아웃</button>
         </div>
         <div class="mobile-more-grid">
           ${quickItems.map(([route, iconSlug, label]) => `
@@ -4675,10 +4674,6 @@ function renderMobileSheet() {
             </button>
           `).join("")}
         </div>
-        <button class="mobile-logout" type="button" data-auth-logout>
-          ${mobileMoreIcon("logout")}
-          <strong>로그아웃</strong>
-        </button>
         <span class="mobile-sheet-home-indicator" aria-hidden="true"></span>
       </section>
     </div>
