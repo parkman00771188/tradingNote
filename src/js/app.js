@@ -5181,9 +5181,6 @@ function render() {
       });
     }
   }
-  if (route === "settings") {
-    hydrateDatabaseSettingsPage();
-  }
   if (route === "dashboard") {
     syncDashboardAssetTrendSnapshot();
   }

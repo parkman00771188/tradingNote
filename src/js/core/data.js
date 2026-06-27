@@ -48,7 +48,7 @@ const pageMeta = {
   },
   settings: {
     title: "설정",
-    description: "계정, 알림, 태그, 표시 방식을 원하는 형태로 조정하세요."
+    description: "로그인 계정과 프로필 정보를 확인하세요."
   }
 };
 
