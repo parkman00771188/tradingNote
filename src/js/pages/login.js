@@ -108,6 +108,14 @@ function getGoogleRedirectLoginUrl(clientId) {
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 }
 
+function getFreshGoogleRedirectLoginUrl() {
+  const url = getGoogleRedirectLoginUrl(loginGoogleClientId);
+  if (url) {
+    loginGoogleRedirectUrl = url;
+  }
+  return url;
+}
+
 function consumeGoogleOAuthRedirect() {
   if (loginGoogleRedirectHandled) return null;
   const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
@@ -228,15 +236,16 @@ function bindGoogleLoginButton(container) {
   if (!button || button.disabled) return;
 
   button.addEventListener("click", () => {
-    if (googleTokenClient) {
-      setLoginMessage("Google 계정을 선택해주세요.", "loading");
-      googleTokenClient.requestAccessToken({ prompt: "select_account" });
+    const redirectUrl = getFreshGoogleRedirectLoginUrl();
+    if (redirectUrl) {
+      setLoginMessage("Google 로그인 화면으로 이동합니다.", "loading");
+      window.location.assign(redirectUrl);
       return;
     }
 
-    if (loginGoogleRedirectUrl) {
-      setLoginMessage("Google 로그인 화면으로 이동합니다.", "loading");
-      window.location.assign(loginGoogleRedirectUrl);
+    if (googleTokenClient) {
+      setLoginMessage("Google 계정을 선택해주세요.", "loading");
+      googleTokenClient.requestAccessToken({ prompt: "select_account" });
       return;
     }
 
@@ -292,6 +301,14 @@ async function hydrateLoginPage() {
       return;
     }
 
+    if (loginGoogleRedirectUrl) {
+      googleTokenClient = null;
+      container.innerHTML = renderFallbackGoogleButton(false);
+      bindGoogleLoginButton(container);
+      setLoginMessage("", "");
+      return;
+    }
+
     await loadGoogleIdentityScript();
     if (token !== loginHydrationToken) return;
 
@@ -310,7 +327,13 @@ async function hydrateLoginPage() {
       prompt: "select_account",
       callback: handleGoogleTokenResponse,
       error_callback: () => {
-        setLoginMessage("Google 계정 선택이 취소되었습니다.", "error");
+        const redirectUrl = getFreshGoogleRedirectLoginUrl();
+        if (redirectUrl) {
+          setLoginMessage("Google 로그인 화면으로 이동합니다.", "loading");
+          window.location.assign(redirectUrl);
+          return;
+        }
+        setLoginMessage("Google 로그인 창이 닫혔습니다. 다시 시도해주세요.", "error");
       }
     });
 
