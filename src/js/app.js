@@ -35,6 +35,10 @@ var databaseState = {
   message: "",
   error: ""
 };
+var settingsDataResetFeedback = {
+  message: "",
+  error: ""
+};
 var userDataServerLoadedFor = "";
 var userDataServerLoadingFor = "";
 var userDataServerLoadPromise = null;
@@ -799,6 +803,83 @@ async function deleteJournalRecordsByIds(recordIds = []) {
   userJournalRecords = userJournalRecords.filter((item) => !idSet.has(String(item.id || "")));
   await persistJournalAndAssetState();
   return true;
+}
+
+async function resetUserAssetAndJournalData() {
+  if (!authState.authenticated) return false;
+  const userId = getCurrentUserStorageId();
+  if (!userId) return false;
+
+  settingsDataResetFeedback = {
+    message: "자산 현황과 매매기록을 삭제하고 있습니다.",
+    error: ""
+  };
+  setDatabaseState({
+    saving: true,
+    message: "자산 현황과 매매기록을 삭제하고 있습니다.",
+    error: ""
+  });
+  if (getRoute() === "settings") render();
+
+  try {
+    if (userDataServerLoadedFor !== userId) {
+      const loaded = await loadUserDataFromServer(userId);
+      if (!loaded && userDataServerLoadedFor !== userId) {
+        throw new Error("저장된 데이터를 먼저 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+    }
+
+    if (userDataServerSaveTimer) window.clearTimeout(userDataServerSaveTimer);
+    userDataServerSaveTimer = 0;
+    clearPendingUserAssetSave();
+    if (userJournalServerSaveTimer) window.clearTimeout(userJournalServerSaveTimer);
+    userJournalServerSaveTimer = 0;
+    userJournalServerSavePendingFor = "";
+
+    assetCashBalance = 0;
+    assetTrendHistory = [];
+    assetTrendDashboardSnapshotKey = "";
+    clearAssetHoldingsRuntime();
+    if (typeof assetTrendTargets !== "undefined") assetTrendTargets = [];
+
+    userJournalRecords = [];
+    journalEditingRecordId = "";
+    if (typeof trades !== "undefined") trades.splice(0, trades.length);
+    if (typeof journalSelectedTradeIds !== "undefined") journalSelectedTradeIds.clear();
+    if (typeof journalDeletedTradeIds !== "undefined") journalDeletedTradeIds.clear();
+
+    await saveAssetStateToStorage({ source: "user_clear", immediate: true });
+    const journalSaved = await saveJournalRecordsToServer();
+    if (!journalSaved) {
+      throw new Error("매매기록 삭제 내용을 서버에 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+
+    settingsDataResetFeedback = {
+      message: "자산 현황과 매매기록이 삭제되었습니다.",
+      error: ""
+    };
+    setDatabaseState({
+      saving: false,
+      connected: true,
+      message: "자산 현황과 매매기록이 삭제되었습니다.",
+      error: ""
+    });
+    render();
+    return true;
+  } catch (error) {
+    const resetError = error?.message || "데이터 초기화에 실패했습니다.";
+    settingsDataResetFeedback = {
+      message: "",
+      error: resetError
+    };
+    setDatabaseState({
+      saving: false,
+      message: "",
+      error: resetError
+    });
+    render();
+    return false;
+  }
 }
 
 function openJournalRecordEditor(recordId = "") {
@@ -5263,6 +5344,14 @@ document.addEventListener("click", async (event) => {
   if (settingsSectionButton && getRoute() === "settings") {
     settingsActiveSection = settingsSectionButton.dataset.settingsSection || "broker";
     render();
+    return;
+  }
+
+  const settingsResetUserDataButton = event.target.closest("[data-settings-reset-user-data]");
+  if (settingsResetUserDataButton && getRoute() === "settings") {
+    if (databaseState.saving) return;
+    if (!window.confirm("삭제하시겠습니까?")) return;
+    await resetUserAssetAndJournalData();
     return;
   }
 

@@ -11,6 +11,33 @@ function renderProfileInfoItem(iconName, label, value, description = "") {
   `;
 }
 
+function renderSettingsDataResetPanel() {
+  const isSaving = typeof databaseState !== "undefined" && databaseState.saving;
+  const resetFeedback = typeof settingsDataResetFeedback !== "undefined" ? settingsDataResetFeedback : { message: "", error: "" };
+
+  return `
+    <section class="panel settings-data-reset-panel">
+      <div class="settings-data-reset-copy">
+        <span class="settings-profile-info-icon danger">${icon("trash")}</span>
+        <div>
+          <span>데이터 초기화</span>
+          <strong>자산 현황 및 매매기록 초기화</strong>
+          <p>보유 현금, 보유자산, 자산 추이와 매매기록을 모두 삭제합니다.</p>
+          ${resetFeedback.message || resetFeedback.error ? `
+            <div class="settings-reset-feedback">
+              ${resetFeedback.message ? `<p class="drive-settings-feedback success">${escapeHtml(resetFeedback.message)}</p>` : ""}
+              ${resetFeedback.error ? `<p class="drive-settings-feedback error">${escapeHtml(resetFeedback.error)}</p>` : ""}
+            </div>
+          ` : ""}
+        </div>
+      </div>
+      <button class="btn danger settings-data-reset-button" type="button" data-settings-reset-user-data ${isSaving ? "disabled" : ""}>
+        ${isSaving ? "처리 중" : "초기화"}
+      </button>
+    </section>
+  `;
+}
+
 function renderSettings() {
   const user = typeof getCurrentUser === "function" ? getCurrentUser() : null;
   const name = typeof getUserDisplayName === "function" ? getUserDisplayName(user) : user?.name || "투자자";
@@ -41,6 +68,8 @@ function renderSettings() {
         ${renderProfileInfoItem("memo", "이메일", email, "로그인과 데이터 저장 기준이 되는 계정입니다.")}
         ${renderProfileInfoItem("cloud", "데이터 저장", "계정 전용 저장소", "로그인한 계정 기준으로 투자 기록을 불러옵니다.")}
       </section>
+
+      ${renderSettingsDataResetPanel()}
     </div>
   `;
 }
