@@ -424,19 +424,27 @@ function hasHangul(value) {
   return /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(String(value || ""));
 }
 
+function shouldSearchKrx(query) {
+  const value = String(query || "").trim();
+  return hasHangul(value) || /^\d{2,6}$/.test(value);
+}
+
 async function searchMarkets(query) {
   const trimmedQuery = String(query || "").trim().slice(0, 80);
   if (trimmedQuery.length < 2) return [];
 
   const limit = 12;
   const shouldSearchYahoo = !hasHangul(trimmedQuery);
+  const shouldSearchDomestic = shouldSearchKrx(trimmedQuery);
   const [krxResults, yahooResults] = await Promise.all([
-    searchKrx(trimmedQuery, limit).catch(() => []),
+    shouldSearchDomestic ? searchKrx(trimmedQuery, limit).catch(() => []) : [],
     shouldSearchYahoo ? searchYahoo(trimmedQuery, limit).catch(() => []) : []
   ]);
 
   const combined = dedupeResults([...krxResults, ...yahooResults]).slice(0, limit);
-  const enriched = await Promise.all(combined.map((item) => enrichWithChart(item).catch(() => item)));
+  const enrichedLimit = Math.min(combined.length, 4);
+  const enrichedHead = await Promise.all(combined.slice(0, enrichedLimit).map((item) => enrichWithChart(item).catch(() => item)));
+  const enriched = [...enrichedHead, ...combined.slice(enrichedLimit)];
   return enriched.map((item) => ({
     name: item.name,
     code: item.code,

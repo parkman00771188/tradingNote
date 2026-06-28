@@ -3427,8 +3427,8 @@ function cancelAssetSettingsEdit() {
 
 function addAssetSettingsDraft() {
   const draft = createAssetSettingsDraft();
-  const insertIndex = Math.min(Math.max(assetSettingsActiveIndex + 1, 0), assetSettingsDrafts.length);
-  assetSettingsDrafts.splice(insertIndex, 0, draft);
+  const insertIndex = assetSettingsDrafts.length;
+  assetSettingsDrafts.push(draft);
   assetSettingsError = "";
   assetSettingsMessage = "";
   assetSettingsOpenMenuId = null;
