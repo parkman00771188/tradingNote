@@ -412,6 +412,10 @@ function parseAssetDecimalInput(value) {
   return Math.max(0, Number(numericText) || 0);
 }
 
+function isDecimalNumberInput(input) {
+  return input?.dataset?.assetSettingField === "quantity" || input?.hasAttribute("data-journal-trade-quantity");
+}
+
 function formatAssetDecimal(value) {
   const number = Number(value) || 0;
   if (!number) return "";
@@ -420,7 +424,22 @@ function formatAssetDecimal(value) {
   });
 }
 
+function formatDecimalNumberInput(input) {
+  const raw = String(input.value ?? "").replace(/,/g, "").replace(/[^0-9.]/g, "");
+  const hasDecimalPoint = raw.includes(".");
+  const [integerPart, ...decimalParts] = raw.split(".");
+  const integerDigits = integerPart.replace(/^0+(?=\d)/, "");
+  const integerText = integerDigits ? Number(integerDigits).toLocaleString() : "";
+  const decimalText = decimalParts.join("").slice(0, 8);
+  input.value = hasDecimalPoint ? `${integerText || "0"}.${decimalText}` : integerText;
+}
+
 function formatNumberInput(input) {
+  if (isDecimalNumberInput(input)) {
+    formatDecimalNumberInput(input);
+    return;
+  }
+
   const digits = String(input.value).replace(/[^0-9]/g, "");
   input.value = digits ? Number(digits).toLocaleString() : "";
 }
@@ -3485,6 +3504,9 @@ function updateAssetSettingsDraft(rowId, field, value) {
     if (field === "currentPrice") {
       return updateAssetCurrentPriceDraftValue(item, value);
     }
+    if (field === "quantity") {
+      return { ...item, [field]: parseAssetDecimalInput(value) };
+    }
     return { ...item, [field]: parseKRWInput(value) };
   });
   assetSettingsError = "";
@@ -3514,7 +3536,15 @@ function syncAssetSettingsDraftFieldsFromDom(root = document) {
       return;
     }
 
-    if (fieldName === "quantity" || fieldName === "averagePrice") {
+    if (fieldName === "quantity") {
+      const nextValue = parseAssetDecimalInput(rawValue);
+      if (Number(current[fieldName] || 0) !== nextValue) {
+        updateAssetSettingsDraft(rowId, fieldName, rawValue);
+      }
+      return;
+    }
+
+    if (fieldName === "averagePrice") {
       const nextValue = parseKRWInput(rawValue);
       if (Number(current[fieldName] || 0) !== nextValue) {
         updateAssetSettingsDraft(rowId, fieldName, rawValue);
@@ -3690,7 +3720,9 @@ async function fetchAssetMarketMeta(item = {}, { force = false } = {}) {
   if (!cacheKey) return null;
   if (!force && assetMarketMetaCache.has(cacheKey)) return assetMarketMetaCache.get(cacheKey);
 
-  const response = await fetch(`/api/markets?action=search&q=${encodeURIComponent(cacheKey)}`, {
+  const url = `/api/markets?action=search&q=${encodeURIComponent(cacheKey)}${force ? `&refresh=1&t=${Date.now()}` : ""}`;
+  const response = await fetch(url, {
+    cache: force ? "no-store" : "default",
     credentials: "include",
     headers: { Accept: "application/json" }
   });
@@ -3809,7 +3841,7 @@ async function refreshStoredAssetMarketPrices({ syncRemote = true } = {}) {
 
   try {
     for (const item of holdingData) {
-      const result = await fetchAssetMarketMeta(item).catch(() => null);
+      const result = await fetchAssetMarketMeta(item, { force: true }).catch(() => null);
       if (!result) {
         refreshedRows.push(item);
         continue;
@@ -3942,11 +3974,11 @@ function getAssetSettingsWatchPrice(item) {
 function getAssetSettingsValuationPrice(item, mode = item.priceInputMode) {
   const inputMode = mode === "quantity" ? "quantity" : "full";
   const averagePrice = Math.max(0, Number(item.averagePrice) || 0);
-  if (averagePrice) return averagePrice;
-  if (inputMode === "full") return 0;
-
+  const currentPrice = Math.max(0, Number(item.currentPrice) || 0);
   const watchPrice = getAssetSettingsWatchPrice(item);
-  return Math.max(0, watchPrice || Number(item.currentPrice) || averagePrice);
+  if (inputMode === "full") return currentPrice || watchPrice || averagePrice;
+
+  return Math.max(0, currentPrice || watchPrice || averagePrice);
 }
 
 function getAssetSettingsPreviewAmount(item, mode = item.priceInputMode) {
@@ -4227,7 +4259,7 @@ function renderAssetSettingsModal() {
                       <div class="field">
                         <label for="assetSettingQuantity${index}">수량</label>
                         <div class="journal-input-shell">
-                          <input id="assetSettingQuantity${index}" type="text" value="${item.quantity ? formatMarketNumber(item.quantity) : ""}" inputmode="numeric" autocomplete="off" placeholder="수량" data-number-input data-asset-setting-field="quantity" data-asset-setting-id="${item.id}">
+                          <input id="assetSettingQuantity${index}" type="text" value="${item.quantity ? formatMarketNumber(item.quantity) : ""}" inputmode="decimal" autocomplete="off" placeholder="수량" data-number-input data-asset-setting-field="quantity" data-asset-setting-id="${item.id}">
                           <span>주</span>
                         </div>
                       </div>
@@ -4341,7 +4373,7 @@ function renderAssetSettingsCardView(item, index) {
 
         <div class="asset-settings-summary-note">
           <span aria-hidden="true">${icon("info")}</span>
-          <p>평가금액은 보유 수량과 평균단가를 기준으로 계산됩니다.</p>
+          <p>평가금액은 보유 수량과 현재가를 기준으로 계산됩니다.</p>
         </div>
       </article>
     `;
@@ -4388,7 +4420,7 @@ function renderAssetSettingsCardView(item, index) {
           <span class="asset-settings-tile-icon" aria-hidden="true">${icon("wallet")}</span>
           <span>보유 수량</span>
           <div class="asset-settings-tile-input">
-            <input type="text" value="${item.quantity ? formatMarketNumber(item.quantity) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="quantity" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
+            <input type="text" value="${item.quantity ? formatMarketNumber(item.quantity) : ""}" inputmode="decimal" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="quantity" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
             <em>주</em>
           </div>
         </label>

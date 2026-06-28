@@ -114,7 +114,12 @@ function getStockCandidates(name, code = "") {
 }
 
 function parseMarketNumber(value) {
-  return Number(String(value || "").replace(/[^0-9]/g, "")) || 0;
+  const normalized = String(value || "")
+    .replace(/,/g, "")
+    .replace(/[^0-9.]/g, "");
+  const [integerPart, ...decimalParts] = normalized.split(".");
+  const numericText = `${integerPart || "0"}${decimalParts.length ? `.${decimalParts.join("")}` : ""}`;
+  return Number(numericText) || 0;
 }
 
 function parseSignedMarketNumber(value) {
@@ -124,7 +129,11 @@ function parseSignedMarketNumber(value) {
 }
 
 function formatMarketNumber(value) {
-  return Math.round(Number(value) || 0).toLocaleString();
+  const number = Number(value) || 0;
+  if (Number.isInteger(number)) return number.toLocaleString();
+  return number.toLocaleString(undefined, {
+    maximumFractionDigits: Math.abs(number) < 1 ? 8 : 6
+  });
 }
 
 function formatSignedMarketNumber(value) {
@@ -214,7 +223,7 @@ function getHoldingData() {
     const previousProfit = parseSignedMarketNumber(profitText);
     const costBasis = Math.max(0, previousAmount - previousProfit);
     const watch = getWatchStock(name, storedCode);
-    const currentPrice = watch && watch.price ? watch.price : Math.round(previousAmount / Math.max(1, quantity));
+    const currentPrice = watch && watch.price ? watch.price : Math.round(previousAmount / (quantity > 0 ? quantity : 1));
     const currentAmount = currentPrice * quantity;
     const profit = currentAmount - costBasis;
     const rate = costBasis ? (profit / costBasis) * 100 : 0;

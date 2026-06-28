@@ -30,12 +30,12 @@ const YAHOO_QUOTE_TYPE_LABELS = {
 
 const fxRateCache = new Map();
 
-function json(data, status = 200) {
+function json(data, status = 200, options = {}) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": status === 200 ? "public, max-age=120" : "no-store"
+      "Cache-Control": status === 200 && !options.noStore ? "public, max-age=120" : "no-store"
     }
   });
 }
@@ -331,11 +331,15 @@ async function fetchYahooChart(symbol, options = {}) {
   url.searchParams.set("interval", interval);
   url.searchParams.set("includePrePost", "false");
   url.searchParams.set("events", "div,splits");
+  if (options.noStore) url.searchParams.set("_refresh", String(Date.now()));
 
-  const response = await fetch(url.toString(), {
+  const fetchOptions = {
     headers: REQUEST_HEADERS,
-    cf: { cacheTtl: 60, cacheEverything: true }
-  });
+    cf: options.noStore ? { cacheTtl: 0, cacheEverything: false } : { cacheTtl: 60, cacheEverything: true }
+  };
+  if (options.noStore) fetchOptions.cache = "no-store";
+
+  const response = await fetch(url.toString(), fetchOptions);
   if (!response.ok) return null;
 
   const payload = await response.json().catch(() => ({}));
@@ -363,15 +367,15 @@ async function fetchYahooChart(symbol, options = {}) {
   };
 }
 
-async function fetchFxRateToKrw(currency) {
+async function fetchFxRateToKrw(currency, options = {}) {
   const normalizedCurrency = normalizeCurrency(currency);
   if (!normalizedCurrency) return 0;
   if (normalizedCurrency === "KRW") return 1;
 
   const cached = fxRateCache.get(normalizedCurrency);
-  if (cached && Date.now() - cached.time < 60000) return cached.rate;
+  if (!options.noStore && cached && Date.now() - cached.time < 60000) return cached.rate;
 
-  const chart = await fetchYahooChart(`${normalizedCurrency}KRW=X`).catch(() => null);
+  const chart = await fetchYahooChart(`${normalizedCurrency}KRW=X`, { noStore: options.noStore }).catch(() => null);
   const rate = Number(chart?.currentPrice || 0);
   if (!rate) return 0;
 
@@ -379,11 +383,11 @@ async function fetchFxRateToKrw(currency) {
   return rate;
 }
 
-async function enrichWithChart(item) {
-  const chart = await fetchYahooChart(item.symbol);
+async function enrichWithChart(item, options = {}) {
+  const chart = await fetchYahooChart(item.symbol, { noStore: options.noStore });
   if (!chart) return item;
   const currency = normalizeCurrency(chart.currency || item.currency);
-  const exchangeRateToKrw = await fetchFxRateToKrw(currency).catch(() => 0);
+  const exchangeRateToKrw = await fetchFxRateToKrw(currency, { noStore: options.noStore }).catch(() => 0);
   const currentPriceKrw = chart.currentPrice && exchangeRateToKrw
     ? Math.round(chart.currentPrice * exchangeRateToKrw)
     : 0;
@@ -429,7 +433,7 @@ function shouldSearchKrx(query) {
   return hasHangul(value) || /^\d{2,6}$/.test(value);
 }
 
-async function searchMarkets(query) {
+async function searchMarkets(query, options = {}) {
   const trimmedQuery = String(query || "").trim().slice(0, 80);
   if (trimmedQuery.length < 2) return [];
 
@@ -443,7 +447,7 @@ async function searchMarkets(query) {
 
   const combined = dedupeResults([...krxResults, ...yahooResults]).slice(0, limit);
   const enrichedLimit = Math.min(combined.length, 4);
-  const enrichedHead = await Promise.all(combined.slice(0, enrichedLimit).map((item) => enrichWithChart(item).catch(() => item)));
+  const enrichedHead = await Promise.all(combined.slice(0, enrichedLimit).map((item) => enrichWithChart(item, { noStore: options.noStore }).catch(() => item)));
   const enriched = [...enrichedHead, ...combined.slice(enrichedLimit)];
   return enriched.map((item) => ({
     name: item.name,
@@ -469,6 +473,7 @@ export async function onRequestGet(context) {
   try {
     const url = new URL(context.request.url);
     const action = url.searchParams.get("action") || "search";
+    const noStore = url.searchParams.get("refresh") === "1" || url.searchParams.get("noCache") === "1";
     if (!["search", "chart", "news"].includes(action)) return json({ ok: false, error: "지원하지 않는 시장 데이터 작업입니다." }, 400);
 
     if (action === "chart") {
@@ -478,11 +483,12 @@ export async function onRequestGet(context) {
       const chart = await fetchYahooChart(symbol, {
         range: url.searchParams.get("range") || "6mo",
         interval: url.searchParams.get("interval") || "1d",
-        includeCandles: true
+        includeCandles: true,
+        noStore
       });
       if (!chart) return json({ ok: false, error: "차트 데이터를 불러오지 못했습니다." }, 404);
 
-      return json({ ok: true, chart });
+      return json({ ok: true, chart }, 200, { noStore });
     }
 
     if (action === "news") {
@@ -494,8 +500,8 @@ export async function onRequestGet(context) {
     }
 
     const query = url.searchParams.get("q") || "";
-    const results = await searchMarkets(query);
-    return json({ ok: true, results });
+    const results = await searchMarkets(query, { noStore });
+    return json({ ok: true, results }, 200, { noStore });
   } catch (error) {
     return json({ ok: false, error: error?.message || "종목 검색을 처리하지 못했습니다." }, 500);
   }

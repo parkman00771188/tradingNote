@@ -463,7 +463,8 @@ function getJournalCurrentPrice(form) {
 }
 
 function inputWithSuffix({ value = "", placeholder = "", suffix = "", readonly = false, numeric = false, attrs = "" }) {
-  const numericAttrs = numeric ? `inputmode="numeric" autocomplete="off" data-number-input` : "";
+  const inputMode = attrs.includes("data-journal-trade-quantity") ? "decimal" : "numeric";
+  const numericAttrs = numeric ? `inputmode="${inputMode}" autocomplete="off" data-number-input` : "";
 
   return `
     <div class="journal-input-shell ${readonly ? "readonly" : ""}">
