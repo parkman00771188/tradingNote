@@ -334,10 +334,11 @@ async function fetchYahooChart(symbol, options = {}) {
   if (options.noStore) url.searchParams.set("_refresh", String(Date.now()));
 
   const fetchOptions = {
-    headers: REQUEST_HEADERS,
-    cf: options.noStore ? { cacheTtl: 0, cacheEverything: false } : { cacheTtl: 60, cacheEverything: true }
+    headers: REQUEST_HEADERS
   };
-  if (options.noStore) fetchOptions.cache = "no-store";
+  if (!options.noStore) {
+    fetchOptions.cf = { cacheTtl: 60, cacheEverything: true };
+  }
 
   const response = await fetch(url.toString(), fetchOptions);
   if (!response.ok) return null;
