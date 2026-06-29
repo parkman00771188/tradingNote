@@ -89,6 +89,38 @@ function getCalendarTradeRows() {
     : (typeof trades !== "undefined" && Array.isArray(trades) ? trades : []);
 }
 
+function createCalendarTradeBucket() {
+  return {
+    profit: 0,
+    count: 0,
+    rows: [],
+    buyCount: 0,
+    sellCount: 0,
+    buyTotal: 0,
+    sellTotal: 0
+  };
+}
+
+function appendCalendarTradeToMap(map, day, trade) {
+  const current = map.get(day) || createCalendarTradeBucket();
+  const sell = isCalendarSellRow(trade);
+  const total = getCalendarTradeTotal(trade);
+
+  current.profit += parseCalendarTradeProfit(trade?.[6]);
+  current.count += 1;
+  current.rows.push(trade);
+
+  if (sell) {
+    current.sellCount += 1;
+    current.sellTotal += total;
+  } else {
+    current.buyCount += 1;
+    current.buyTotal += total;
+  }
+
+  map.set(day, current);
+}
+
 function getCalendarTradeMap(year, monthIndex) {
   const rows = getCalendarTradeRows();
   const map = new Map();
@@ -98,11 +130,7 @@ function getCalendarTradeMap(year, monthIndex) {
     if (/^\d{4}-\d{2}-\d{2}$/.test(fullDate)) {
       const [rowYear, rowMonth, rowDay] = fullDate.split("-").map(Number);
       if (rowYear !== year || rowMonth - 1 !== monthIndex || !rowDay) return;
-      const current = map.get(rowDay) || { profit: 0, count: 0, rows: [] };
-      current.profit += parseCalendarTradeProfit(trade[6]);
-      current.count += 1;
-      current.rows.push(trade);
-      map.set(rowDay, current);
+      appendCalendarTradeToMap(map, rowDay, trade);
       return;
     }
 
@@ -113,11 +141,7 @@ function getCalendarTradeMap(year, monthIndex) {
     const day = Number(match[2]);
     if (month !== monthIndex || !day) return;
 
-    const current = map.get(day) || { profit: 0, count: 0, rows: [] };
-    current.profit += parseCalendarTradeProfit(trade[6]);
-    current.count += 1;
-    current.rows.push(trade);
-    map.set(day, current);
+    appendCalendarTradeToMap(map, day, trade);
   });
 
   return map;
@@ -397,7 +421,11 @@ function buildCalendarDays(year, monthIndex, tradeMap) {
       muted,
       selected: isCalendarSelectedDate(actualDate),
       profit: data?.profit || 0,
-      count: data?.count || 0
+      count: data?.count || 0,
+      buyCount: data?.buyCount || 0,
+      sellCount: data?.sellCount || 0,
+      buyTotal: data?.buyTotal || 0,
+      sellTotal: data?.sellTotal || 0
     };
   });
 }
@@ -415,19 +443,143 @@ function isCalendarSelectedDate(date) {
   );
 }
 
+function formatCalendarCompactKRW(value, options = {}) {
+  const amount = Math.round(Number(value) || 0);
+  if (!amount) return options.emptyZero ? "" : "0원";
+
+  const sign = amount > 0 ? "+" : "-";
+  const abs = Math.abs(amount);
+  if (abs >= 100000000) {
+    const valueText = (abs / 100000000).toFixed(abs >= 1000000000 ? 1 : 2).replace(/\.0+$|0+$/g, "");
+    return `${sign}${valueText}억`;
+  }
+  if (abs >= 10000) return `${sign}${Math.round(abs / 10000).toLocaleString()}만`;
+  return `${sign}${abs.toLocaleString()}원`;
+}
+
+function renderCalendarDayCellSummary(day, mobile = false) {
+  if (!day.count) return "";
+
+  const profitClass = day.profit > 0 ? "text-red" : day.profit < 0 ? "text-blue" : "";
+  const profitText = formatCalendarCompactKRW(day.profit);
+
+  if (mobile) {
+    return `
+      <em class="${profitClass}">${profitText}</em>
+      <small>${day.count}건</small>
+    `;
+  }
+
+  return `
+    <div class="calendar-cell-summary">
+      <span class="calendar-cell-count">매수 ${day.buyCount} · 매도 ${day.sellCount}</span>
+      <span class="calendar-cell-profit ${profitClass}">손익 ${profitText}</span>
+    </div>
+  `;
+}
+
+function getCalendarProfitTrendPoints(days) {
+  let cumulative = 0;
+  return days
+    .filter((day) => !day.muted)
+    .map((day) => {
+      cumulative += Number(day.profit) || 0;
+      return {
+        date: day.dateValue,
+        day: day.date,
+        dailyProfit: Number(day.profit) || 0,
+        cumulative
+      };
+    });
+}
+
+function getCalendarProfitTrendMetric(points, compare) {
+  if (!points.length) return { day: "-", cumulative: 0 };
+  return points.reduce((best, point) => compare(point.cumulative, best.cumulative) ? point : best, points[0]);
+}
+
+function renderCalendarProfitTrendPanel(days, summary, mobile = false) {
+  const points = getCalendarProfitTrendPoints(days);
+  const finalPoint = points[points.length - 1] || { day: "-", cumulative: 0 };
+  const bestPoint = getCalendarProfitTrendMetric(points, (next, current) => next > current);
+  const worstPoint = getCalendarProfitTrendMetric(points, (next, current) => next < current);
+  const maxAbs = Math.max(1, ...points.map((point) => Math.abs(point.cumulative)));
+  const width = 680;
+  const height = mobile ? 236 : 260;
+  const padding = { top: 26, right: 28, bottom: 36, left: 62 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const zeroY = padding.top + chartHeight / 2;
+  const scaleX = (index) => {
+    if (points.length <= 1) return padding.left + chartWidth / 2;
+    return padding.left + (chartWidth * index) / (points.length - 1);
+  };
+  const scaleY = (value) => zeroY - (value / maxAbs) * (chartHeight / 2);
+  const linePath = points.length
+    ? points.map((point, index) => `${index ? "L" : "M"}${scaleX(index).toFixed(2)},${scaleY(point.cumulative).toFixed(2)}`).join(" ")
+    : `M${padding.left},${zeroY} L${width - padding.right},${zeroY}`;
+  const areaPath = points.length
+    ? `${linePath} L${scaleX(points.length - 1).toFixed(2)},${zeroY.toFixed(2)} L${padding.left},${zeroY.toFixed(2)} Z`
+    : "";
+  const ticks = [-maxAbs, -maxAbs / 2, 0, maxAbs / 2, maxAbs];
+  const xLabels = points.filter((_, index) => index === 0 || index === Math.floor(points.length / 2) || index === points.length - 1);
+  const finalClass = finalPoint.cumulative >= 0 ? "text-red" : "text-blue";
+
+  return `
+    <section class="panel calendar-profit-trend-panel">
+      <div class="calendar-profit-trend-header">
+        <div>
+          <h2 class="panel-title">통합 손익 추이</h2>
+          <p>매수와 매도 기록을 합산한 월간 누적 손익입니다.</p>
+        </div>
+        <span>이번 달</span>
+      </div>
+      <div class="calendar-profit-chart-wrap">
+        <svg class="calendar-profit-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="통합 손익 추이 그래프">
+          ${ticks.map((tick) => {
+            const y = scaleY(tick);
+            return `
+              <line class="calendar-profit-gridline ${tick === 0 ? "zero" : ""}" x1="${padding.left}" x2="${width - padding.right}" y1="${y.toFixed(2)}" y2="${y.toFixed(2)}"></line>
+              <text class="calendar-profit-axis-label" x="${padding.left - 12}" y="${(y + 4).toFixed(2)}" text-anchor="end">${formatCalendarCompactKRW(tick)}</text>
+            `;
+          }).join("")}
+          ${xLabels.map((point, index) => {
+            const pointIndex = points.indexOf(point);
+            return `<text class="calendar-profit-axis-label x" x="${scaleX(pointIndex).toFixed(2)}" y="${height - 10}" text-anchor="${index === 0 ? "start" : index === xLabels.length - 1 ? "end" : "middle"}">${point.day}일</text>`;
+          }).join("")}
+          ${areaPath ? `<path class="calendar-profit-area" d="${areaPath}"></path>` : ""}
+          <path class="calendar-profit-line" d="${linePath}"></path>
+          ${points.filter((point) => point.dailyProfit).map((point, index, activePoints) => {
+            const originalIndex = points.indexOf(point);
+            const tone = point.dailyProfit > 0 ? "positive" : "negative";
+            return `<circle class="calendar-profit-dot ${tone}" cx="${scaleX(originalIndex).toFixed(2)}" cy="${scaleY(point.cumulative).toFixed(2)}" r="${activePoints.length > 18 ? 2.6 : 3.6}"></circle>`;
+          }).join("")}
+        </svg>
+      </div>
+      <div class="calendar-profit-trend-metrics">
+        <span><em>최고 손익</em><strong class="text-red">${formatCalendarCompactKRW(bestPoint.cumulative)}</strong></span>
+        <span><em>최저 손익</em><strong class="text-blue">${formatCalendarCompactKRW(worstPoint.cumulative)}</strong></span>
+        <span><em>최종 손익</em><strong class="${finalClass}">${formatCalendarCompactKRW(finalPoint.cumulative)}</strong></span>
+        <span><em>거래 횟수</em><strong>${summary.tradeCount}회</strong></span>
+        <span><em>승률</em><strong>${summary.winRate.toFixed(1)}%</strong></span>
+      </div>
+    </section>
+  `;
+}
+
 function renderCalendarGrid(days, mobile = false) {
   const weekdayLabels = ["일", "월", "화", "수", "목", "금", "토"];
   const head = weekdayLabels
     .map((day, index) => `<div class="calendar-head ${index === 0 ? "text-red" : index === 6 ? "text-blue" : ""}">${day}</div>`)
     .join("");
   const cells = days.map((day, index) => {
-    const profitClass = day.profit > 0 ? "text-red" : day.profit < 0 ? "text-blue" : "";
     const isSunday = index % 7 === 0;
+    const dotTone = day.profit < 0 ? "blue" : day.profit > 0 ? "red" : "";
     return `
-      <button class="calendar-cell ${day.muted ? "muted-day" : ""} ${isSunday ? "sunday" : ""} ${day.selected ? "selected" : ""}" type="button" data-calendar-day="${day.dateValue}" aria-label="${day.dateValue} 매매일지 작성">
+      <button class="calendar-cell ${day.muted ? "muted-day" : ""} ${isSunday ? "sunday" : ""} ${day.selected ? "selected" : ""}" type="button" data-calendar-day="${day.dateValue}" aria-label="${day.dateValue} 매매일지 확인">
         <span class="date-num">${day.date}</span>
-        ${day.profit ? `<div class="day-profit ${profitClass}">${formatCalendarProfit(day.profit)}</div>` : ""}
-        ${day.count ? `<div class="day-dots">${Array.from({ length: Math.min(day.count, 3) }, () => `<span class="${day.profit < 0 ? "blue" : ""}"></span>`).join("")}</div>` : ""}
+        ${renderCalendarDayCellSummary(day)}
+        ${day.count ? `<div class="day-dots">${Array.from({ length: Math.min(day.count, 3) }, () => `<span class="${dotTone}"></span>`).join("")}</div>` : ""}
       </button>
     `;
   }).join("");
@@ -438,11 +590,10 @@ function renderCalendarGrid(days, mobile = false) {
     <section class="mobile-calendar-card">
       ${weekdayLabels.map((day, index) => `<strong class="${index === 0 ? "text-red" : index === 6 ? "text-blue" : ""}">${day}</strong>`).join("")}
       ${days.map((day, index) => {
-        const profitClass = day.profit > 0 ? "text-red" : day.profit < 0 ? "text-blue" : "";
         return `
-          <button class="${day.muted ? "muted" : ""} ${index % 7 === 0 ? "sunday" : ""} ${day.selected ? "selected" : ""}" type="button" data-calendar-day="${day.dateValue}" aria-label="${day.dateValue} 매매일지 작성">
+          <button class="${day.muted ? "muted" : ""} ${index % 7 === 0 ? "sunday" : ""} ${day.selected ? "selected" : ""}" type="button" data-calendar-day="${day.dateValue}" aria-label="${day.dateValue} 매매일지 확인">
             <span>${day.date}</span>
-            <em class="${profitClass}">${day.profit ? formatCalendarProfit(day.profit).replace("원", "") : ""}</em>
+            ${renderCalendarDayCellSummary(day, true)}
             ${day.count ? `<i class="mobile-day-dot ${day.profit < 0 ? "blue" : ""}" aria-hidden="true"></i>` : ""}
           </button>
         `;
@@ -486,6 +637,7 @@ function renderCalendar() {
         <button type="button" data-calendar-nav="1">${icon("chevronRight")}</button>
       </div>
       ${renderCalendarGrid(days, true)}
+      ${renderCalendarProfitTrendPanel(days, summary, true)}
       <section class="panel mobile-month-summary">
         <h2 class="panel-title">이번 달 요약</h2>
         <div>
@@ -509,6 +661,7 @@ function renderCalendar() {
           <button class="btn primary" type="button" data-modal="journalWrite">${icon("plus")}매매 기록 작성</button>
         </div>
         ${renderCalendarGrid(days)}
+        ${renderCalendarProfitTrendPanel(days, summary)}
         <section class="bottom-grid">
           <article class="panel">
             <div class="panel-header tight"><h2 class="panel-title">선택일 거래 내역</h2></div>

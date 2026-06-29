@@ -2853,6 +2853,30 @@ body[data-route="assets"] .asset-grid > article:first-child .legend-row > span:l
   overflow-wrap: anywhere;
 }
 
+.calendar-cell-summary {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  margin-top: 8px;
+}
+
+.calendar-cell-count {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-cell-profit {
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 .day-dots {
   display: flex;
   gap: 4px;
@@ -2896,6 +2920,133 @@ body[data-route="assets"] .asset-grid > article:first-child .legend-row > span:l
 .summary-item strong {
   font-size: 18px;
   font-weight: 850;
+}
+
+.calendar-profit-trend-panel {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  overflow: hidden;
+}
+
+.calendar-profit-trend-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calendar-profit-trend-header p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.calendar-profit-trend-header > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  color: #475569;
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.calendar-profit-chart-wrap {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.calendar-profit-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.calendar-profit-gridline {
+  stroke: #dbe7f5;
+  stroke-dasharray: 5 6;
+  stroke-width: 1;
+}
+
+.calendar-profit-gridline.zero {
+  stroke: #334155;
+  stroke-dasharray: none;
+  stroke-width: 1.25;
+}
+
+.calendar-profit-axis-label {
+  fill: #64748b;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.calendar-profit-axis-label.x {
+  fill: #94a3b8;
+}
+
+.calendar-profit-area {
+  fill: rgba(36, 116, 242, 0.1);
+}
+
+.calendar-profit-line {
+  fill: none;
+  stroke: var(--blue);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.calendar-profit-dot {
+  fill: white;
+  stroke-width: 2.5;
+}
+
+.calendar-profit-dot.positive {
+  stroke: var(--red);
+}
+
+.calendar-profit-dot.negative {
+  stroke: var(--blue);
+}
+
+.calendar-profit-trend-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.calendar-profit-trend-metrics span {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-right: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.calendar-profit-trend-metrics span:last-child {
+  border-right: 0;
+}
+
+.calendar-profit-trend-metrics em {
+  color: #64748b;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.calendar-profit-trend-metrics strong {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 950;
 }
 
 .broker-row,
