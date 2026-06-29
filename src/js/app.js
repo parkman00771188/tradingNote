@@ -122,6 +122,17 @@ var stockNewsState = {
   items: [],
   requestId: 0
 };
+var stockFundamentalsState = {
+  key: "",
+  loading: false,
+  loaded: false,
+  error: "",
+  headers: [],
+  rows: [],
+  unit: "",
+  source: "",
+  requestId: 0
+};
 var settingsActiveSection = "broker";
 const assetSettingsVisibleDotLimit = 5;
 const assetSettingsDotSize = 10;
@@ -546,6 +557,17 @@ function clearRuntimeUserData() {
     error: "",
     items: [],
     requestId: stockNewsState.requestId + 1
+  };
+  stockFundamentalsState = {
+    key: "",
+    loading: false,
+    loaded: false,
+    error: "",
+    headers: [],
+    rows: [],
+    unit: "",
+    source: "",
+    requestId: stockFundamentalsState.requestId + 1
   };
   if (stockFavoritesServerSaveTimer) window.clearTimeout(stockFavoritesServerSaveTimer);
   stockFavoritesServerSaveTimer = 0;
@@ -2202,6 +2224,311 @@ function ensureStockNewsForSelection() {
   }, 0);
 }
 
+function getStockFundamentalsKey(item = getStockAnalysisSelectedStock()) {
+  if (!item) return "";
+  const symbol = getStockChartSymbol(item);
+  return symbol ? symbol.toUpperCase() : "";
+}
+
+function renderStockFundamentalsSummary(selected = getStockAnalysisSelectedStock()) {
+  const key = getStockFundamentalsKey(selected);
+
+  if (!selected || !key) {
+    return `<div class="table-empty-cell">종목을 선택하면 재무 데이터가 표시됩니다.</div>`;
+  }
+
+  if (stockFundamentalsState.key === key && stockFundamentalsState.loading) {
+    return `
+      <div class="stock-chart-status compact">
+        <span class="status-icon">${icon("report")}</span>
+        <strong>재무 데이터를 불러오고 있습니다.</strong>
+      </div>
+    `;
+  }
+
+  if (stockFundamentalsState.key === key && stockFundamentalsState.error) {
+    return `
+      <div class="stock-chart-status error compact">
+        <span class="status-icon red">${icon("warning")}</span>
+        <strong>${escapeChartText(stockFundamentalsState.error)}</strong>
+      </div>
+    `;
+  }
+
+  if (stockFundamentalsState.key === key && stockFundamentalsState.loaded) {
+    const headers = stockFundamentalsState.headers.length ? stockFundamentalsState.headers : ["항목"];
+    const rows = stockFundamentalsState.rows;
+    const footer = [
+      stockFundamentalsState.unit ? `단위: ${stockFundamentalsState.unit}` : "",
+      stockFundamentalsState.source ? `출처: ${stockFundamentalsState.source}` : ""
+    ].filter(Boolean).join(" / ");
+
+    return `
+      ${rows.length
+        ? renderTable(headers, rows)
+        : renderTable(["항목", "값"], [])}
+      <p class="footer-note">${escapeChartText(rows.length ? footer : "재무 데이터를 제공하지 않는 종목입니다.")}</p>
+    `;
+  }
+
+  return `
+    <div class="stock-chart-status compact">
+      <span class="status-icon">${icon("report")}</span>
+      <strong>${escapeChartText(selected.name)} 재무 데이터를 준비하고 있습니다.</strong>
+    </div>
+  `;
+}
+
+async function loadStockFundamentalsForSelection(item = getStockAnalysisSelectedStock(), { force = false } = {}) {
+  if (!item) return false;
+  const selected = normalizeStockAnalysisItem(item);
+  const symbol = getStockChartSymbol(selected);
+  const key = getStockFundamentalsKey(selected);
+  if (!symbol || !key) return false;
+  if (!force && stockFundamentalsState.key === key && (stockFundamentalsState.loading || stockFundamentalsState.loaded || stockFundamentalsState.error)) return true;
+
+  const requestId = stockFundamentalsState.requestId + 1;
+  stockFundamentalsState = {
+    key,
+    loading: true,
+    loaded: false,
+    error: "",
+    headers: [],
+    rows: [],
+    unit: "",
+    source: "",
+    requestId
+  };
+  if (getRoute() === "stock") render();
+
+  try {
+    const response = await fetchWithTimeout(`/api/markets?action=fundamentals&symbol=${encodeURIComponent(symbol)}`, {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+      timeout: 10000
+    });
+    const { data, text } = await readApiJsonResponse(response);
+    if (stockFundamentalsState.requestId !== requestId) return false;
+    if (!response.ok || !data.ok) {
+      throw new Error(getApiErrorMessage(response, data, text, "재무 데이터를 불러오지 못했습니다."));
+    }
+
+    const fundamentals = data.fundamentals || {};
+    stockFundamentalsState = {
+      key,
+      loading: false,
+      loaded: true,
+      error: "",
+      headers: Array.isArray(fundamentals.headers) ? fundamentals.headers : [],
+      rows: Array.isArray(fundamentals.rows) ? fundamentals.rows : [],
+      unit: fundamentals.unit || "",
+      source: fundamentals.source || "Yahoo Finance",
+      requestId
+    };
+    if (getRoute() === "stock") render();
+    return true;
+  } catch (error) {
+    if (stockFundamentalsState.requestId !== requestId) return false;
+    stockFundamentalsState = {
+      key,
+      loading: false,
+      loaded: true,
+      error: error?.message || "재무 데이터를 불러오지 못했습니다.",
+      headers: [],
+      rows: [],
+      unit: "",
+      source: "",
+      requestId
+    };
+    if (getRoute() === "stock") render();
+    return false;
+  }
+}
+
+function ensureStockFundamentalsForSelection() {
+  const selected = getStockAnalysisSelectedStock();
+  if (!selected) return;
+  const key = getStockFundamentalsKey(selected);
+  if (!key) return;
+  if (stockFundamentalsState.key === key && (stockFundamentalsState.loading || stockFundamentalsState.loaded || stockFundamentalsState.error)) return;
+  window.setTimeout(() => {
+    if (getRoute() === "stock") loadStockFundamentalsForSelection(selected).catch((error) => {
+      console.warn("Stock fundamentals could not be loaded.", error);
+    });
+  }, 0);
+}
+
+function getStockChartCandlesForIndicators(selected = getStockAnalysisSelectedStock()) {
+  const key = getStockChartKey(selected);
+  if (!key || stockChartState.key !== key || !Array.isArray(stockChartState.candles)) return [];
+  return stockChartState.candles.filter((row) => Number(row?.close) > 0);
+}
+
+function getLastFiniteValue(values = []) {
+  for (let index = values.length - 1; index >= 0; index -= 1) {
+    const value = Number(values[index]);
+    if (Number.isFinite(value)) return value;
+  }
+  return NaN;
+}
+
+function averageNumbers(values = []) {
+  const finite = values.map(Number).filter(Number.isFinite);
+  if (!finite.length) return NaN;
+  return finite.reduce((sum, value) => sum + value, 0) / finite.length;
+}
+
+function getSimpleMovingAverage(values = [], size = 5) {
+  if (values.length < size) return NaN;
+  return averageNumbers(values.slice(-size));
+}
+
+function getEmaSeries(values = [], size = 12) {
+  const finite = values.map(Number).filter(Number.isFinite);
+  if (finite.length < size) return [];
+  const multiplier = 2 / (size + 1);
+  const series = [];
+  let previous = averageNumbers(finite.slice(0, size));
+  series[size - 1] = previous;
+  for (let index = size; index < finite.length; index += 1) {
+    previous = (finite[index] - previous) * multiplier + previous;
+    series[index] = previous;
+  }
+  return series;
+}
+
+function getRsiValue(values = [], size = 14) {
+  const finite = values.map(Number).filter(Number.isFinite);
+  if (finite.length <= size) return NaN;
+  const changes = [];
+  for (let index = 1; index < finite.length; index += 1) changes.push(finite[index] - finite[index - 1]);
+  const recent = changes.slice(-size);
+  const gains = recent.map((value) => Math.max(value, 0));
+  const losses = recent.map((value) => Math.max(-value, 0));
+  const avgGain = averageNumbers(gains);
+  const avgLoss = averageNumbers(losses);
+  if (!Number.isFinite(avgGain) || !Number.isFinite(avgLoss)) return NaN;
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return 100 - 100 / (1 + rs);
+}
+
+function getMacdMeta(values = []) {
+  const ema12 = getEmaSeries(values, 12);
+  const ema26 = getEmaSeries(values, 26);
+  const macdSeries = values.map((_, index) => {
+    const fast = Number(ema12[index]);
+    const slow = Number(ema26[index]);
+    return Number.isFinite(fast) && Number.isFinite(slow) ? fast - slow : NaN;
+  });
+  const compactMacd = macdSeries.filter(Number.isFinite);
+  const signalSeries = getEmaSeries(compactMacd, 9);
+  return {
+    macd: getLastFiniteValue(compactMacd),
+    signal: getLastFiniteValue(signalSeries)
+  };
+}
+
+function getBollingerMeta(values = [], size = 20) {
+  const recent = values.map(Number).filter(Number.isFinite).slice(-size);
+  if (recent.length < size) return null;
+  const middle = averageNumbers(recent);
+  const variance = averageNumbers(recent.map((value) => (value - middle) ** 2));
+  const deviation = Math.sqrt(variance);
+  return {
+    middle,
+    upper: middle + deviation * 2,
+    lower: middle - deviation * 2,
+    close: recent[recent.length - 1]
+  };
+}
+
+function technicalSignal(text, tone = "") {
+  const className = tone === "buy" ? "text-red" : tone === "sell" ? "text-blue" : tone === "warn" ? "text-orange" : "";
+  return className ? `<span class="${className}">${text}</span>` : text;
+}
+
+function formatTechnicalValue(value, digits = 2) {
+  return Number.isFinite(Number(value)) ? Number(value).toLocaleString("ko-KR", { maximumFractionDigits: digits }) : "-";
+}
+
+function getStockTechnicalIndicatorRows(selected = getStockAnalysisSelectedStock()) {
+  const candles = getStockChartCandlesForIndicators(selected);
+  const closes = candles.map((row) => Number(row.close)).filter(Number.isFinite);
+  if (closes.length < 2) return [];
+
+  const latest = closes[closes.length - 1];
+  const ma5 = getSimpleMovingAverage(closes, 5);
+  const ma20 = getSimpleMovingAverage(closes, 20);
+  const ma60 = getSimpleMovingAverage(closes, 60);
+  const rsi = getRsiValue(closes, 14);
+  const macd = getMacdMeta(closes);
+  const bollinger = getBollingerMeta(closes, 20);
+
+  const rows = [];
+  if (Number.isFinite(ma5) && Number.isFinite(ma20)) {
+    const hasMa60 = Number.isFinite(ma60);
+    const bull = ma5 > ma20 && (!hasMa60 || ma20 > ma60);
+    const bear = ma5 < ma20 && (!hasMa60 || ma20 < ma60);
+    rows.push([
+      "이동평균",
+      hasMa60 ? `MA5 ${formatTechnicalValue(ma5)} / MA20 ${formatTechnicalValue(ma20)} / MA60 ${formatTechnicalValue(ma60)}` : `MA5 ${formatTechnicalValue(ma5)} / MA20 ${formatTechnicalValue(ma20)}`,
+      bull ? technicalSignal("상승 배열", "buy") : bear ? technicalSignal("하락 배열", "sell") : "혼조"
+    ]);
+  }
+  if (Number.isFinite(rsi)) {
+    rows.push([
+      "RSI (14)",
+      formatTechnicalValue(rsi),
+      rsi >= 70 ? technicalSignal("과열", "warn") : rsi <= 30 ? technicalSignal("침체", "buy") : "중립"
+    ]);
+  }
+  if (Number.isFinite(macd.macd) && Number.isFinite(macd.signal)) {
+    rows.push([
+      "MACD",
+      `${formatTechnicalValue(macd.macd, 4)} / Signal ${formatTechnicalValue(macd.signal, 4)}`,
+      macd.macd >= macd.signal ? technicalSignal("상승", "buy") : technicalSignal("하락", "sell")
+    ]);
+  }
+  if (bollinger) {
+    rows.push([
+      "볼린저 밴드",
+      `${formatTechnicalValue(bollinger.lower)} ~ ${formatTechnicalValue(bollinger.upper)}`,
+      latest >= bollinger.upper * 0.98
+        ? technicalSignal("상단 근접", "warn")
+        : latest <= bollinger.lower * 1.02
+          ? technicalSignal("하단 근접", "buy")
+          : "중립"
+    ]);
+  }
+
+  return rows;
+}
+
+function renderStockTechnicalIndicators(selected = getStockAnalysisSelectedStock()) {
+  if (stockChartState.key === getStockChartKey(selected) && stockChartState.loading) {
+    return `
+      <div class="stock-chart-status compact">
+        <span class="status-icon">${icon("chart")}</span>
+        <strong>기술적 지표를 계산하고 있습니다.</strong>
+      </div>
+    `;
+  }
+
+  const rows = getStockTechnicalIndicatorRows(selected);
+  if (!rows.length) {
+    return `
+      ${renderTable(["지표", "값", "신호"], [])}
+      <p class="footer-note">차트 데이터가 충분하면 자동 계산됩니다.</p>
+    `;
+  }
+
+  return `
+    ${renderTable(["지표", "값", "신호"], rows)}
+    <p class="footer-note">기준: 선택한 차트 기간의 Yahoo Finance 가격 데이터</p>
+  `;
+}
+
 function getStockFavoritesSnapshot() {
   return stockFavoriteItems.map((item) => {
     const stock = normalizeStockAnalysisItem(item);
@@ -2477,6 +2804,9 @@ function setStockAnalysisSelection(item = {}, { refresh = true } = {}) {
   loadStockNewsForSelection(stockAnalysisSelected, { force: changed }).catch((error) => {
     console.warn("Selected stock news could not be refreshed.", error);
   });
+  loadStockFundamentalsForSelection(stockAnalysisSelected, { force: changed }).catch((error) => {
+    console.warn("Selected stock fundamentals could not be refreshed.", error);
+  });
 }
 
 async function refreshStockAnalysisSelection(item = getStockAnalysisSelectedStock()) {
@@ -2508,6 +2838,9 @@ async function refreshStockAnalysisSelection(item = getStockAnalysisSelectedStoc
     });
     loadStockNewsForSelection(refreshed).catch((error) => {
       console.warn("Refreshed stock news could not be loaded.", error);
+    });
+    loadStockFundamentalsForSelection(refreshed).catch((error) => {
+      console.warn("Refreshed stock fundamentals could not be loaded.", error);
     });
   } finally {
     if (stockAnalysisRefreshKey === targetKey) stockAnalysisRefreshKey = "";
@@ -5300,6 +5633,7 @@ function render() {
   if (route === "stock") {
     ensureStockChartForSelection();
     ensureStockNewsForSelection();
+    ensureStockFundamentalsForSelection();
     const refreshKey = getStockItemKey(getStockAnalysisSelectedStock());
     if (refreshKey && stockAnalysisAutoRefreshKey !== refreshKey) {
       stockAnalysisAutoRefreshKey = refreshKey;

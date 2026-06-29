@@ -156,25 +156,12 @@ function renderStock() {
 
         <section class="bottom-grid">
           <article class="panel">
-            <div class="panel-header tight"><h2 class="panel-title">재무 요약 <small>연결 IFRS</small></h2></div>
-            ${renderTable(["항목", "2021", "2022", "2023", "2024(E)"], [
-              ["매출액", "2,796,048", "3,022,314", "2,589,355", "2,956,102"],
-              ["영업이익", "516,339", "433,766", "65,670", "312,984"],
-              ["당기순이익", "399,074", "556,541", "154,871", "245,100"],
-              ["영업이익률", "18.46%", "14.35%", "2.54%", "10.59%"],
-              ["ROE", "17.29%", "16.34%", "4.24%", "7.19%"]
-            ])}
-            <p class="footer-note">단위: 억원 / 출처: FnGuide</p>
+            <div class="panel-header tight"><h2 class="panel-title">재무 요약 <small>Yahoo Finance</small></h2></div>
+            ${typeof renderStockFundamentalsSummary === "function" ? renderStockFundamentalsSummary(selected) : renderTable(["항목", "값"], [])}
           </article>
           <article class="panel">
             <div class="panel-header tight"><h2 class="panel-title">기술적 지표</h2></div>
-            ${renderTable(["지표", "값", "신호"], [
-              ["이동평균 정배열", "정배열", `<span class="text-red">매수</span>`],
-              ["RSI (14)", "61.32", "중립"],
-              ["MACD", "1,215.45", `<span class="text-red">매수</span>`],
-              ["스토캐스틱 (K)", "72.48", "중립"],
-              ["볼린저 밴드", "상단 근접", `<span class="text-orange">주의</span>`]
-            ])}
+            ${typeof renderStockTechnicalIndicators === "function" ? renderStockTechnicalIndicators(selected) : renderTable(["지표", "값", "신호"], [])}
           </article>
         </section>
 
@@ -202,12 +189,6 @@ function renderStock() {
         ${renderStockWatchPanel()}
 
         ${renderStockNewsPanel(selected, "stock-news-desktop-panel")}
-
-        <article class="panel">
-          <div class="panel-header tight"><h2 class="panel-title">애널리스트 메모</h2><button class="mini-action" type="button">${icon("edit")}</button></div>
-          <p class="note-text">${escapeChartText(selected.name)}의 가격 흐름과 거래량 변화를 함께 확인하세요. 관심 종목에 추가하면 다른 기기에서도 같은 목록을 불러올 수 있습니다.</p>
-          <p class="footer-note">작성일: 2026.06.26 / 작성자: Trading Note</p>
-        </article>
       </aside>
     </div>
   `;

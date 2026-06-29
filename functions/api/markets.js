@@ -1,5 +1,6 @@
 const YAHOO_SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search";
 const YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart";
+const YAHOO_FUNDAMENTALS_URL = "https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries";
 const KRX_CORP_LIST_URL = "https://kind.krx.co.kr/corpgeneral/corpList.do?method=download&searchType=13";
 
 const REQUEST_HEADERS = {
@@ -29,6 +30,12 @@ const YAHOO_QUOTE_TYPE_LABELS = {
 };
 
 const fxRateCache = new Map();
+const FUNDAMENTAL_METRICS = [
+  { type: "annualTotalRevenue", label: "매출액" },
+  { type: "annualGrossProfit", label: "매출총이익" },
+  { type: "annualOperatingIncome", label: "영업이익" },
+  { type: "annualNetIncome", label: "순이익" }
+];
 
 function json(data, status = 200, options = {}) {
   return new Response(JSON.stringify(data), {
@@ -368,6 +375,81 @@ async function fetchYahooChart(symbol, options = {}) {
   };
 }
 
+function getFundamentalPeriodWindow() {
+  const now = new Date();
+  const start = new Date(now.getFullYear() - 7, 0, 1);
+  const end = new Date(now.getFullYear() + 1, 11, 31);
+  return {
+    period1: Math.floor(start.getTime() / 1000),
+    period2: Math.floor(end.getTime() / 1000)
+  };
+}
+
+function getFundamentalRawValue(item) {
+  const value = Number(item?.reportedValue?.raw ?? item?.raw ?? NaN);
+  return Number.isFinite(value) ? value : null;
+}
+
+function formatFundamentalValue(value, currency) {
+  if (!Number.isFinite(Number(value))) return "-";
+  const divisor = normalizeCurrency(currency) === "KRW" ? 100000000 : 1000000;
+  return Math.round(Number(value) / divisor).toLocaleString("ko-KR");
+}
+
+function normalizeFundamentalResult(result) {
+  const type = String(result?.meta?.type?.[0] || "").trim();
+  const entries = Array.isArray(result?.[type]) ? result[type] : [];
+  const valuesByYear = {};
+  let currency = "";
+
+  entries.forEach((entry) => {
+    const raw = getFundamentalRawValue(entry);
+    const year = String(entry?.asOfDate || "").slice(0, 4);
+    if (!year || raw === null) return;
+    valuesByYear[year] = raw;
+    if (!currency) currency = normalizeCurrency(entry?.currencyCode || entry?.reportedValue?.currencyCode || "");
+  });
+
+  return { type, valuesByYear, currency };
+}
+
+async function fetchYahooFundamentals(symbol) {
+  const normalizedSymbol = String(symbol || "").trim();
+  if (!normalizedSymbol) return { headers: [], rows: [], currency: "", unit: "", source: "Yahoo Finance" };
+
+  const { period1, period2 } = getFundamentalPeriodWindow();
+  const url = new URL(`${YAHOO_FUNDAMENTALS_URL}/${encodeURIComponent(normalizedSymbol)}`);
+  url.searchParams.set("type", FUNDAMENTAL_METRICS.map((metric) => metric.type).join(","));
+  url.searchParams.set("period1", String(period1));
+  url.searchParams.set("period2", String(period2));
+
+  const response = await fetch(url.toString(), {
+    headers: REQUEST_HEADERS,
+    cf: { cacheTtl: 21600, cacheEverything: true }
+  });
+  if (!response.ok) return { headers: [], rows: [], currency: "", unit: "", source: "Yahoo Finance" };
+
+  const payload = await response.json().catch(() => ({}));
+  const results = Array.isArray(payload?.timeseries?.result) ? payload.timeseries.result : [];
+  const normalized = results.map(normalizeFundamentalResult).filter((item) => item.type);
+  const years = [...new Set(normalized.flatMap((item) => Object.keys(item.valuesByYear)))]
+    .sort((a, b) => Number(a) - Number(b))
+    .slice(-4);
+  const currency = normalized.find((item) => item.currency)?.currency || "";
+  const rows = FUNDAMENTAL_METRICS.map((metric) => {
+    const item = normalized.find((entry) => entry.type === metric.type);
+    return [metric.label, ...years.map((year) => formatFundamentalValue(item?.valuesByYear?.[year], currency))];
+  }).filter((row) => row.slice(1).some((value) => value !== "-"));
+
+  return {
+    headers: ["항목", ...years],
+    rows,
+    currency,
+    unit: normalizeCurrency(currency) === "KRW" ? "억원" : currency ? `백만 ${currency}` : "",
+    source: "Yahoo Finance"
+  };
+}
+
 async function fetchFxRateToKrw(currency, options = {}) {
   const normalizedCurrency = normalizeCurrency(currency);
   if (!normalizedCurrency) return 0;
@@ -475,7 +557,7 @@ export async function onRequestGet(context) {
     const url = new URL(context.request.url);
     const action = url.searchParams.get("action") || "search";
     const noStore = url.searchParams.get("refresh") === "1" || url.searchParams.get("noCache") === "1";
-    if (!["search", "chart", "news"].includes(action)) return json({ ok: false, error: "지원하지 않는 시장 데이터 작업입니다." }, 400);
+    if (!["search", "chart", "news", "fundamentals"].includes(action)) return json({ ok: false, error: "지원하지 않는 시장 데이터 작업입니다." }, 400);
 
     if (action === "chart") {
       const symbol = String(url.searchParams.get("symbol") || "").trim().slice(0, 80);
@@ -498,6 +580,13 @@ export async function onRequestGet(context) {
       if (!query) return json({ ok: true, news: [] });
       const news = await fetchYahooNewsWithFallback(query, { symbol }, 5);
       return json({ ok: true, news });
+    }
+
+    if (action === "fundamentals") {
+      const symbol = String(url.searchParams.get("symbol") || "").trim().slice(0, 80);
+      if (!symbol) return json({ ok: false, error: "재무 데이터를 불러올 종목 코드가 필요합니다." }, 400);
+      const fundamentals = await fetchYahooFundamentals(symbol);
+      return json({ ok: true, fundamentals });
     }
 
     const query = url.searchParams.get("q") || "";
