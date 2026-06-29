@@ -1256,13 +1256,16 @@ function applyJournalRecordAssetEffect(record = {}, direction = 1) {
 
 async function persistJournalAndAssetState() {
   const userId = getCurrentUserStorageId();
+  const journalSnapshot = getJournalRecordsSnapshot();
   if (authState.authenticated && userId && userDataServerLoadedFor !== userId) {
     userJournalServerSavePendingFor = userId;
+    userDataServerSavePendingFor = userId;
+    userDataServerSavePendingSource = "journal";
   }
 
   const results = await Promise.allSettled([
     saveAssetStateToStorage({ source: "journal", immediate: true }),
-    saveJournalRecordsToServer({ waitForLoad: true })
+    saveJournalRecordsToServer({ waitForLoad: true, recordsSnapshot: journalSnapshot })
   ]);
   const failed = results.find((result) => result.status === "rejected" || result.value === false);
   if (failed) throw failed.reason || new Error("Journal data was not saved to the server.");
@@ -1406,11 +1409,12 @@ function shouldPreferLocalAssetSnapshot(localSnapshot = {}, remoteSnapshot = {})
 }
 
 function shouldAllowEmptyAssetSave(source = "") {
-  return source === "user_clear" || source === "user_cash";
+  return source === "user_clear" || source === "user_cash" || source === "journal";
 }
 
 function isUserAssetSaveSource(source = "") {
-  return String(source || "").startsWith("user");
+  const normalizedSource = String(source || "");
+  return normalizedSource.startsWith("user") || normalizedSource === "journal";
 }
 
 function clearPendingUserAssetSave() {
@@ -1490,9 +1494,9 @@ async function saveUserAssetStateToServer({ allowEmpty = false, source = "user",
       if (!loaded || userDataServerLoadedFor !== userId) {
         throw new Error("저장된 자산 데이터를 먼저 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
       }
-      return true;
+    } else {
+      return false;
     }
-    return false;
   }
 
   try {
@@ -3105,10 +3109,13 @@ function scheduleJournalRecordsSave() {
   }, 500);
 }
 
-async function saveJournalRecordsToServer({ waitForLoad = false } = {}) {
+async function saveJournalRecordsToServer({ waitForLoad = false, recordsSnapshot = null } = {}) {
   if (!authState.authenticated) return false;
   const userId = getCurrentUserStorageId();
   if (!userId) return false;
+  const journalSnapshot = Array.isArray(recordsSnapshot)
+    ? recordsSnapshot.map((record) => normalizeJournalRecord(record))
+    : getJournalRecordsSnapshot();
   if (userDataServerLoadedFor !== userId) {
     userJournalServerSavePendingFor = userId;
     const loadResult = loadUserDataFromServer(userId);
@@ -3131,7 +3138,7 @@ async function saveJournalRecordsToServer({ waitForLoad = false } = {}) {
       },
       body: JSON.stringify({
         action: "save_journal_records",
-        journalRecords: getJournalRecordsSnapshot()
+        journalRecords: journalSnapshot
       })
     });
     const { data } = await readApiJsonResponse(response);
