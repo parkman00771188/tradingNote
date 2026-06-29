@@ -62,7 +62,7 @@ var assetCashMessage = "";
 var assetCashDraftAmount = "";
 var assetCashPendingAmount = 0;
 var assetCashPendingMode = "deposit";
-var assetTrendRange = "6m";
+var assetTrendRange = "1w";
 var assetTrendIncludeCash = true;
 var assetTrendHistory = [];
 var assetSettingsDrafts = [];
@@ -738,10 +738,10 @@ function getAssetTrendHistory({ includeCurrent = true } = {}) {
 }
 
 function getAssetTrendRange() {
-  return assetTrendRangeKeys.has(assetTrendRange) ? assetTrendRange : "6m";
+  return assetTrendRangeKeys.has(assetTrendRange) ? assetTrendRange : "1w";
 }
 
-function setAssetTrendRange(nextRange = "6m") {
+function setAssetTrendRange(nextRange = "1w") {
   if (!assetTrendRangeKeys.has(nextRange)) return false;
   assetTrendRange = nextRange;
   return true;
@@ -875,7 +875,7 @@ function getUserScopedStorageKey(baseKey) {
 
 function clearRuntimeUserData() {
   assetCashBalance = 0;
-  assetTrendRange = "6m";
+  assetTrendRange = "1w";
   assetTrendIncludeCash = true;
   assetTrendHistory = [];
   assetTrendDashboardSnapshotKey = "";
@@ -963,6 +963,89 @@ function normalizeJournalRecord(record = {}) {
     createdAt: record.createdAt || now,
     updatedAt: record.updatedAt || now
   };
+}
+
+function parseLegacyJournalNumber(value = "") {
+  if (typeof parseMarketNumber === "function") return parseMarketNumber(value);
+  return Number(String(value ?? "").replace(/[^0-9.-]/g, "")) || 0;
+}
+
+function parseLegacyJournalDate(value = "") {
+  const text = String(value || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+
+  const shortDate = text.match(/^(\d{1,2})[./-](\d{1,2})$/);
+  if (!shortDate) return "";
+
+  const year = new Date().getFullYear();
+  const month = String(Number(shortDate[1])).padStart(2, "0");
+  const day = String(Number(shortDate[2])).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function convertLegacyTradeRowToJournalRecord(row = [], index = 0) {
+  if (!Array.isArray(row)) return null;
+
+  const date = parseLegacyJournalDate(row[0]);
+  const name = String(row[1] || "").trim();
+  const quantity = parseLegacyJournalNumber(row[3]);
+  const buyPrice = parseLegacyJournalNumber(row[4]);
+  const sellPrice = parseLegacyJournalNumber(row[5]);
+  const isSell = sellPrice > 0 && String(row[5] || "").trim() !== "-";
+  const price = isSell ? sellPrice : buyPrice;
+  const code = String(row[12] || "").trim();
+
+  if (!date || !name || quantity <= 0 || price <= 0) return null;
+
+  const safeKey = normalizeUserStorageId(`${date}-${name}-${code}-${quantity}-${price}-${index}`).slice(0, 80);
+  return normalizeJournalRecord({
+    id: `legacy-${safeKey || index}`,
+    date,
+    type: isSell ? "sell" : "buy",
+    name,
+    code,
+    symbol: code,
+    quantity,
+    price,
+    buyPrice: isSell ? 0 : price,
+    sellPrice: isSell ? price : 0,
+    memo: String(row[9] || "").trim(),
+    createdAt: `${date}T00:00:00.000Z`,
+    updatedAt: `${date}T00:00:00.000Z`
+  });
+}
+
+function mergeRemoteJournalRecords(records = [], legacyTrades = []) {
+  const merged = [];
+  const seen = new Set();
+  const addRecord = (record) => {
+    if (!record) return;
+    const normalized = normalizeJournalRecord(record);
+    if (!normalized.name || normalized.quantity <= 0) return;
+
+    const idKey = normalized.id ? `id:${normalized.id}` : "";
+    const valueKey = [
+      "value",
+      normalized.date,
+      normalized.type,
+      normalizeUserStorageId(normalized.name),
+      normalizeUserStorageId(normalized.code || normalized.symbol),
+      normalized.quantity,
+      getJournalRecordPrice(normalized)
+    ].join("|");
+
+    if ((idKey && seen.has(idKey)) || seen.has(valueKey)) return;
+    if (idKey) seen.add(idKey);
+    seen.add(valueKey);
+    merged.push(normalized);
+  };
+
+  (Array.isArray(records) ? records : []).forEach(addRecord);
+  (Array.isArray(legacyTrades) ? legacyTrades : []).forEach((row, index) => {
+    addRecord(convertLegacyTradeRowToJournalRecord(row, index));
+  });
+
+  return merged;
 }
 
 function applyUserJournalRecords(records = []) {
@@ -1153,12 +1236,17 @@ function applyJournalRecordAssetEffect(record = {}, direction = 1) {
 }
 
 async function persistJournalAndAssetState() {
+  const userId = getCurrentUserStorageId();
+  if (authState.authenticated && userId && userDataServerLoadedFor !== userId) {
+    userJournalServerSavePendingFor = userId;
+  }
+
   const results = await Promise.allSettled([
     saveAssetStateToStorage({ source: "journal", immediate: true }),
-    saveJournalRecordsToServer()
+    saveJournalRecordsToServer({ waitForLoad: true })
   ]);
-  const failed = results.find((result) => result.status === "rejected");
-  if (failed) throw failed.reason;
+  const failed = results.find((result) => result.status === "rejected" || result.value === false);
+  if (failed) throw failed.reason || new Error("Journal data was not saved to the server.");
   return true;
 }
 
@@ -1458,7 +1546,7 @@ async function doLoadUserDataFromServer(userId) {
 
     const remoteAssets = payload.data?.assets || {};
     const remoteStockFavorites = Array.isArray(payload.data?.stockFavorites) ? payload.data.stockFavorites : [];
-    const remoteJournalRecords = Array.isArray(payload.data?.journalRecords) ? payload.data.journalRecords : [];
+    const remoteJournalRecords = mergeRemoteJournalRecords(payload.data?.journalRecords, payload.data?.trades);
     const remoteHasAssets = hasAssetSnapshotData(remoteAssets);
     const remoteAssetTrendHistory = getAssetTrendHistoryFromSnapshot(remoteAssets);
     const pendingAssetSave = userDataServerSavePendingFor === userId;
@@ -2998,16 +3086,20 @@ function scheduleJournalRecordsSave() {
   }, 500);
 }
 
-async function saveJournalRecordsToServer() {
+async function saveJournalRecordsToServer({ waitForLoad = false } = {}) {
   if (!authState.authenticated) return false;
   const userId = getCurrentUserStorageId();
   if (!userId) return false;
   if (userDataServerLoadedFor !== userId) {
     userJournalServerSavePendingFor = userId;
-    if (userDataServerLoadingFor !== userId) {
-      loadUserDataFromServer(userId);
+    const loadResult = loadUserDataFromServer(userId);
+    if (!waitForLoad) return false;
+
+    const loaded = await loadResult;
+    if (!loaded && userDataServerLoadedFor !== userId) {
+      throw new Error("Saved journal data could not be loaded before sync.");
     }
-    return false;
+    if (userJournalServerSavePendingFor === userId) userJournalServerSavePendingFor = "";
   }
 
   try {

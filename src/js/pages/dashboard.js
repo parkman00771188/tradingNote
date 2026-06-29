@@ -96,13 +96,13 @@ const assetTrendRangeOptions = [
 ];
 
 function getDashboardAssetTrendRangeKey() {
-  const selectedRange = typeof getAssetTrendRange === "function" ? getAssetTrendRange() : "6m";
-  return assetTrendRangeOptions.some((option) => option.key === selectedRange) ? selectedRange : "6m";
+  const selectedRange = typeof getAssetTrendRange === "function" ? getAssetTrendRange() : "1w";
+  return assetTrendRangeOptions.some((option) => option.key === selectedRange) ? selectedRange : "1w";
 }
 
 function getDashboardAssetTrendRangeOption() {
   const selectedRange = getDashboardAssetTrendRangeKey();
-  return assetTrendRangeOptions.find((option) => option.key === selectedRange) || assetTrendRangeOptions[3];
+  return assetTrendRangeOptions.find((option) => option.key === selectedRange) || assetTrendRangeOptions[0];
 }
 
 function getDashboardStartOfDay(date = new Date()) {
@@ -413,6 +413,31 @@ function renderDashboardHoldingRows() {
     );
 }
 
+function renderDashboardRecentTradeRows(limit = 5) {
+  const rows = typeof getAllJournalTradeRows === "function"
+    ? getAllJournalTradeRows()
+    : (typeof trades !== "undefined" && Array.isArray(trades) ? trades : []);
+
+  return rows
+    .slice()
+    .sort((a, b) => String(b[10] || b[0] || "").localeCompare(String(a[10] || a[0] || "")))
+    .slice(0, limit)
+    .map((row) => {
+      const isSell = String(row[5] || "").trim() && String(row[5] || "").trim() !== "-";
+      const price = isSell ? row[5] : row[4];
+      const typeClass = isSell ? "sell" : "buy";
+      return [
+        row[0],
+        row[1],
+        `<span class="trade-type ${typeClass}">${row[2]}</span>`,
+        row[3],
+        price,
+        row[6],
+        row[7]
+      ];
+    });
+}
+
 function renderDashboardMemoSummary() {
   const [memo] = typeof getUserMemos === "function" ? getUserMemos() : [];
   const title = memo?.title || "저장된 메모가 없습니다.";
@@ -519,7 +544,7 @@ function renderDashboard() {
             <h2 class="panel-title">최근 매매 기록</h2>
             <button class="btn ghost dashboard-more-btn" type="button" data-route="journal">더보기 ${icon("chevronRight")}</button>
           </div>
-          ${renderTable(["일자", "종목명", "구분", "수량", "체결가", "손익", "수익률"], renderTradeRows(5).map((row) => [row[0], row[1], row[2], row[3], row[4], row[6], row[7]]))}
+          ${renderTable(["일자", "종목명", "구분", "수량", "체결가", "손익", "수익률"], renderDashboardRecentTradeRows(5))}
         </article>
       </section>
 
