@@ -357,14 +357,16 @@ export async function onRequestPost(context) {
 
     const { config, session } = sessionResult;
     const body = await context.request.json().catch(() => ({}));
-    if (!["save_assets", "save_stock_favorites", "save_journal_records"].includes(body.action)) {
+    if (!["save_assets", "save_stock_favorites", "save_journal_records", "save_assets_and_journal"].includes(body.action)) {
       return badRequest("지원하지 않는 데이터 작업입니다.");
     }
 
     const currentData = await readUserData(config, session.userKey);
-    const sanitizedAssets = body.action === "save_assets" ? sanitizeAssets(body.assets) : null;
+    const savesAssets = body.action === "save_assets" || body.action === "save_assets_and_journal";
+    const savesJournal = body.action === "save_journal_records" || body.action === "save_assets_and_journal";
+    const sanitizedAssets = savesAssets ? sanitizeAssets(body.assets) : null;
     if (
-      body.action === "save_assets" &&
+      savesAssets &&
       hasAssetData(currentData.assets) &&
       !hasAssetData(sanitizedAssets) &&
       body.allowEmptyAssets !== true
@@ -376,11 +378,9 @@ export async function onRequestPost(context) {
       ...currentData,
       version: DATA_VERSION,
       updatedAt: new Date().toISOString(),
-      ...(body.action === "save_assets"
-        ? { assets: sanitizedAssets }
-        : body.action === "save_stock_favorites"
-          ? { stockFavorites: sanitizeStockFavorites(body.stockFavorites) }
-          : { journalRecords: sanitizeJournalRecords(body.journalRecords) })
+      ...(savesAssets ? { assets: sanitizedAssets } : {}),
+      ...(body.action === "save_stock_favorites" ? { stockFavorites: sanitizeStockFavorites(body.stockFavorites) } : {}),
+      ...(savesJournal ? { journalRecords: sanitizeJournalRecords(body.journalRecords) } : {})
     };
 
     await saveUserData(config, session.userKey, nextData);

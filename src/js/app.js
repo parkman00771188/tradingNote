@@ -47,6 +47,7 @@ var userDataServerLoadError = "";
 var userDataServerSaveTimer = 0;
 var userDataServerSavePendingFor = "";
 var userDataServerSavePendingSource = "";
+var userDataMutationVersion = 0;
 var assetTrendDashboardSnapshotKey = "";
 var pendingAssetStorageCleanupKey = "";
 var authState = {
@@ -1218,6 +1219,7 @@ function applyJournalRecordAssetEffect(record = {}, direction = 1) {
   const isSell = normalized.type === "sell";
   const quantityDelta = (isSell ? -quantity : quantity) * direction;
   const cashDelta = (isSell ? total : -total) * direction;
+  if (!isSell && direction > 0 && total > (Number(assetCashBalance) || 0) + 0.000001) return false;
 
   let rowIndex = findJournalAssetRowIndex(rows, normalized);
   if (rowIndex < 0 && quantityDelta > 0) {
@@ -1260,21 +1262,70 @@ function applyJournalRecordAssetEffect(record = {}, direction = 1) {
   return true;
 }
 
+async function saveJournalAndAssetStateToServer({ assetsSnapshot = null, journalSnapshot = null } = {}) {
+  if (!authState.authenticated) return false;
+  const userId = getCurrentUserStorageId();
+  if (!userId) return false;
+
+  const assets = assetsSnapshot || getAssetSnapshot();
+  const journalRecords = Array.isArray(journalSnapshot)
+    ? journalSnapshot.map((record) => normalizeJournalRecord(record))
+    : getJournalRecordsSnapshot();
+
+  try {
+    const response = await fetchWithTimeout("/api/data", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        action: "save_assets_and_journal",
+        assets,
+        journalRecords,
+        allowEmptyAssets: true
+      })
+    });
+    const { data, text } = await readApiJsonResponse(response);
+    if (!response.ok || !data.ok) {
+      throw new Error(getApiErrorMessage(response, data, text, "Journal and asset data could not be saved."));
+    }
+
+    userDataServerLoadedFor = userId;
+    userDataServerLoadError = "";
+    clearPendingUserAssetSave();
+    userJournalServerSavePendingFor = "";
+    setDatabaseState({
+      checked: true,
+      connected: true,
+      data: summarizeDatabaseData(data.data || {}),
+      message: "Journal and asset data were saved to Cloudflare D1.",
+      error: ""
+    });
+    return true;
+  } catch (error) {
+    console.warn("Journal and asset data could not be saved to the server.", error);
+    throw error;
+  }
+}
+
 async function persistJournalAndAssetState() {
   const userId = getCurrentUserStorageId();
-  const journalSnapshot = getJournalRecordsSnapshot();
-  if (authState.authenticated && userId && userDataServerLoadedFor !== userId) {
-    userJournalServerSavePendingFor = userId;
-    userDataServerSavePendingFor = userId;
-    userDataServerSavePendingSource = "journal";
-  }
+  if (userDataServerSaveTimer) window.clearTimeout(userDataServerSaveTimer);
+  if (userJournalServerSaveTimer) window.clearTimeout(userJournalServerSaveTimer);
+  userDataServerSaveTimer = 0;
+  userJournalServerSaveTimer = 0;
+  userJournalServerSavePendingFor = "";
+  clearPendingUserAssetSave();
 
-  const results = await Promise.allSettled([
-    saveAssetStateToStorage({ source: "journal", immediate: true }),
-    saveJournalRecordsToServer({ waitForLoad: true, recordsSnapshot: journalSnapshot })
-  ]);
-  const failed = results.find((result) => result.status === "rejected" || result.value === false);
-  if (failed) throw failed.reason || new Error("Journal data was not saved to the server.");
+  await saveAssetStateToStorage({ syncRemote: false, source: "journal" });
+  const assetsSnapshot = getAssetSnapshot();
+  const journalSnapshot = getJournalRecordsSnapshot();
+
+  if (authState.authenticated && userId) {
+    await saveJournalAndAssetStateToServer({ assetsSnapshot, journalSnapshot });
+  }
   return true;
 }
 
@@ -1282,12 +1333,21 @@ async function deleteJournalRecordById(recordId = "") {
   const record = getJournalRecordById(recordId);
   if (!record) return false;
   const assetSnapshot = getJournalAssetMutationSnapshot();
+  const journalSnapshot = getJournalRecordsSnapshot();
   if (!applyJournalRecordAssetEffect(record, -1)) {
     restoreJournalAssetMutationSnapshot(assetSnapshot);
     return false;
   }
   userJournalRecords = userJournalRecords.filter((item) => String(item.id || "") !== String(recordId));
-  await persistJournalAndAssetState();
+  try {
+    await persistJournalAndAssetState();
+  } catch (error) {
+    restoreJournalAssetMutationSnapshot(assetSnapshot);
+    applyUserJournalRecords(journalSnapshot);
+    await saveAssetStateToStorage({ syncRemote: false, source: "system" });
+    console.warn("Journal record could not be deleted.", error);
+    return false;
+  }
   return true;
 }
 
@@ -1295,6 +1355,7 @@ async function deleteJournalRecordsByIds(recordIds = []) {
   const idSet = new Set(recordIds.map((id) => String(id || "")).filter(Boolean));
   if (!idSet.size) return false;
   const assetSnapshot = getJournalAssetMutationSnapshot();
+  const journalSnapshot = getJournalRecordsSnapshot();
   for (const record of userJournalRecords) {
     if (!idSet.has(String(record.id || ""))) continue;
     if (!applyJournalRecordAssetEffect(record, -1)) {
@@ -1303,7 +1364,15 @@ async function deleteJournalRecordsByIds(recordIds = []) {
     }
   }
   userJournalRecords = userJournalRecords.filter((item) => !idSet.has(String(item.id || "")));
-  await persistJournalAndAssetState();
+  try {
+    await persistJournalAndAssetState();
+  } catch (error) {
+    restoreJournalAssetMutationSnapshot(assetSnapshot);
+    applyUserJournalRecords(journalSnapshot);
+    await saveAssetStateToStorage({ syncRemote: false, source: "system" });
+    console.warn("Journal records could not be deleted.", error);
+    return false;
+  }
   return true;
 }
 
@@ -1426,6 +1495,10 @@ function isUserAssetSaveSource(source = "") {
 function clearPendingUserAssetSave() {
   userDataServerSavePendingFor = "";
   userDataServerSavePendingSource = "";
+}
+
+function markUserDataMutation() {
+  userDataMutationVersion += 1;
 }
 
 function applyUserAssetSnapshot(snapshot = {}) {
@@ -1560,6 +1633,7 @@ async function loadUserDataFromServer(userId = getCurrentUserStorageId()) {
 
 async function doLoadUserDataFromServer(userId) {
   const localAssetSnapshotAtStart = getAssetSnapshot();
+  const loadStartedMutationVersion = userDataMutationVersion;
 
   try {
     const response = await fetchWithTimeout("/api/data", {
@@ -1572,6 +1646,10 @@ async function doLoadUserDataFromServer(userId) {
     }
     if (getCurrentUserStorageId() !== userId) return false;
     userDataServerLoadError = "";
+    if (loadStartedMutationVersion !== userDataMutationVersion) {
+      userDataServerLoadedFor = userId;
+      return true;
+    }
 
     const remoteAssets = payload.data?.assets || {};
     const remoteStockFavorites = Array.isArray(payload.data?.stockFavorites) ? payload.data.stockFavorites : [];
@@ -2057,6 +2135,10 @@ function clearPlainAssetStateFromStorage(storageKey = getUserScopedStorageKey(as
 }
 
 function saveAssetStateToStorage({ syncRemote = true, source = "user", immediate = false } = {}) {
+  if (isUserAssetSaveSource(source)) {
+    markUserDataMutation();
+  }
+
   if (source === "user_clear") {
     assetTrendHistory = [];
   } else {
@@ -3202,25 +3284,52 @@ function createJournalRecordFromForm(form) {
   return record.name && record.quantity > 0 && record.price > 0 ? record : null;
 }
 
+function setJournalFormSubmitError(form, message = "") {
+  if (!form) return;
+  const mode = form.dataset.tradeMode === "sell" ? "sell" : "buy";
+  const errorNode = form.querySelector(`[data-journal-total-error="${mode}"]`);
+  if (errorNode) errorNode.textContent = message;
+}
+
 async function saveJournalEntryFromForm(form) {
   if (!form) return false;
   const editingRecord = getJournalRecordById(form.dataset.journalEditId || journalEditingRecordId || "");
   const record = createJournalRecordFromForm(form);
-  if (!record) return false;
+  if (!record) {
+    setJournalFormSubmitError(form, "종목, 수량, 가격을 확인해 주세요.");
+    return false;
+  }
   const assetSnapshot = getJournalAssetMutationSnapshot();
+  const journalSnapshot = getJournalRecordsSnapshot();
   if (editingRecord) {
     if (!applyJournalRecordAssetEffect(editingRecord, -1)) {
       restoreJournalAssetMutationSnapshot(assetSnapshot);
+      setJournalFormSubmitError(form, "기존 매매 기록을 자산에서 되돌릴 수 없습니다.");
       return false;
     }
   }
   if (!applyJournalRecordAssetEffect(record, 1)) {
     restoreJournalAssetMutationSnapshot(assetSnapshot);
+    setJournalFormSubmitError(
+      form,
+      record.type === "sell"
+        ? "매도할 보유 종목과 수량을 확인해 주세요."
+        : "매수 가능 현금과 종목 정보를 확인해 주세요."
+    );
     return false;
   }
   userJournalRecords = [record, ...userJournalRecords.filter((item) => item.id !== record.id)].slice(0, 500);
   setJournalEditingRecord("");
-  await persistJournalAndAssetState();
+  try {
+    await persistJournalAndAssetState();
+  } catch (error) {
+    restoreJournalAssetMutationSnapshot(assetSnapshot);
+    applyUserJournalRecords(journalSnapshot);
+    await saveAssetStateToStorage({ syncRemote: false, source: "system" });
+    setJournalFormSubmitError(form, "저장에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    console.warn("Journal entry could not be saved.", error);
+    return false;
+  }
   return true;
 }
 
