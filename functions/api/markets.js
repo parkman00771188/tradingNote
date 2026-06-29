@@ -8,7 +8,9 @@ const BINANCE_API_BASE_URLS = [
   "https://api1.binance.com",
   "https://api2.binance.com",
   "https://api3.binance.com",
-  "https://api4.binance.com"
+  "https://api4.binance.com",
+  "https://api.binance.us",
+  "https://www.binance.us"
 ];
 const BINANCE_EXCHANGE_INFO_PATH = "/api/v3/exchangeInfo";
 const BINANCE_TICKER_24H_PATH = "/api/v3/ticker/24hr";
