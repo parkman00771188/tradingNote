@@ -85,7 +85,8 @@ function getDashboardNiceTrendStep(value) {
   return niceStep * magnitude;
 }
 
-function getDashboardTrendChartScale(values = []) {
+function getDashboardTrendChartScale(values = [], options = {}) {
+  const { forceZeroMin = false } = options;
   const numericValues = values
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value >= 0);
@@ -95,19 +96,36 @@ function getDashboardTrendChartScale(values = []) {
   if (maxValue <= 0) return { min: 0, max: 100 };
 
   const minValue = Math.min(...numericValues);
-  const rawSpan = Math.max(maxValue - minValue, maxValue * 0.04, 1);
-  const paddedMin = Math.max(0, minValue - rawSpan * 0.18);
-  const paddedMax = maxValue + rawSpan * 0.18;
+  const rawSpan = Math.max(maxValue - minValue, maxValue * 0.01, 1);
+  const padding = Math.max(rawSpan * 0.35, maxValue * 0.004, 1);
+  const paddedMin = forceZeroMin ? 0 : Math.max(0, minValue - padding);
+  const paddedMax = maxValue + padding;
   const roughStep = Math.max((paddedMax - paddedMin) / 4, 1);
   const step = getDashboardNiceTrendStep(roughStep);
   const chartMin = Math.max(0, Math.floor(paddedMin / step) * step);
-  const chartMax = Math.max(step * 4, Math.ceil(paddedMax / step) * step);
+  const chartMax = Math.ceil(paddedMax / step) * step;
 
   if (chartMax <= chartMin) {
     return { min: Math.max(0, chartMin - step), max: chartMin + step * 4 };
   }
 
   return { min: chartMin, max: chartMax };
+}
+
+function getDashboardTrendScaleValues(primaryTrend = [], secondaryTrend = [], targetLines = []) {
+  const baseValues = [...primaryTrend, ...secondaryTrend]
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  if (!baseValues.length) return [];
+
+  const baseMin = Math.min(...baseValues);
+  const baseMax = Math.max(...baseValues);
+  const tolerance = Math.max(baseMax - baseMin, baseMax * 0.08, 10);
+  const relevantTargetValues = targetLines
+    .map((line) => Number(line.value))
+    .filter((value) => Number.isFinite(value) && value >= baseMin - tolerance && value <= baseMax + tolerance);
+
+  return [...baseValues, ...relevantTargetValues];
 }
 
 const assetTrendRangeOptions = [
@@ -261,14 +279,8 @@ function getAssetTrendChartData(targetLines = []) {
   const totalUnit = Math.round(getPrimaryValue(lastEntry) / 10000);
   const principalUnit = Math.round((lastEntry.investmentPrincipal || 0) / 10000);
   const cashUnit = includeCash ? Math.round((lastEntry.cashBalance || 0) / 10000) : 0;
-  const targetValues = targetLines.map((line) => Number(line.value) || 0);
-  const visibleTrendValues = [
-    ...primaryTrend,
-    ...secondaryTrend,
-    ...(tertiaryTrend || []),
-    ...targetValues
-  ];
-  const chartScale = getDashboardTrendChartScale(visibleTrendValues);
+  const scaleValues = getDashboardTrendScaleValues(primaryTrend, secondaryTrend, targetLines);
+  const chartScale = getDashboardTrendChartScale(scaleValues);
 
   return {
     totalUnit,

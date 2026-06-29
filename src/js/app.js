@@ -4546,6 +4546,23 @@ function formatAssetMarketPrice(result) {
   return formatted;
 }
 
+function getAssetMarketSourceBadge(result = {}) {
+  const sourceText = [result.source, result.market, result.exchange]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (sourceText.includes("binance")) return "Binance";
+  if (sourceText.includes("yahoo")) return "Yahoo";
+  return "";
+}
+
+function isAssetMarketSourceText(value = "", sourceBadge = "") {
+  if (!sourceBadge) return false;
+  const text = String(value || "").toLowerCase();
+  const source = String(sourceBadge || "").toLowerCase();
+  return text === source || text.includes(source);
+}
+
 function getAssetFavoriteMarketItems() {
   return stockFavoriteItems
     .map((item, index) => ({ item: normalizeStockAnalysisItem(item), index }))
@@ -4602,14 +4619,19 @@ function renderAssetMarketSearchPanel(rowId) {
     <div class="asset-market-search-results" role="listbox" aria-label="종목 검색 결과">
       ${assetMarketSearch.results.map((result, index) => {
         const priceText = formatAssetMarketPrice(result);
+        const sourceBadge = getAssetMarketSourceBadge(result);
         const marketText = [result.symbol, result.type || result.quoteType, result.market || result.exchange]
+          .filter((part) => !isAssetMarketSourceText(part, sourceBadge))
           .filter(Boolean)
           .join(" · ");
         return `
           <button class="asset-market-search-result" type="button" role="option" data-asset-market-result="${index}" data-asset-setting-id="${rowId}">
             <span>
               <strong>${escapeChartText(result.name || result.symbol || result.code)}</strong>
-              <em>${escapeChartText(marketText || result.code || "")}</em>
+              <span class="asset-market-result-meta">
+                ${sourceBadge ? `<i class="asset-market-source-badge source-${sourceBadge.toLowerCase()}">${sourceBadge}</i>` : ""}
+                <em>${escapeChartText(marketText || result.code || "")}</em>
+              </span>
             </span>
             ${priceText ? `<b>${escapeChartText(priceText)}</b>` : ""}
           </button>

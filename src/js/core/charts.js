@@ -59,13 +59,16 @@ function lineChart({
   const tertiaryBadgeOffsetY = compact ? compactBox.tertiaryBadgeOffsetY || 0 : desktopBox.tertiaryBadgeOffsetY || 0;
   const innerW = width - left - right;
   const innerH = height - top - bottom;
-  const scaleY = (v) => top + ((max - v) / (max - min)) * innerH;
+  const chartMin = Number.isFinite(Number(min)) ? Number(min) : 0;
+  const chartMax = Number.isFinite(Number(max)) && Number(max) > chartMin ? Number(max) : chartMin + 1;
+  const clampChartValue = (value) => Math.min(chartMax, Math.max(chartMin, Number(value) || 0));
+  const scaleY = (v) => top + ((chartMax - clampChartValue(v)) / (chartMax - chartMin)) * innerH;
   const scaleX = (i, length) => left + (i / (length - 1)) * innerW;
   const pathFor = (values) =>
     values
       .map((v, i) => `${i === 0 ? "M" : "L"} ${scaleX(i, values.length).toFixed(1)} ${scaleY(v).toFixed(1)}`)
       .join(" ");
-  const ticks = Array.from({ length: 5 }, (_, index) => max - ((max - min) * index) / 4);
+  const ticks = Array.from({ length: 5 }, (_, index) => chartMax - ((chartMax - chartMin) * index) / 4);
   const xLabels = labels
     .map((label, index) => {
       const x = left + (index / (labels.length - 1)) * innerW;

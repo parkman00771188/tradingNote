@@ -1066,6 +1066,10 @@
       padding: 10px 12px;
     }
 
+    .asset-market-search-result .asset-market-result-meta {
+      flex-wrap: wrap;
+    }
+
     .asset-market-search-result b {
       justify-self: start;
       font-size: 12px;
