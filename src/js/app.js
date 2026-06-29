@@ -1473,14 +1473,13 @@ function getAssetSnapshotTimestamp(snapshot = {}) {
   return Number.isFinite(time) ? time : 0;
 }
 
+function hasPersistedRemoteAssetSnapshot(remoteSnapshot = {}) {
+  return hasAssetSnapshotData(remoteSnapshot) ||
+    getAssetSnapshotTimestamp(remoteSnapshot) > 0;
+}
+
 function shouldPreferLocalAssetSnapshot(localSnapshot = {}, remoteSnapshot = {}) {
-  const localHasAssets = hasAssetSnapshotData(localSnapshot);
-  if (!localHasAssets) return false;
-  const remoteHasAssets = hasAssetSnapshotData(remoteSnapshot);
-  if (!remoteHasAssets) return true;
-  const localTime = getAssetSnapshotTimestamp(localSnapshot);
-  const remoteTime = getAssetSnapshotTimestamp(remoteSnapshot);
-  return localTime > 0 && localTime >= remoteTime;
+  return hasAssetSnapshotData(localSnapshot) && !hasPersistedRemoteAssetSnapshot(remoteSnapshot);
 }
 
 function shouldAllowEmptyAssetSave(source = "") {
@@ -1651,10 +1650,10 @@ async function doLoadUserDataFromServer(userId) {
       return true;
     }
 
-    const remoteAssets = payload.data?.assets || {};
-    const remoteStockFavorites = Array.isArray(payload.data?.stockFavorites) ? payload.data.stockFavorites : [];
-    const remoteJournalRecords = mergeRemoteJournalRecords(payload.data?.journalRecords, payload.data?.trades);
-    const remoteHasAssets = hasAssetSnapshotData(remoteAssets);
+    const remoteData = payload.data || {};
+    const remoteAssets = remoteData.assets || {};
+    const remoteStockFavorites = Array.isArray(remoteData.stockFavorites) ? remoteData.stockFavorites : [];
+    const remoteJournalRecords = mergeRemoteJournalRecords(remoteData.journalRecords, remoteData.trades);
     const remoteAssetTrendHistory = getAssetTrendHistoryFromSnapshot(remoteAssets);
     const pendingAssetSave = userDataServerSavePendingFor === userId;
     const pendingSource = userDataServerSavePendingSource;
@@ -1683,14 +1682,14 @@ async function doLoadUserDataFromServer(userId) {
         applyUserAssetSnapshot(remoteAssets);
         render();
       }
-    } else if (!shouldPreferLocalAssetSnapshot(localAssetSnapshot, remoteAssets) && (remoteHasAssets || !localHasAssets)) {
-      applyUserAssetSnapshot(remoteAssets);
-      userDataServerLoadedFor = userId;
-      render();
-    } else {
+    } else if (shouldPreferLocalAssetSnapshot(localAssetSnapshot, remoteAssets)) {
       userDataServerLoadedFor = userId;
       assetTrendHistory = mergeAssetTrendHistories(remoteAssetTrendHistory, assetTrendHistory);
       await saveUserAssetStateToServer({ source: "migration" });
+    } else {
+      applyUserAssetSnapshot(remoteAssets);
+      userDataServerLoadedFor = userId;
+      render();
     }
 
     if (stockFavoritesServerSavePendingFor === userId) {
@@ -1990,7 +1989,14 @@ function normalizeAssetRowInput(item) {
   const quantity = parseAssetSheetNumber(item.quantity);
   let averagePrice = parseAssetSheetNumber(item.averagePrice);
   let currentPrice = parseAssetSheetNumber(item.currentPrice);
+  const currency = String(item.currency || "").trim().toUpperCase();
+  const marketPrice = parseAssetDecimalInput(item.marketPrice);
+  const exchangeRateToKrw = parseAssetDecimalInput(item.exchangeRateToKrw);
+  const convertedMarketPrice = currency && currency !== "KRW" && marketPrice > 0 && exchangeRateToKrw > 0
+    ? convertMarketPriceToKrwUnitPrice(marketPrice, exchangeRateToKrw)
+    : 0;
 
+  if (!currentPrice && convertedMarketPrice) currentPrice = convertedMarketPrice;
   if (!currentPrice && averagePrice) currentPrice = averagePrice;
   if (!averagePrice && currentPrice) averagePrice = currentPrice;
 
@@ -2011,9 +2017,9 @@ function normalizeAssetRowInput(item) {
     exchange: String(item.exchange || "").trim(),
     source: String(item.source || "").trim(),
     logoUrl: String(item.logoUrl || "").trim(),
-    currency: String(item.currency || "").trim().toUpperCase(),
-    marketPrice: parseAssetDecimalInput(item.marketPrice),
-    exchangeRateToKrw: parseAssetDecimalInput(item.exchangeRateToKrw),
+    currency,
+    marketPrice,
+    exchangeRateToKrw,
     priceDisplayCurrency: String(item.priceDisplayCurrency || "").trim().toUpperCase()
   };
 }

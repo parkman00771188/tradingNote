@@ -147,6 +147,10 @@ function normalizeAssetUnitPriceValue(value) {
   return Number(price.toPrecision(12));
 }
 
+function normalizeAssetAmountValue(value) {
+  return Math.max(0, Math.round(Number(value) || 0));
+}
+
 function formatSignedMarketNumber(value) {
   const amount = Math.round(Number(value) || 0);
   const sign = amount >= 0 ? "+" : "-";
@@ -230,9 +234,9 @@ function getHoldingData() {
     const storedExchangeRateToKrw = hasStoredLogoColumn ? storedExchangeRateOrPriceDisplay : storedMarketPriceOrExchangeRate;
     const storedPriceDisplayCurrency = hasStoredLogoColumn ? storedPriceDisplayCurrencyNew : storedExchangeRateOrPriceDisplay;
     const quantity = parseMarketNumber(quantityText);
-    const previousAmount = parseMarketNumber(amountText);
-    const previousProfit = parseSignedMarketNumber(profitText);
-    const costBasis = Math.max(0, previousAmount - previousProfit);
+    const previousAmount = normalizeAssetAmountValue(parseMarketNumber(amountText));
+    const previousProfit = Math.round(parseSignedMarketNumber(profitText));
+    const costBasis = normalizeAssetAmountValue(previousAmount - previousProfit);
     const watch = getWatchStock(name, storedCode);
     const storedCurrencyText = String(storedCurrency || watch?.currency || "").trim().toUpperCase();
     const storedMarketPriceValue = Number(storedMarketPrice || watch?.marketPrice || 0);
@@ -243,7 +247,7 @@ function getHoldingData() {
     const currentPrice = watch && watch.price
       ? normalizeAssetUnitPriceValue(watch.price)
       : convertedStoredPrice || normalizeAssetUnitPriceValue(previousAmount / (quantity > 0 ? quantity : 1));
-    const currentAmount = currentPrice * quantity;
+    const currentAmount = normalizeAssetAmountValue(currentPrice * quantity);
     const profit = currentAmount - costBasis;
     const rate = costBasis ? (profit / costBasis) * 100 : 0;
 

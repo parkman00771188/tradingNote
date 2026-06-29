@@ -178,7 +178,16 @@ function sanitizeRate(value) {
 
 function sanitizeDecimal(value) {
   const number = Number(value);
-  return Number.isFinite(number) && number > 0 ? Number(number.toFixed(8)) : 0;
+  if (!Number.isFinite(number) || number <= 0) return 0;
+  if (number >= 1) return Number(number.toFixed(8));
+  return Number(number.toPrecision(12));
+}
+
+function sanitizeUnitPrice(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return 0;
+  if (number >= 1) return Number(number.toFixed(8));
+  return Number(number.toPrecision(12));
 }
 
 function sanitizeTrendDate(value, fallback = "") {
@@ -230,8 +239,8 @@ function sanitizeAssets(input = {}) {
       name: sanitizeText(item.name, 80),
       code: sanitizeText(item.code, 32),
       quantity: sanitizeDecimal(item.quantity),
-      averagePrice: sanitizeNumber(item.averagePrice),
-      currentPrice: sanitizeNumber(item.currentPrice),
+      averagePrice: sanitizeUnitPrice(item.averagePrice),
+      currentPrice: sanitizeUnitPrice(item.currentPrice),
       priceInputMode: item.priceInputMode === "quantity" ? "quantity" : "full",
       type: sanitizeText(item.type, 40),
       quoteType: sanitizeText(item.quoteType, 40),
