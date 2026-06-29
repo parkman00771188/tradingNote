@@ -486,7 +486,7 @@ function candleChart(stock = null, options = {}) {
           .map(([open, high, low, close], i) => {
             const x = sx(i);
             const up = close >= open;
-            const color = up ? "#2474f2" : "#f04438";
+            const color = up ? "#f04438" : "#2474f2";
             const yTop = Math.min(sy(open), sy(close));
             const bodyH = Math.max(4, Math.abs(sy(open) - sy(close)));
             const bodyW = compact ? 5 : 8;
@@ -505,7 +505,7 @@ function candleChart(stock = null, options = {}) {
             const h = Math.min(compact ? 34 : 42, v);
             const up = prices[i][3] >= prices[i][0];
             const bodyW = compact ? 5 : 8;
-            return `<rect class="chart-bar chart-volume-bar" x="${x - bodyW / 2}" y="${height - bottom - h + (compact ? 24 : 28)}" width="${bodyW}" height="${h}" rx="1" fill="${up ? "#8bbcff" : "#ff9b9b"}" opacity=".85"/>`;
+            return `<rect class="chart-bar chart-volume-bar" x="${x - bodyW / 2}" y="${height - bottom - h + (compact ? 24 : 28)}" width="${bodyW}" height="${h}" rx="1" fill="${up ? "#ff9b9b" : "#8bbcff"}" opacity=".85"/>`;
           })
           .join("")}
         ${xLabels}
