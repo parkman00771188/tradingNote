@@ -231,13 +231,21 @@ function getAssetTrendChartData(targetLines = []) {
   };
   const primaryTrend = sampledEntries.map((entry) => Math.round(getPrimaryValue(entry) / 10000));
   const secondaryTrend = sampledEntries.map((entry) => Math.round((entry?.investmentPrincipal || 0) / 10000));
-  const tertiaryTrend = sampledEntries.map((entry) => Math.round((entry?.cashBalance || 0) / 10000));
+  const tertiaryTrend = includeCash
+    ? sampledEntries.map((entry) => Math.round((entry?.cashBalance || 0) / 10000))
+    : null;
   const lastEntry = sampledEntries[sampledEntries.length - 1] || entries[entries.length - 1] || {};
   const totalUnit = Math.round(getPrimaryValue(lastEntry) / 10000);
   const principalUnit = Math.round((lastEntry.investmentPrincipal || 0) / 10000);
-  const cashUnit = Math.round((lastEntry.cashBalance || 0) / 10000);
+  const cashUnit = includeCash ? Math.round((lastEntry.cashBalance || 0) / 10000) : 0;
   const targetValues = targetLines.map((line) => Number(line.value) || 0);
-  const chartMax = getDashboardTrendChartMax([...primaryTrend, ...secondaryTrend, ...tertiaryTrend, ...targetValues]);
+  const visibleTrendValues = [
+    ...primaryTrend,
+    ...secondaryTrend,
+    ...(tertiaryTrend || []),
+    ...targetValues
+  ];
+  const chartMax = getDashboardTrendChartMax(visibleTrendValues);
 
   return {
     totalUnit,
@@ -287,11 +295,13 @@ function renderAssetTrendChart(options = {}) {
     tickUnit: "",
     endPrimary: formatDashboardChartLabel(trend.totalUnit),
     endSecondary: formatDashboardChartLabel(trend.principalUnit),
-    endTertiary: formatDashboardChartLabel(trend.cashUnit),
-    ariaLabel: `${trend.includeCash ? "현금 포함 총자산" : "현금 제외 총자산"}, 투자원금, 보유현금 추이 차트`,
+    endTertiary: trend.includeCash ? formatDashboardChartLabel(trend.cashUnit) : "",
+    ariaLabel: trend.includeCash
+      ? "현금 포함 총자산, 투자원금, 보유현금 추이 차트"
+      : "현금 제외 총자산, 투자원금 추이 차트",
     primaryName: trend.includeCash ? "총자산" : "총자산(현금 제외)",
     secondaryName: "투자원금",
-    tertiaryName: "보유현금",
+    tertiaryName: trend.includeCash ? "보유현금" : "",
     tertiaryColor: "#2aa7a1",
     labels: trend.labels,
     tooltipLabels: trend.tooltipLabels,
@@ -348,7 +358,11 @@ function renderAssetTrendPanel(options = {}) {
         </div>
       </div>
       <div class="asset-trend-legend-row">
-        <div class="legend"><span><i class="dot"></i>총자산</span><span><i class="dot gray"></i>투자원금</span><span><i class="dot teal"></i>보유현금</span></div>
+        <div class="legend">
+          <span><i class="dot"></i>총자산</span>
+          <span><i class="dot gray"></i>투자원금</span>
+          ${includeCash ? `<span><i class="dot teal"></i>보유현금</span>` : ""}
+        </div>
         <label class="asset-cash-include-toggle asset-trend-cash-toggle">
           <input type="checkbox" data-asset-trend-cash-toggle ${includeCash ? "checked" : ""}>
           <span>현금 포함</span>
