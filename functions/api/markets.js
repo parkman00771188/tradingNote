@@ -2,6 +2,62 @@ const YAHOO_SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search";
 const YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart";
 const YAHOO_FUNDAMENTALS_URL = "https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries";
 const KRX_CORP_LIST_URL = "https://kind.krx.co.kr/corpgeneral/corpList.do?method=download&searchType=13";
+const BINANCE_API_BASE_URL = "https://api.binance.com";
+const BINANCE_EXCHANGE_INFO_URL = `${BINANCE_API_BASE_URL}/api/v3/exchangeInfo`;
+const BINANCE_TICKER_24H_URL = `${BINANCE_API_BASE_URL}/api/v3/ticker/24hr`;
+const BINANCE_KLINES_URL = `${BINANCE_API_BASE_URL}/api/v3/klines`;
+
+const BINANCE_QUOTE_PRIORITY = {
+  USDT: 0,
+  USDC: 1,
+  FDUSD: 2,
+  TUSD: 3,
+  BUSD: 4,
+  BTC: 10,
+  ETH: 11,
+  BNB: 12,
+  EUR: 20,
+  TRY: 21,
+  KRW: 22
+};
+
+const BINANCE_STABLE_QUOTES = new Set(["USDT", "USDC", "FDUSD", "TUSD", "BUSD"]);
+const BINANCE_QUOTE_ASSETS = Object.keys(BINANCE_QUOTE_PRIORITY);
+const BINANCE_KLINE_INTERVALS = new Set(["1m", "5m", "15m", "30m", "1h", "1d", "1w", "1M"]);
+const CRYPTO_NAME_ALIASES = {
+  bitcoin: "BTC",
+  btc: "BTC",
+  ethereum: "ETH",
+  ether: "ETH",
+  eth: "ETH",
+  ripple: "XRP",
+  xrp: "XRP",
+  stellar: "XLM",
+  lumen: "XLM",
+  lumens: "XLM",
+  xlm: "XLM",
+  dogecoin: "DOGE",
+  doge: "DOGE",
+  solana: "SOL",
+  sol: "SOL",
+  cardano: "ADA",
+  ada: "ADA",
+  chainlink: "LINK",
+  link: "LINK",
+  litecoin: "LTC",
+  ltc: "LTC",
+  polkadot: "DOT",
+  dot: "DOT",
+  polygon: "POL",
+  matic: "MATIC",
+  avalanche: "AVAX",
+  avax: "AVAX",
+  tron: "TRX",
+  trx: "TRX",
+  pepe: "PEPE",
+  shiba: "SHIB",
+  shib: "SHIB"
+};
 
 const REQUEST_HEADERS = {
   "User-Agent": "Mozilla/5.0 TradingNote/1.0",
@@ -207,6 +263,143 @@ async function searchYahoo(query, limit) {
     .slice(0, limit);
 }
 
+function normalizeBinanceAsset(value) {
+  return String(value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function normalizeBinanceQuery(value) {
+  return normalizeBinanceAsset(value);
+}
+
+function getBinanceAliasQuery(value) {
+  const key = String(value || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  return CRYPTO_NAME_ALIASES[key] || "";
+}
+
+function getBinanceQuotePriority(quoteAsset) {
+  return BINANCE_QUOTE_PRIORITY[normalizeBinanceAsset(quoteAsset)] ?? 99;
+}
+
+function normalizeBinanceCurrency(quoteAsset) {
+  const quote = normalizeBinanceAsset(quoteAsset);
+  return BINANCE_STABLE_QUOTES.has(quote) ? "USD" : quote;
+}
+
+function splitBinanceSymbol(symbol) {
+  const normalizedSymbol = normalizeBinanceAsset(symbol);
+  const quote = [...BINANCE_QUOTE_ASSETS]
+    .sort((a, b) => b.length - a.length)
+    .find((candidate) => normalizedSymbol.endsWith(candidate) && normalizedSymbol.length > candidate.length);
+  if (!quote) return { baseAsset: normalizedSymbol, quoteAsset: "" };
+  return {
+    baseAsset: normalizedSymbol.slice(0, -quote.length),
+    quoteAsset: quote
+  };
+}
+
+function getBinanceDisplayCode(baseAsset, quoteAsset) {
+  const base = normalizeBinanceAsset(baseAsset);
+  const quote = normalizeBinanceAsset(quoteAsset);
+  if (!base) return "";
+  return quote ? `${base}-${quote}` : base;
+}
+
+function getBinanceDisplayName(baseAsset, quoteAsset) {
+  const base = normalizeBinanceAsset(baseAsset);
+  const quote = normalizeBinanceAsset(quoteAsset);
+  if (!base) return "";
+  return `${base} ${normalizeBinanceCurrency(quote) || quote || ""}`.trim();
+}
+
+function getBinanceSearchQueries(query) {
+  const normalizedQuery = normalizeBinanceQuery(query);
+  const aliasQuery = getBinanceAliasQuery(query);
+  return [...new Set([normalizedQuery, aliasQuery].filter(Boolean))];
+}
+
+function shouldSearchBinance(query) {
+  const normalizedQuery = normalizeBinanceQuery(query);
+  if (normalizedQuery.length < 2) return false;
+  return !hasHangul(query);
+}
+
+async function fetchBinanceExchangeSymbols() {
+  const response = await fetch(BINANCE_EXCHANGE_INFO_URL, {
+    headers: REQUEST_HEADERS,
+    cf: { cacheTtl: 21600, cacheEverything: true }
+  });
+  if (!response.ok) return [];
+
+  const payload = await response.json().catch(() => ({}));
+  return Array.isArray(payload.symbols) ? payload.symbols : [];
+}
+
+function rankBinanceResult(item, queries) {
+  const symbol = normalizeBinanceAsset(item.symbol);
+  const baseAsset = normalizeBinanceAsset(item.baseAsset);
+  const quoteAsset = normalizeBinanceAsset(item.quoteAsset);
+  const priorityPenalty = getBinanceQuotePriority(quoteAsset);
+  let score = 0;
+
+  for (const query of queries) {
+    if (!query) continue;
+    if (symbol === query) score = Math.max(score, 220);
+    if (getBinanceDisplayCode(baseAsset, quoteAsset).replace("-", "") === query) score = Math.max(score, 210);
+    if (baseAsset === query) score = Math.max(score, 180);
+    if (symbol.startsWith(query)) score = Math.max(score, 130);
+    if (baseAsset.startsWith(query)) score = Math.max(score, 115);
+    if (symbol.includes(query)) score = Math.max(score, 80);
+    if (baseAsset.includes(query)) score = Math.max(score, 70);
+  }
+
+  if (!score) return 0;
+  return score - priorityPenalty;
+}
+
+function mapBinanceSymbol(item) {
+  const symbol = normalizeBinanceAsset(item.symbol);
+  const baseAsset = normalizeBinanceAsset(item.baseAsset);
+  const quoteAsset = normalizeBinanceAsset(item.quoteAsset);
+  if (!symbol || !baseAsset || !quoteAsset) return null;
+
+  return {
+    name: getBinanceDisplayName(baseAsset, quoteAsset),
+    code: getBinanceDisplayCode(baseAsset, quoteAsset),
+    symbol,
+    type: "암호화폐",
+    quoteType: "CRYPTOCURRENCY",
+    market: `${quoteAsset} 마켓`,
+    exchange: "Binance",
+    industry: "Cryptocurrency",
+    logoUrl: "",
+    currency: normalizeBinanceCurrency(quoteAsset),
+    source: "Binance"
+  };
+}
+
+async function searchBinanceCrypto(query, limit) {
+  const queries = getBinanceSearchQueries(query);
+  if (!queries.length) return [];
+
+  const symbols = await fetchBinanceExchangeSymbols();
+  return symbols
+    .filter((item) => (
+      item?.status === "TRADING"
+      && item?.isSpotTradingAllowed !== false
+      && BINANCE_QUOTE_ASSETS.includes(normalizeBinanceAsset(item.quoteAsset))
+    ))
+    .map((item) => ({ item, score: rankBinanceResult(item, queries) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => (
+      b.score - a.score
+      || getBinanceQuotePriority(a.item.quoteAsset) - getBinanceQuotePriority(b.item.quoteAsset)
+      || String(a.item.symbol).localeCompare(String(b.item.symbol))
+    ))
+    .slice(0, limit)
+    .map((entry) => mapBinanceSymbol(entry.item))
+    .filter(Boolean);
+}
+
 function mapYahooNews(item) {
   const title = String(item.title || "").trim();
   if (!title) return null;
@@ -375,6 +568,135 @@ async function fetchYahooChart(symbol, options = {}) {
   };
 }
 
+function roundMarketPrice(value) {
+  const price = Number(value);
+  if (!Number.isFinite(price) || price <= 0) return 0;
+  if (price >= 1000) return Math.round(price * 100) / 100;
+  if (price >= 1) return Math.round(price * 10000) / 10000;
+  return Math.round(price * 100000000) / 100000000;
+}
+
+function getBinanceSymbolCandidates(value) {
+  const raw = String(value || "").trim().toUpperCase();
+  if (!raw) return [];
+
+  const parts = raw.split(/[-_/: ]+/).map(normalizeBinanceAsset).filter(Boolean);
+  if (parts.length >= 2) {
+    const [baseAsset, rawQuote] = parts;
+    const quoteAsset = rawQuote === "USD" ? "USDT" : rawQuote;
+    if (BINANCE_STABLE_QUOTES.has(quoteAsset) || BINANCE_QUOTE_ASSETS.includes(quoteAsset)) {
+      const stableCandidates = rawQuote === "USD"
+        ? ["USDT", "USDC", "FDUSD", "TUSD", "BUSD"].map((quote) => `${baseAsset}${quote}`)
+        : [`${baseAsset}${quoteAsset}`];
+      return [...new Set(stableCandidates)];
+    }
+  }
+
+  const normalized = normalizeBinanceAsset(raw);
+  const split = splitBinanceSymbol(normalized);
+  if (split.quoteAsset) return [normalized];
+
+  const alias = getBinanceAliasQuery(raw);
+  const baseAsset = alias || normalized;
+  return [...new Set(["USDT", "USDC", "FDUSD", "TUSD", "BUSD"].map((quote) => `${baseAsset}${quote}`))];
+}
+
+function normalizeBinanceInterval(interval) {
+  const normalized = String(interval || "").trim();
+  const mapped = {
+    "1wk": "1w",
+    "1mo": "1M",
+    "60m": "1h"
+  }[normalized] || normalized;
+  return BINANCE_KLINE_INTERVALS.has(mapped) ? mapped : "1d";
+}
+
+function getBinanceKlineLimit(range, interval) {
+  const normalizedRange = String(range || "").trim().toLowerCase();
+  const normalizedInterval = normalizeBinanceInterval(interval);
+  if (normalizedInterval !== "1d") return 240;
+  if (normalizedRange === "1mo") return 35;
+  if (normalizedRange === "3mo") return 95;
+  if (normalizedRange === "6mo") return 190;
+  if (normalizedRange === "1y") return 260;
+  if (normalizedRange === "2y") return 520;
+  return 200;
+}
+
+function normalizeBinanceCandles(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => {
+      const openTime = Number(row?.[0]);
+      const open = Number(row?.[1]);
+      const high = Number(row?.[2]);
+      const low = Number(row?.[3]);
+      const close = Number(row?.[4]);
+      const volume = Number(row?.[5]);
+      if (!Number.isFinite(openTime) || !Number.isFinite(close) || close <= 0) return null;
+      return {
+        time: openTime,
+        open: Number.isFinite(open) && open > 0 ? open : close,
+        high: Number.isFinite(high) && high > 0 ? high : close,
+        low: Number.isFinite(low) && low > 0 ? low : close,
+        close,
+        volume: Math.max(0, Number.isFinite(volume) ? volume : 0)
+      };
+    })
+    .filter(Boolean);
+}
+
+async function fetchBinanceTicker(symbol, options = {}) {
+  const url = new URL(BINANCE_TICKER_24H_URL);
+  url.searchParams.set("symbol", symbol);
+
+  const fetchOptions = { headers: REQUEST_HEADERS };
+  if (!options.noStore) fetchOptions.cf = { cacheTtl: 30, cacheEverything: true };
+
+  const response = await fetch(url.toString(), fetchOptions);
+  if (!response.ok) return null;
+  const payload = await response.json().catch(() => null);
+  return payload && !payload.code ? payload : null;
+}
+
+async function fetchBinanceKlines(symbol, options = {}) {
+  const url = new URL(BINANCE_KLINES_URL);
+  url.searchParams.set("symbol", symbol);
+  url.searchParams.set("interval", normalizeBinanceInterval(options.interval));
+  url.searchParams.set("limit", String(getBinanceKlineLimit(options.range, options.interval)));
+
+  const fetchOptions = { headers: REQUEST_HEADERS };
+  if (!options.noStore) fetchOptions.cf = { cacheTtl: 60, cacheEverything: true };
+
+  const response = await fetch(url.toString(), fetchOptions);
+  if (!response.ok) return [];
+  return normalizeBinanceCandles(await response.json().catch(() => []));
+}
+
+async function fetchBinanceChart(symbol, options = {}) {
+  const candidates = getBinanceSymbolCandidates(symbol);
+  for (const candidate of candidates) {
+    const ticker = await fetchBinanceTicker(candidate, options);
+    if (!ticker) continue;
+
+    const { baseAsset, quoteAsset } = splitBinanceSymbol(candidate);
+    const price = roundMarketPrice(ticker.lastPrice);
+    const candles = options.includeCandles ? await fetchBinanceKlines(candidate, options) : undefined;
+    return {
+      name: getBinanceDisplayName(baseAsset, quoteAsset),
+      symbol: candidate,
+      market: `${quoteAsset} 마켓`,
+      exchange: "Binance",
+      currency: normalizeBinanceCurrency(quoteAsset),
+      currentPrice: price,
+      change: Number(ticker.priceChange || 0),
+      changeRate: Number(ticker.priceChangePercent || 0),
+      candles
+    };
+  }
+  return null;
+}
+
 function getFundamentalPeriodWindow() {
   const now = new Date();
   const start = new Date(now.getFullYear() - 7, 0, 1);
@@ -467,7 +789,8 @@ async function fetchFxRateToKrw(currency, options = {}) {
 }
 
 async function enrichWithChart(item, options = {}) {
-  const chart = await fetchYahooChart(item.symbol, { noStore: options.noStore });
+  const chart = await fetchYahooChart(item.symbol, { noStore: options.noStore })
+    || await fetchBinanceChart(item.symbol || item.code, { noStore: options.noStore });
   if (!chart) return item;
   const currency = normalizeCurrency(chart.currency || item.currency);
   const exchangeRateToKrw = await fetchFxRateToKrw(currency, { noStore: options.noStore }).catch(() => 0);
@@ -489,7 +812,8 @@ async function enrichWithChart(item, options = {}) {
     currentPriceKrw,
     exchangeRateToKrw,
     change: chart.change || 0,
-    changeRate: chart.changeRate || 0
+    changeRate: chart.changeRate || 0,
+    source: chart.exchange === "Binance" ? "Binance" : item.source
   };
 }
 
@@ -523,13 +847,14 @@ async function searchMarkets(query, options = {}) {
   const limit = 12;
   const shouldSearchYahoo = !hasHangul(trimmedQuery);
   const shouldSearchDomestic = shouldSearchKrx(trimmedQuery);
-  const [krxResults, yahooResults] = await Promise.all([
+  const [krxResults, yahooResults, binanceResults] = await Promise.all([
     shouldSearchDomestic ? searchKrx(trimmedQuery, limit).catch(() => []) : [],
-    shouldSearchYahoo ? searchYahoo(trimmedQuery, limit).catch(() => []) : []
+    shouldSearchYahoo ? searchYahoo(trimmedQuery, limit).catch(() => []) : [],
+    shouldSearchBinance(trimmedQuery) ? searchBinanceCrypto(trimmedQuery, limit).catch(() => []) : []
   ]);
 
-  const combined = dedupeResults([...krxResults, ...yahooResults]).slice(0, limit);
-  const enrichedLimit = Math.min(combined.length, 4);
+  const combined = dedupeResults([...krxResults, ...binanceResults, ...yahooResults]).slice(0, limit);
+  const enrichedLimit = Math.min(combined.length, binanceResults.length ? 8 : 4);
   const enrichedHead = await Promise.all(combined.slice(0, enrichedLimit).map((item) => enrichWithChart(item, { noStore: options.noStore }).catch(() => item)));
   const enriched = [...enrichedHead, ...combined.slice(enrichedLimit)];
   return enriched.map((item) => ({
@@ -564,6 +889,11 @@ export async function onRequestGet(context) {
       if (!symbol) return json({ ok: false, error: "차트를 불러올 종목 코드가 필요합니다." }, 400);
 
       const chart = await fetchYahooChart(symbol, {
+        range: url.searchParams.get("range") || "6mo",
+        interval: url.searchParams.get("interval") || "1d",
+        includeCandles: true,
+        noStore
+      }) || await fetchBinanceChart(symbol, {
         range: url.searchParams.get("range") || "6mo",
         interval: url.searchParams.get("interval") || "1d",
         includeCandles: true,
