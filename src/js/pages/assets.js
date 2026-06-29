@@ -2,6 +2,14 @@ var assetTrendTargets = [];
 var assetTrendTargetDrafts = [];
 var assetTrendTargetNextId = 1;
 
+function formatAssetPriceBasisLabel(date = new Date()) {
+  const safeDate = date instanceof Date && !Number.isNaN(date.getTime()) ? date : new Date();
+  const year = safeDate.getFullYear();
+  const month = String(safeDate.getMonth() + 1).padStart(2, "0");
+  const day = String(safeDate.getDate()).padStart(2, "0");
+  return `${year}.${month}.${day} 현재가 기준`;
+}
+
 const assetHoldingMeta = {
   "삼성전자": { code: "005930", sector: "IT", badge: "삼성", color: "#2474f2" },
   "SK하이닉스": { code: "000660", sector: "IT", badge: "SK", color: "#f05267" },
@@ -391,6 +399,7 @@ function renderAssets() {
   const holdingSegments = getAssetPortfolioSegments(holdingData, cashBalance, portfolioIncludeCash);
   const leadingHolding = holdingSegments[0] || { label: "-", value: 0 };
   const hasPortfolioSegments = holdingSegments.length > 0;
+  const priceBasisLabel = formatAssetPriceBasisLabel();
 
   return `
     ${renderMobileAssets({ cashBalance, totalAssets, costBasis, investedValue, holdingProfit, holdingReturn, holdingData, holdingSegments, portfolioIncludeCash })}
@@ -399,7 +408,7 @@ function renderAssets() {
         <div class="asset-summary-block">
           <div class="asset-section-header">
             <h2 class="panel-title">자산 요약</h2>
-            <span>2024.06.20 종가 기준</span>
+            <span>${priceBasisLabel}</span>
           </div>
           <div class="asset-summary-grid">
             ${renderAssetSummaryMetric("보유 현금", assetMoney(cashBalance))}
