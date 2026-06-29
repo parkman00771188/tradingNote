@@ -285,11 +285,11 @@ function updateJournalStockSearchPanel(form) {
 
 async function runJournalStockSearch(query, requestId, form) {
   try {
-    const response = await fetch(`/api/markets?action=search&q=${encodeURIComponent(query)}`, {
-      credentials: "include",
-      headers: { Accept: "application/json" }
-    });
-    const payload = await response.json().catch(() => ({}));
+    const results = typeof window.fetchMarketSearchResults === "function"
+      ? await window.fetchMarketSearchResults(query)
+      : [];
+    const response = { ok: true };
+    const payload = { ok: true, results };
     if (journalStockSearchState.requestId !== requestId) return;
     if (!response.ok || !payload.ok) {
       throw new Error(payload.error || "종목 검색에 실패했습니다.");

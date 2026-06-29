@@ -211,6 +211,351 @@ const stockChartPeriodOptions = [
   { key: "60m", label: "60분", range: "3mo", interval: "60m" }
 ];
 
+const binanceClientBaseUrls = [
+  "https://data-api.binance.vision",
+  "https://api.binance.com",
+  "https://api.binance.us",
+  "https://www.binance.us"
+];
+const binanceClientQuotePriority = ["USDT", "USDC", "FDUSD", "USD", "EUR", "TRY", "KRW", "BTC", "ETH", "BNB"];
+const binanceClientUsdQuotes = new Set(["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "USD"]);
+const binanceClientAliases = {
+  BTC: ["BTC", "BITCOIN", "비트코인"],
+  ETH: ["ETH", "ETHEREUM", "이더리움"],
+  XRP: ["XRP", "RIPPLE", "리플"],
+  DOGE: ["DOGE", "DOGECOIN", "도지"],
+  SOL: ["SOL", "SOLANA", "솔라나"],
+  ADA: ["ADA", "CARDANO"],
+  BNB: ["BNB", "BINANCECOIN"],
+  TRX: ["TRX", "TRON", "트론"],
+  XLM: ["XLM", "STELLAR", "스텔라"],
+  LINK: ["LINK", "CHAINLINK", "체인링크"],
+  PEPE: ["PEPE"],
+  SHIB: ["SHIB", "SHIBA", "SHIBAINU"],
+  AVAX: ["AVAX", "AVALANCHE"],
+  DOT: ["DOT", "POLKADOT"],
+  MATIC: ["MATIC", "POLYGON"],
+  SUI: ["SUI"],
+  TON: ["TON", "TONCOIN"]
+};
+var binanceClientExchangeSymbolsCache = null;
+var binanceClientExchangeSymbolsPromise = null;
+var binanceClientUsdKrwRatePromise = null;
+var binanceClientUsdKrwRateValue = 0;
+
+function normalizeBinanceClientText(value = "") {
+  return String(value || "").trim().replace(/[\s._/-]+/g, "").toUpperCase();
+}
+
+function normalizeBinanceClientAsset(value = "") {
+  return normalizeBinanceClientText(value).replace(/USD[TC]?$/, "");
+}
+
+function getBinanceClientAliasQuery(query = "") {
+  const normalized = normalizeBinanceClientText(query);
+  const compact = normalizeBinanceClientAsset(query);
+  if (!normalized && !compact) return "";
+
+  for (const [asset, aliases] of Object.entries(binanceClientAliases)) {
+    if (aliases.some((alias) => {
+      const normalizedAlias = normalizeBinanceClientText(alias);
+      return normalized === normalizedAlias || compact === normalizedAlias || normalizedAlias.includes(normalized) || normalized.includes(normalizedAlias);
+    })) {
+      return asset;
+    }
+  }
+
+  return compact || normalized;
+}
+
+function shouldSearchClientBinance(query = "") {
+  const text = String(query || "").trim();
+  if (text.length < 2) return false;
+  return /[A-Za-z0-9가-힣]/.test(text);
+}
+
+function getBinanceClientDisplayCode(symbol = "", baseAsset = "", quoteAsset = "") {
+  const base = String(baseAsset || "").toUpperCase();
+  const quote = String(quoteAsset || "").toUpperCase();
+  if (base && quote) return `${base}-${quote}`;
+  const text = String(symbol || "").toUpperCase();
+  const quoteMatch = binanceClientQuotePriority.find((quoteCandidate) => text.endsWith(quoteCandidate) && text.length > quoteCandidate.length);
+  return quoteMatch ? `${text.slice(0, -quoteMatch.length)}-${quoteMatch}` : text;
+}
+
+function getBinanceClientCurrency(quoteAsset = "") {
+  const quote = String(quoteAsset || "").toUpperCase();
+  return binanceClientUsdQuotes.has(quote) ? "USD" : quote || "USD";
+}
+
+function rankBinanceClientSymbol(item = {}, query = "") {
+  const assetQuery = getBinanceClientAliasQuery(query);
+  const normalizedQuery = normalizeBinanceClientText(query);
+  const base = String(item.baseAsset || "").toUpperCase();
+  const quote = String(item.quoteAsset || "").toUpperCase();
+  const symbol = String(item.symbol || "").toUpperCase();
+  const displayCode = getBinanceClientDisplayCode(symbol, base, quote);
+  let score = 0;
+  if (base === assetQuery) score += 1000;
+  if (displayCode === normalizedQuery || symbol === normalizedQuery) score += 900;
+  if (base.startsWith(assetQuery)) score += 500;
+  if (symbol.includes(assetQuery)) score += 250;
+  const quoteIndex = binanceClientQuotePriority.indexOf(quote);
+  score += quoteIndex >= 0 ? 100 - quoteIndex * 6 : 10;
+  return score;
+}
+
+async function fetchClientBinanceJson(path, params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") query.set(key, String(value));
+  });
+
+  let lastError = null;
+  for (const baseUrl of binanceClientBaseUrls) {
+    try {
+      const url = `${baseUrl}${path}${query.toString() ? `?${query}` : ""}`;
+      const response = await fetch(url, {
+        cache: "no-store",
+        headers: { Accept: "application/json" }
+      });
+      if (!response.ok) throw new Error(`Binance ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("Binance request failed");
+}
+
+async function fetchClientBinanceExchangeSymbols() {
+  if (Array.isArray(binanceClientExchangeSymbolsCache)) return binanceClientExchangeSymbolsCache;
+  if (binanceClientExchangeSymbolsPromise) return binanceClientExchangeSymbolsPromise;
+
+  binanceClientExchangeSymbolsPromise = fetchClientBinanceJson("/api/v3/exchangeInfo")
+    .then((payload) => {
+      const symbols = (Array.isArray(payload?.symbols) ? payload.symbols : [])
+        .filter((item) => item && item.status === "TRADING" && item.isSpotTradingAllowed !== false && item.symbol && item.baseAsset && item.quoteAsset);
+      binanceClientExchangeSymbolsCache = symbols;
+      return symbols;
+    })
+    .finally(() => {
+      binanceClientExchangeSymbolsPromise = null;
+    });
+  return binanceClientExchangeSymbolsPromise;
+}
+
+async function fetchClientUsdKrwRate() {
+  if (binanceClientUsdKrwRateValue > 0) return binanceClientUsdKrwRateValue;
+  if (binanceClientUsdKrwRatePromise) return binanceClientUsdKrwRatePromise;
+
+  binanceClientUsdKrwRatePromise = fetch(`/api/markets?action=chart&symbol=${encodeURIComponent("USDKRW=X")}&range=5d&interval=1d`, {
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" }
+  })
+    .then((response) => response.ok ? response.json() : null)
+    .then((payload) => {
+      const candles = Array.isArray(payload?.chart?.candles) ? payload.chart.candles : [];
+      const latest = [...candles].reverse().find((item) => Number(item?.close) > 0);
+      binanceClientUsdKrwRateValue = Number(latest?.close) || 0;
+      return binanceClientUsdKrwRateValue;
+    })
+    .catch(() => 0)
+    .finally(() => {
+      binanceClientUsdKrwRatePromise = null;
+    });
+  return binanceClientUsdKrwRatePromise;
+}
+
+async function mapClientBinanceSymbol(item = {}) {
+  const symbol = String(item.symbol || "").toUpperCase();
+  const base = String(item.baseAsset || "").toUpperCase();
+  const quote = String(item.quoteAsset || "").toUpperCase();
+  const currency = getBinanceClientCurrency(quote);
+  let ticker = null;
+  try {
+    ticker = await fetchClientBinanceJson("/api/v3/ticker/24hr", { symbol });
+  } catch (error) {
+    ticker = null;
+  }
+  const currentPrice = Math.max(0, Number(ticker?.lastPrice) || 0);
+  const change = Number(ticker?.priceChange) || 0;
+  const changeRate = Number(ticker?.priceChangePercent) || 0;
+  const exchangeRateToKrw = currency === "USD" ? await fetchClientUsdKrwRate() : 0;
+  const currentPriceKrw = exchangeRateToKrw && currentPrice ? Math.round(currentPrice * exchangeRateToKrw) : 0;
+
+  return {
+    name: `${base} ${quote}`.trim() || symbol,
+    code: getBinanceClientDisplayCode(symbol, base, quote),
+    symbol,
+    type: "Crypto",
+    quoteType: "CRYPTOCURRENCY",
+    market: "Binance",
+    exchange: "BINANCE",
+    source: "Binance",
+    currency,
+    currentPrice,
+    currentPriceKrw,
+    exchangeRateToKrw,
+    change,
+    changeRate
+  };
+}
+
+async function searchClientBinanceCrypto(query = "", limit = 8) {
+  if (!shouldSearchClientBinance(query)) return [];
+  const symbols = await fetchClientBinanceExchangeSymbols();
+  const assetQuery = getBinanceClientAliasQuery(query);
+  const normalizedQuery = normalizeBinanceClientText(query);
+  const matches = symbols
+    .filter((item) => {
+      const base = String(item.baseAsset || "").toUpperCase();
+      const quote = String(item.quoteAsset || "").toUpperCase();
+      const symbol = String(item.symbol || "").toUpperCase();
+      const displayCode = getBinanceClientDisplayCode(symbol, base, quote);
+      return base.includes(assetQuery) || symbol.includes(assetQuery) || displayCode.replace("-", "").includes(normalizedQuery);
+    })
+    .sort((a, b) => rankBinanceClientSymbol(b, query) - rankBinanceClientSymbol(a, query))
+    .slice(0, limit);
+
+  return Promise.all(matches.map((item) => mapClientBinanceSymbol(item)));
+}
+
+function getMarketResultKey(item = {}) {
+  const symbol = String(item.symbol || "").trim().toUpperCase();
+  const code = String(item.code || "").trim().toUpperCase();
+  const source = String(item.source || item.exchange || "").trim().toUpperCase();
+  return symbol || code ? `${source}:${symbol || code}` : normalizeBinanceClientText(item.name || "");
+}
+
+function mergeMarketSearchResults(primary = [], extra = []) {
+  const merged = [];
+  const seen = new Set();
+  [...extra, ...primary].forEach((item) => {
+    const key = getMarketResultKey(item);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(item);
+  });
+  return merged;
+}
+
+async function fetchServerMarketSearchResults(query = "", { force = false } = {}) {
+  const url = `/api/markets?action=search&q=${encodeURIComponent(query)}${force ? `&refresh=1&t=${Date.now()}` : ""}`;
+  const response = await fetch(url, {
+    cache: force ? "no-store" : "default",
+    credentials: "include",
+    headers: { Accept: "application/json" }
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.ok) {
+    throw new Error(payload.error || "Market search failed.");
+  }
+  return Array.isArray(payload.results) ? payload.results : [];
+}
+
+async function fetchMarketSearchResults(query = "", options = {}) {
+  const [serverResult, binanceResult] = await Promise.allSettled([
+    fetchServerMarketSearchResults(query, options),
+    searchClientBinanceCrypto(query, options.binanceLimit || 8)
+  ]);
+  const serverResults = serverResult.status === "fulfilled" ? serverResult.value : [];
+  const binanceResults = binanceResult.status === "fulfilled" ? binanceResult.value : [];
+  const merged = mergeMarketSearchResults(serverResults, binanceResults);
+  if (merged.length) return merged.slice(0, options.limit || 12);
+  if (serverResult.status === "rejected") throw serverResult.reason;
+  return [];
+}
+
+function isLikelyBinanceSymbol(symbol = "") {
+  const text = String(symbol || "").trim().toUpperCase().replace("-", "");
+  if (!text || /\./.test(text)) return false;
+  return binanceClientQuotePriority.some((quote) => text.endsWith(quote) && text.length > quote.length);
+}
+
+function normalizeClientBinanceChartSymbol(symbol = "") {
+  return String(symbol || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function getClientBinanceInterval(interval = "1d") {
+  return {
+    "1wk": "1w",
+    "1mo": "1M",
+    "60m": "1h"
+  }[interval] || interval || "1d";
+}
+
+function getClientBinanceKlineLimit(range = "6mo", interval = "1d") {
+  if (interval === "1m" && range === "1d") return 390;
+  if (/m$/.test(interval)) return 240;
+  if (range === "5y") return 260;
+  if (range === "2y") return 210;
+  return 190;
+}
+
+function normalizeClientBinanceCandles(rows = []) {
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => ({
+      timestamp: Number(row?.[0]) || 0,
+      open: Number(row?.[1]) || 0,
+      high: Number(row?.[2]) || 0,
+      low: Number(row?.[3]) || 0,
+      close: Number(row?.[4]) || 0,
+      volume: Number(row?.[5]) || 0
+    }))
+    .filter((row) => row.timestamp && row.open > 0 && row.high > 0 && row.low > 0 && row.close > 0);
+}
+
+async function fetchClientBinanceChart(symbol = "", config = {}) {
+  const normalizedSymbol = normalizeClientBinanceChartSymbol(symbol);
+  if (!isLikelyBinanceSymbol(normalizedSymbol)) return null;
+  const interval = getClientBinanceInterval(config.interval);
+  const limit = getClientBinanceKlineLimit(config.range, interval);
+  const rows = await fetchClientBinanceJson("/api/v3/klines", {
+    symbol: normalizedSymbol,
+    interval,
+    limit
+  });
+  const candles = normalizeClientBinanceCandles(rows);
+  if (candles.length < 2) return null;
+  return {
+    symbol: normalizedSymbol,
+    exchange: "Binance",
+    currency: "USD",
+    candles
+  };
+}
+
+async function fetchServerMarketChart(symbol = "", config = {}) {
+  const chartUrl = `/api/markets?action=chart&symbol=${encodeURIComponent(symbol)}&range=${encodeURIComponent(config.range)}&interval=${encodeURIComponent(config.interval)}`;
+  const response = await fetch(chartUrl, {
+    credentials: "include",
+    headers: { Accept: "application/json" }
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.ok) {
+    throw new Error(payload.error || "Chart request failed.");
+  }
+  return payload.chart || null;
+}
+
+async function fetchMarketChart(symbol = "", config = {}) {
+  let serverChart = null;
+  try {
+    serverChart = await fetchServerMarketChart(symbol, config);
+    if (Array.isArray(serverChart?.candles) && serverChart.candles.length >= 2) return serverChart;
+  } catch (error) {
+    serverChart = null;
+  }
+
+  const binanceChart = await fetchClientBinanceChart(symbol, config).catch(() => null);
+  return binanceChart || serverChart;
+}
+
+window.fetchMarketSearchResults = fetchMarketSearchResults;
+window.fetchMarketChart = fetchMarketChart;
+
 function formatKRW(value) {
   return `${Math.max(0, Math.round(Number(value) || 0)).toLocaleString()}원`;
 }
@@ -2055,14 +2400,10 @@ async function loadStockChartForSelection(item = getStockAnalysisSelectedStock()
   if (getRoute() === "stock") render();
 
   try {
-    const chartUrl = `/api/markets?action=chart&symbol=${encodeURIComponent(symbol)}&range=${encodeURIComponent(config.range)}&interval=${encodeURIComponent(config.interval)}`;
-    const response = await fetch(chartUrl, {
-      credentials: "include",
-      headers: { Accept: "application/json" }
-    });
-    const payload = await response.json().catch(() => ({}));
+    const chart = await fetchMarketChart(symbol, config);
+    const payload = { error: "Chart data could not be loaded.", chart };
     if (stockChartState.requestId !== requestId) return false;
-    if (!response.ok || !payload.ok) {
+    if (!payload.chart) {
       throw new Error(payload.error || "차트 데이터를 불러오지 못했습니다.");
     }
 
@@ -2918,11 +3259,9 @@ function updateStockSearchPanel() {
 
 async function runStockSearch(query, requestId) {
   try {
-    const response = await fetch(`/api/markets?action=search&q=${encodeURIComponent(query)}`, {
-      credentials: "include",
-      headers: { Accept: "application/json" }
-    });
-    const payload = await response.json().catch(() => ({}));
+    const results = await fetchMarketSearchResults(query);
+    const response = { ok: true };
+    const payload = { ok: true, results };
     if (stockSearchState.requestId !== requestId) return;
     if (!response.ok || !payload.ok) {
       throw new Error(payload.error || "종목 검색에 실패했습니다.");
@@ -4002,11 +4341,9 @@ function updateAssetMarketSearchPanel(rowId) {
 
 async function runAssetMarketSearch(rowId, query, requestId) {
   try {
-    const response = await fetch(`/api/markets?action=search&q=${encodeURIComponent(query)}`, {
-      credentials: "include",
-      headers: { Accept: "application/json" }
-    });
-    const payload = await response.json().catch(() => ({}));
+    const results = await fetchMarketSearchResults(query);
+    const response = { ok: true };
+    const payload = { ok: true, results };
     if (assetMarketSearch.requestId !== requestId || assetMarketSearch.rowId !== rowId) return;
     if (!response.ok || !payload.ok) {
       throw new Error(payload.error || "종목 검색에 실패했습니다.");
@@ -4053,16 +4390,8 @@ async function fetchAssetMarketMeta(item = {}, { force = false } = {}) {
   if (!cacheKey) return null;
   if (!force && assetMarketMetaCache.has(cacheKey)) return assetMarketMetaCache.get(cacheKey);
 
-  const url = `/api/markets?action=search&q=${encodeURIComponent(cacheKey)}${force ? `&refresh=1&t=${Date.now()}` : ""}`;
-  const response = await fetch(url, {
-    cache: force ? "no-store" : "default",
-    credentials: "include",
-    headers: { Accept: "application/json" }
-  });
-  const payload = await response.json().catch(() => ({}));
-  const result = response.ok && payload.ok
-    ? findAssetMarketMetaResult(Array.isArray(payload.results) ? payload.results : [], item)
-    : null;
+  const results = await fetchMarketSearchResults(cacheKey, { force }).catch(() => []);
+  const result = findAssetMarketMetaResult(Array.isArray(results) ? results : [], item);
   assetMarketMetaCache.set(cacheKey, result || null);
   return result || null;
 }
