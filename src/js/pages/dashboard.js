@@ -66,13 +66,13 @@ function formatDashboardChartLabel(value) {
 }
 
 function getDashboardTrendChartMax(values = []) {
-  const maxValue = Math.max(...values.map((value) => Number(value) || 0));
-  if (maxValue <= 0) return 100;
+  return getDashboardTrendChartScale(values).max;
+}
 
-  const paddedValue = maxValue * 1.08;
-  const roughStep = paddedValue / 4;
-  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
-  const normalized = roughStep / magnitude;
+function getDashboardNiceTrendStep(value) {
+  const safeValue = Math.max(1, Number(value) || 1);
+  const magnitude = 10 ** Math.floor(Math.log10(safeValue));
+  const normalized = safeValue / magnitude;
   const niceStep = normalized <= 1
     ? 1
     : normalized <= 2
@@ -82,9 +82,32 @@ function getDashboardTrendChartMax(values = []) {
         : normalized <= 5
           ? 5
           : 10;
-  const step = niceStep * magnitude;
+  return niceStep * magnitude;
+}
 
-  return Math.max(step * 4, Math.ceil(paddedValue / step) * step);
+function getDashboardTrendChartScale(values = []) {
+  const numericValues = values
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  if (!numericValues.length) return { min: 0, max: 100 };
+
+  const maxValue = Math.max(...numericValues);
+  if (maxValue <= 0) return { min: 0, max: 100 };
+
+  const minValue = Math.min(...numericValues);
+  const rawSpan = Math.max(maxValue - minValue, maxValue * 0.04, 1);
+  const paddedMin = Math.max(0, minValue - rawSpan * 0.18);
+  const paddedMax = maxValue + rawSpan * 0.18;
+  const roughStep = Math.max((paddedMax - paddedMin) / 4, 1);
+  const step = getDashboardNiceTrendStep(roughStep);
+  const chartMin = Math.max(0, Math.floor(paddedMin / step) * step);
+  const chartMax = Math.max(step * 4, Math.ceil(paddedMax / step) * step);
+
+  if (chartMax <= chartMin) {
+    return { min: Math.max(0, chartMin - step), max: chartMin + step * 4 };
+  }
+
+  return { min: chartMin, max: chartMax };
 }
 
 const assetTrendRangeOptions = [
@@ -245,7 +268,7 @@ function getAssetTrendChartData(targetLines = []) {
     ...(tertiaryTrend || []),
     ...targetValues
   ];
-  const chartMax = getDashboardTrendChartMax(visibleTrendValues);
+  const chartScale = getDashboardTrendChartScale(visibleTrendValues);
 
   return {
     totalUnit,
@@ -257,7 +280,8 @@ function getAssetTrendChartData(targetLines = []) {
     includeCash,
     labels: buildDashboardTrendAxisLabels(sampleDates),
     tooltipLabels: sampleDates.map((date) => formatDashboardTrendDateLabel(date)),
-    chartMax
+    chartMin: chartScale.min,
+    chartMax: chartScale.max
   };
 }
 
@@ -289,7 +313,7 @@ function renderAssetTrendChart(options = {}) {
     primary: trend.primaryTrend,
     secondary: trend.secondaryTrend,
     tertiary: trend.tertiaryTrend,
-    min: 0,
+    min: trend.chartMin,
     max: trend.chartMax,
     unit: "만원",
     tickUnit: "",

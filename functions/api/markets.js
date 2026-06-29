@@ -587,7 +587,7 @@ async function fetchYahooChart(symbol, options = {}) {
     market: meta.fullExchangeName || meta.exchangeName || "",
     exchange: meta.exchangeName || "",
     currency: meta.currency || "",
-    currentPrice: price ? Math.round(price * 100) / 100 : 0,
+    currentPrice: roundMarketPrice(price),
     change,
     changeRate,
     candles: options.includeCandles ? normalizeYahooCandles(result) : undefined
@@ -600,6 +600,13 @@ function roundMarketPrice(value) {
   if (price >= 1000) return Math.round(price * 100) / 100;
   if (price >= 1) return Math.round(price * 10000) / 10000;
   return Math.round(price * 100000000) / 100000000;
+}
+
+function roundKrwUnitPrice(value) {
+  const price = Math.max(0, Number(value) || 0);
+  if (!price) return 0;
+  if (price >= 1) return Math.round(price);
+  return Number(price.toPrecision(12));
 }
 
 function getBinanceSymbolCandidates(value) {
@@ -814,7 +821,7 @@ async function enrichWithChart(item, options = {}) {
   const currency = normalizeCurrency(chart.currency || item.currency);
   const exchangeRateToKrw = await fetchFxRateToKrw(currency, { noStore: options.noStore }).catch(() => 0);
   const currentPriceKrw = chart.currentPrice && exchangeRateToKrw
-    ? Math.round(chart.currentPrice * exchangeRateToKrw)
+    ? roundKrwUnitPrice(chart.currentPrice * exchangeRateToKrw)
     : 0;
 
   return {

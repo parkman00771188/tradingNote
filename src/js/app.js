@@ -383,7 +383,7 @@ async function mapClientBinanceSymbol(item = {}) {
   const change = Number(ticker?.priceChange) || 0;
   const changeRate = Number(ticker?.priceChangePercent) || 0;
   const exchangeRateToKrw = currency === "USD" ? await fetchClientUsdKrwRate() : 0;
-  const currentPriceKrw = exchangeRateToKrw && currentPrice ? Math.round(currentPrice * exchangeRateToKrw) : 0;
+  const currentPriceKrw = exchangeRateToKrw && currentPrice ? convertMarketPriceToKrwUnitPrice(currentPrice, exchangeRateToKrw) : 0;
 
   return {
     name: `${base} ${quote}`.trim() || symbol,
@@ -768,8 +768,27 @@ function parseAssetDecimalInput(value) {
   return Math.max(0, Number(numericText) || 0);
 }
 
+function roundAssetKrwUnitPrice(value) {
+  const price = Math.max(0, Number(value) || 0);
+  if (!price) return 0;
+  if (price >= 1) return Math.round(price);
+  return Number(price.toPrecision(12));
+}
+
+function parseAssetUnitPriceInput(value) {
+  return roundAssetKrwUnitPrice(parseAssetDecimalInput(value));
+}
+
+function convertMarketPriceToKrwUnitPrice(price, exchangeRateToKrw) {
+  return roundAssetKrwUnitPrice((Number(price) || 0) * (Number(exchangeRateToKrw) || 0));
+}
+
 function isDecimalNumberInput(input) {
-  return input?.dataset?.assetSettingField === "quantity" || input?.hasAttribute("data-journal-trade-quantity");
+  const assetField = input?.dataset?.assetSettingField;
+  return assetField === "quantity" ||
+    assetField === "averagePrice" ||
+    assetField === "currentPrice" ||
+    input?.hasAttribute("data-journal-trade-quantity");
 }
 
 function formatAssetDecimal(value) {
@@ -1132,8 +1151,8 @@ function getJournalAssetRowsForMutation() {
     name: item.name,
     code: item.code,
     quantity: Number(item.quantity) || 0,
-    averagePrice: Math.round(Number(item.averagePrice) || 0),
-    currentPrice: Math.round(Number(item.currentPrice) || 0),
+    averagePrice: roundAssetKrwUnitPrice(Number(item.averagePrice) || 0),
+    currentPrice: roundAssetKrwUnitPrice(Number(item.currentPrice) || 0),
     currency: item.currency || "KRW",
     exchange: item.exchange || "",
     market: item.market || "",
@@ -2313,11 +2332,11 @@ function normalizeStockAnalysisItem(item = {}) {
   const parsedPriceText = parseMarketNumber(item.priceText || item.price);
   const marketPrice = Math.max(0, Number(item.currentPrice || item.marketPrice || item.price || 0));
   const currentPriceKrw = Number(item.currentPriceKrw || 0) > 0
-    ? Math.round(Number(item.currentPriceKrw))
+    ? roundAssetKrwUnitPrice(Number(item.currentPriceKrw))
     : currency === "KRW" && marketPrice > 0
-      ? Math.round(marketPrice)
+      ? roundAssetKrwUnitPrice(marketPrice)
       : marketPrice && exchangeRateToKrw
-        ? Math.round(marketPrice * exchangeRateToKrw)
+        ? convertMarketPriceToKrwUnitPrice(marketPrice, exchangeRateToKrw)
         : parsedPriceText;
   const rawChange = typeof item.change === "string" ? parseSignedMarketNumber(item.change) : Number(item.change || 0);
   const rawRate = Number.isFinite(Number(item.changeRate))
@@ -4146,7 +4165,7 @@ function updateAssetCurrentPriceDraftValue(item, value) {
   const rate = getAssetExchangeRateToKrw(item);
 
   if (displayCurrency === "KRW") {
-    const currentPrice = parseKRWInput(value);
+    const currentPrice = parseAssetUnitPriceInput(value);
     return {
       ...item,
       currentPrice,
@@ -4158,7 +4177,7 @@ function updateAssetCurrentPriceDraftValue(item, value) {
   return {
     ...item,
     marketPrice,
-    currentPrice: Math.round(marketPrice * rate)
+    currentPrice: convertMarketPriceToKrwUnitPrice(marketPrice, rate)
   };
 }
 
@@ -4271,7 +4290,7 @@ function updateAssetSettingsDraft(rowId, field, value) {
     if (field === "quantity") {
       return { ...item, [field]: parseAssetDecimalInput(value) };
     }
-    return { ...item, [field]: parseKRWInput(value) };
+    return { ...item, [field]: parseAssetUnitPriceInput(value) };
   });
   assetSettingsError = "";
   assetSettingsMessage = "";
@@ -4293,7 +4312,7 @@ function syncAssetSettingsDraftFieldsFromDom(root = document) {
     }
 
     if (fieldName === "currentPrice") {
-      const nextValue = parseKRWInput(rawValue);
+      const nextValue = parseAssetUnitPriceInput(rawValue);
       if (Number(current.currentPrice || 0) !== nextValue) {
         updateAssetSettingsDraft(rowId, fieldName, rawValue);
       }
@@ -4309,7 +4328,7 @@ function syncAssetSettingsDraftFieldsFromDom(root = document) {
     }
 
     if (fieldName === "averagePrice") {
-      const nextValue = parseKRWInput(rawValue);
+      const nextValue = parseAssetUnitPriceInput(rawValue);
       if (Number(current[fieldName] || 0) !== nextValue) {
         updateAssetSettingsDraft(rowId, fieldName, rawValue);
       }
@@ -4344,11 +4363,11 @@ function formatAssetMarketPrice(result) {
   const currency = result.currency || "";
   const priceKrw = Number(result?.currentPriceKrw || 0);
   if (currency && currency !== "KRW" && priceKrw) {
-    return `${price.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${currency} · ${formatMarketNumber(priceKrw)}원`;
+    return `${formatMarketNumber(price)} ${currency} · ${formatMarketNumber(priceKrw)}원`;
   }
   const formatted = currency === "KRW"
     ? `${formatMarketNumber(price)}원`
-    : `${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}${currency ? ` ${currency}` : ""}`;
+    : `${formatMarketNumber(price)}${currency ? ` ${currency}` : ""}`;
   return formatted;
 }
 
@@ -4506,11 +4525,11 @@ function getAssetMarketResultPatch(result = {}, currentDraft = {}, { includeIden
   const exchangeRateToKrw = Math.max(0, Number(result.exchangeRateToKrw) || (resultCurrency === "KRW" ? 1 : 0));
   const marketPrice = Math.max(0, Number(result.currentPrice) || 0);
   const currentPrice = Number(result.currentPriceKrw || 0) > 0
-    ? Math.round(Number(result.currentPriceKrw))
+    ? roundAssetKrwUnitPrice(Number(result.currentPriceKrw))
     : resultCurrency === "KRW" && marketPrice > 0
-      ? Math.round(marketPrice)
+      ? roundAssetKrwUnitPrice(marketPrice)
       : marketPrice && exchangeRateToKrw
-        ? Math.round(marketPrice * exchangeRateToKrw)
+        ? convertMarketPriceToKrwUnitPrice(marketPrice, exchangeRateToKrw)
         : Math.max(0, Number(currentDraft.currentPrice) || 0);
 
   return {
@@ -4520,7 +4539,7 @@ function getAssetMarketResultPatch(result = {}, currentDraft = {}, { includeIden
           code: result.code || result.symbol || currentDraft.code || ""
         }
       : {}),
-    currentPrice: Math.max(0, Number(currentPrice) || 0),
+    currentPrice: roundAssetKrwUnitPrice(currentPrice),
     type: result.type || currentDraft.type || "",
     quoteType: result.quoteType || currentDraft.quoteType || "",
     market: result.market || currentDraft.market || "",
@@ -4571,7 +4590,7 @@ function queueAssetSettingsMarketMetaEnrichment() {
 }
 
 function hasAssetMarketPatchChanged(previous = {}, next = {}) {
-  return Math.round(Number(previous.currentPrice) || 0) !== Math.round(Number(next.currentPrice) || 0) ||
+  return Math.abs((Number(previous.currentPrice) || 0) - (Number(next.currentPrice) || 0)) > 0.000000001 ||
     Math.round(Number(previous.marketPrice) * 1000000 || 0) !== Math.round(Number(next.marketPrice) * 1000000 || 0) ||
     String(previous.type || "") !== String(next.type || "") ||
     String(previous.quoteType || "") !== String(next.quoteType || "") ||
@@ -5020,7 +5039,7 @@ function renderAssetSettingsModal() {
                       <div class="field">
                         <label for="assetSettingAverage${index}">매수평균가 <span class="asset-settings-inline-badge">현재가</span></label>
                         <div class="journal-input-shell">
-                          <input id="assetSettingAverage${index}" type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="평단" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}">
+                          <input id="assetSettingAverage${index}" type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="decimal" autocomplete="off" placeholder="평단" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}">
                           <span>원</span>
                         </div>
                       </div>
@@ -5185,7 +5204,7 @@ function renderAssetSettingsCardView(item, index) {
             <button type="button" data-asset-current-price-fill="${item.id}" aria-label="현재가 다시 불러오기">현재가</button>
           </span>
           <div class="asset-settings-tile-input">
-            <input type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="numeric" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
+            <input type="text" value="${item.averagePrice ? formatMarketNumber(item.averagePrice) : ""}" inputmode="decimal" autocomplete="off" placeholder="0" data-number-input data-asset-setting-field="averagePrice" data-asset-setting-id="${item.id}" ${readOnlyAttr}>
             <em>원</em>
           </div>
         </div>

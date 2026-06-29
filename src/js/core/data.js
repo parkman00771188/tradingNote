@@ -136,6 +136,17 @@ function formatMarketNumber(value) {
   });
 }
 
+function normalizeAssetUnitPriceValue(value) {
+  if (typeof roundAssetKrwUnitPrice === "function") {
+    return roundAssetKrwUnitPrice(value);
+  }
+
+  const price = Math.max(0, Number(value) || 0);
+  if (!price) return 0;
+  if (price >= 1) return Math.round(price);
+  return Number(price.toPrecision(12));
+}
+
 function formatSignedMarketNumber(value) {
   const amount = Math.round(Number(value) || 0);
   const sign = amount >= 0 ? "+" : "-";
@@ -223,7 +234,15 @@ function getHoldingData() {
     const previousProfit = parseSignedMarketNumber(profitText);
     const costBasis = Math.max(0, previousAmount - previousProfit);
     const watch = getWatchStock(name, storedCode);
-    const currentPrice = watch && watch.price ? watch.price : Math.round(previousAmount / (quantity > 0 ? quantity : 1));
+    const storedCurrencyText = String(storedCurrency || watch?.currency || "").trim().toUpperCase();
+    const storedMarketPriceValue = Number(storedMarketPrice || watch?.marketPrice || 0);
+    const storedExchangeRateValue = Number(storedExchangeRateToKrw || watch?.exchangeRateToKrw || 0);
+    const convertedStoredPrice = storedCurrencyText && storedCurrencyText !== "KRW" && storedMarketPriceValue > 0 && storedExchangeRateValue > 0
+      ? normalizeAssetUnitPriceValue(storedMarketPriceValue * storedExchangeRateValue)
+      : 0;
+    const currentPrice = watch && watch.price
+      ? normalizeAssetUnitPriceValue(watch.price)
+      : convertedStoredPrice || normalizeAssetUnitPriceValue(previousAmount / (quantity > 0 ? quantity : 1));
     const currentAmount = currentPrice * quantity;
     const profit = currentAmount - costBasis;
     const rate = costBasis ? (profit / costBasis) * 100 : 0;
@@ -242,7 +261,7 @@ function getHoldingData() {
       exchangeRateToKrw: Number(storedExchangeRateToKrw || watch?.exchangeRateToKrw || 0),
       priceDisplayCurrency: storedPriceDisplayCurrency || watch?.priceDisplayCurrency || "",
       quantity,
-      averagePrice: quantity ? Math.round(costBasis / quantity) : 0,
+      averagePrice: quantity ? normalizeAssetUnitPriceValue(costBasis / quantity) || currentPrice : 0,
       currentPrice,
       amount: currentAmount,
       costBasis,
