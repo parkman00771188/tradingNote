@@ -2,10 +2,17 @@ const YAHOO_SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search";
 const YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart";
 const YAHOO_FUNDAMENTALS_URL = "https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries";
 const KRX_CORP_LIST_URL = "https://kind.krx.co.kr/corpgeneral/corpList.do?method=download&searchType=13";
-const BINANCE_API_BASE_URL = "https://api.binance.com";
-const BINANCE_EXCHANGE_INFO_URL = `${BINANCE_API_BASE_URL}/api/v3/exchangeInfo`;
-const BINANCE_TICKER_24H_URL = `${BINANCE_API_BASE_URL}/api/v3/ticker/24hr`;
-const BINANCE_KLINES_URL = `${BINANCE_API_BASE_URL}/api/v3/klines`;
+const BINANCE_API_BASE_URLS = [
+  "https://data-api.binance.vision",
+  "https://api.binance.com",
+  "https://api1.binance.com",
+  "https://api2.binance.com",
+  "https://api3.binance.com",
+  "https://api4.binance.com"
+];
+const BINANCE_EXCHANGE_INFO_PATH = "/api/v3/exchangeInfo";
+const BINANCE_TICKER_24H_PATH = "/api/v3/ticker/24hr";
+const BINANCE_KLINES_PATH = "/api/v3/klines";
 
 const BINANCE_QUOTE_PRIORITY = {
   USDT: 0,
@@ -323,15 +330,32 @@ function shouldSearchBinance(query) {
   return !hasHangul(query);
 }
 
-async function fetchBinanceExchangeSymbols() {
-  const response = await fetch(BINANCE_EXCHANGE_INFO_URL, {
-    headers: REQUEST_HEADERS,
-    cf: { cacheTtl: 21600, cacheEverything: true }
-  });
-  if (!response.ok) return [];
+async function fetchBinanceJson(path, params = {}, options = {}) {
+  for (const baseUrl of BINANCE_API_BASE_URLS) {
+    const url = new URL(path, baseUrl);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value));
+    });
 
-  const payload = await response.json().catch(() => ({}));
-  return Array.isArray(payload.symbols) ? payload.symbols : [];
+    const fetchOptions = { headers: REQUEST_HEADERS };
+    if (!options.noStore) {
+      fetchOptions.cf = { cacheTtl: options.cacheTtl || 60, cacheEverything: true };
+    }
+
+    try {
+      const response = await fetch(url.toString(), fetchOptions);
+      if (!response.ok) continue;
+      return await response.json().catch(() => null);
+    } catch (error) {
+      continue;
+    }
+  }
+  return null;
+}
+
+async function fetchBinanceExchangeSymbols() {
+  const payload = await fetchBinanceJson(BINANCE_EXCHANGE_INFO_PATH, {}, { cacheTtl: 21600 });
+  return Array.isArray(payload?.symbols) ? payload.symbols : [];
 }
 
 function rankBinanceResult(item, queries) {
@@ -647,30 +671,23 @@ function normalizeBinanceCandles(rows) {
 }
 
 async function fetchBinanceTicker(symbol, options = {}) {
-  const url = new URL(BINANCE_TICKER_24H_URL);
-  url.searchParams.set("symbol", symbol);
-
-  const fetchOptions = { headers: REQUEST_HEADERS };
-  if (!options.noStore) fetchOptions.cf = { cacheTtl: 30, cacheEverything: true };
-
-  const response = await fetch(url.toString(), fetchOptions);
-  if (!response.ok) return null;
-  const payload = await response.json().catch(() => null);
+  const payload = await fetchBinanceJson(BINANCE_TICKER_24H_PATH, { symbol }, {
+    noStore: options.noStore,
+    cacheTtl: 30
+  });
   return payload && !payload.code ? payload : null;
 }
 
 async function fetchBinanceKlines(symbol, options = {}) {
-  const url = new URL(BINANCE_KLINES_URL);
-  url.searchParams.set("symbol", symbol);
-  url.searchParams.set("interval", normalizeBinanceInterval(options.interval));
-  url.searchParams.set("limit", String(getBinanceKlineLimit(options.range, options.interval)));
-
-  const fetchOptions = { headers: REQUEST_HEADERS };
-  if (!options.noStore) fetchOptions.cf = { cacheTtl: 60, cacheEverything: true };
-
-  const response = await fetch(url.toString(), fetchOptions);
-  if (!response.ok) return [];
-  return normalizeBinanceCandles(await response.json().catch(() => []));
+  const payload = await fetchBinanceJson(BINANCE_KLINES_PATH, {
+    symbol,
+    interval: normalizeBinanceInterval(options.interval),
+    limit: getBinanceKlineLimit(options.range, options.interval)
+  }, {
+    noStore: options.noStore,
+    cacheTtl: 60
+  });
+  return normalizeBinanceCandles(payload || []);
 }
 
 async function fetchBinanceChart(symbol, options = {}) {
