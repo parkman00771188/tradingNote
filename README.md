@@ -82,11 +82,5 @@ npx wrangler pages dev . --port 8788
 npx wrangler pages deploy . --project-name tradingnote --branch main
 ```
 
-## GitHub Actions 자동 배포
-
-`main` 브랜치에 push하면 `.github/workflows/cloudflare-pages.yml`이 Cloudflare Pages 배포를 실행합니다.
-GitHub Actions에서 실행하려면 저장소의 `Settings > Secrets and variables > Actions > Repository secrets`에 아래 secret이 필요합니다.
-
-- `CLOUDFLARE_API_TOKEN`: Cloudflare Pages 배포 권한이 있는 API Token
-
-이 secret이 없으면 GitHub Actions의 `Deploy` 작업은 실패합니다. 로컬 `wrangler` 로그인으로 직접 배포하는 것과 GitHub Actions 배포 권한은 별개입니다.
+Cloudflare Pages의 GitHub 저장소 연동을 사용하는 경우 `main` 브랜치 push만으로 Pages에서 자동 배포됩니다.
+이 저장소에는 별도 GitHub Actions 배포 워크플로를 두지 않습니다. GitHub Actions로 직접 배포를 다시 구성할 때만 `CLOUDFLARE_API_TOKEN` 저장소 secret이 필요합니다.
