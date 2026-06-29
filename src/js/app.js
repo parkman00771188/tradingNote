@@ -91,11 +91,15 @@ var assetMarketSearchTimer = 0;
 var assetMarketMetaCache = new Map();
 var assetPriceRefreshTimer = 0;
 var assetPriceRefreshRunning = false;
+var assetPriceRefreshQueued = false;
+var assetPriceRefreshQueuedSyncRemote = false;
+var assetHoldingsRevision = 0;
 var stockAnalysisSelected = null;
 var stockFavoriteItems = [];
 var stockFavoritesOpen = false;
 var stockFavoritesServerSaveTimer = 0;
 var stockFavoritesServerSavePendingFor = "";
+var stockFavoritesRefreshRunning = false;
 var stockSearchState = {
   query: "",
   loading: false,
@@ -945,6 +949,7 @@ function clearRuntimeUserData() {
   if (typeof holdings !== "undefined") holdings.splice(0, holdings.length);
   if (typeof watchList !== "undefined") watchList.splice(0, watchList.length);
   if (typeof trades !== "undefined") trades.splice(0, trades.length);
+  assetHoldingsRevision += 1;
   if (typeof journalSelectedTradeIds !== "undefined") journalSelectedTradeIds.clear();
   if (typeof journalDeletedTradeIds !== "undefined") journalDeletedTradeIds.clear();
   if (typeof assetTrendTargets !== "undefined") assetTrendTargets = [];
@@ -953,6 +958,7 @@ function clearRuntimeUserData() {
 function clearAssetHoldingsRuntime() {
   if (typeof holdings !== "undefined") holdings.splice(0, holdings.length);
   if (typeof watchList !== "undefined") watchList.splice(0, watchList.length);
+  assetHoldingsRevision += 1;
   assetSettingsError = "";
   assetSettingsMessage = "";
 }
@@ -1619,13 +1625,16 @@ async function doLoadUserDataFromServer(userId) {
       await saveJournalRecordsToServer();
     }
 
-    queueStoredAssetMarketPriceRefresh({ delay: 500, syncRemote: true });
+    queueStoredAssetMarketPriceRefresh({ delay: 0, syncRemote: true });
+    refreshStockFavoritesMarketPrices({ syncRemote: true }).catch((error) => {
+      console.warn("Stock favorite prices could not be refreshed.", error);
+    });
     if (shouldApplyStockFavorites && getRoute() === "stock") render();
     return true;
   } catch (error) {
     console.warn("User data could not be loaded from the server.", error);
     userDataServerLoadError = error?.message || "저장된 자산 데이터를 불러오지 못했습니다.";
-    queueStoredAssetMarketPriceRefresh({ delay: 900, syncRemote: false });
+    queueStoredAssetMarketPriceRefresh({ delay: 0, syncRemote: false });
     return false;
   } finally {
     if (userDataServerLoadingFor === userId) userDataServerLoadingFor = "";
@@ -1676,7 +1685,6 @@ function initializeUserDataState({ force = false } = {}) {
   loadAssetStateFromStorage();
   loadMemoStateFromStorage();
   loadUserDataFromServer(userId);
-  queueStoredAssetMarketPriceRefresh({ delay: 1200, syncRemote: false });
 }
 
 function renderSidebarUser() {
@@ -2034,6 +2042,7 @@ function replaceAssetHoldings(rows) {
   });
 
   assetSettingsError = "";
+  assetHoldingsRevision += 1;
   return true;
 }
 
@@ -3312,6 +3321,50 @@ function refreshCurrentStockAnalysisPrices() {
   refreshStockAnalysisSelection(selected).catch((error) => {
     console.warn("Stock analysis price could not be refreshed.", error);
   });
+}
+
+async function refreshStockFavoritesMarketPrices({ syncRemote = true } = {}) {
+  if (stockFavoritesRefreshRunning || !stockFavoriteItems.length) return false;
+
+  stockFavoritesRefreshRunning = true;
+  const selectedKey = getStockItemKey(getStockAnalysisSelectedStock());
+  let changed = false;
+
+  try {
+    const refreshedFavorites = [];
+    for (const favorite of stockFavoriteItems) {
+      const result = await fetchAssetMarketMeta(favorite, { force: true }).catch(() => null);
+      if (!result) {
+        refreshedFavorites.push(favorite);
+        continue;
+      }
+
+      const refreshed = {
+        ...stockMarketResultToItem(result, favorite),
+        savedAt: favorite.savedAt || new Date().toISOString()
+      };
+      if (JSON.stringify(normalizeStockAnalysisItem(favorite)) !== JSON.stringify(normalizeStockAnalysisItem(refreshed))) {
+        changed = true;
+      }
+      refreshedFavorites.push(refreshed);
+    }
+
+    if (!changed) return false;
+    stockFavoriteItems = refreshedFavorites;
+
+    if (selectedKey) {
+      const refreshedSelected = stockFavoriteItems.find((favorite) => getStockItemKey(favorite) === selectedKey);
+      if (refreshedSelected && stockAnalysisSelected && getStockItemKey(stockAnalysisSelected) === selectedKey) {
+        stockAnalysisSelected = normalizeStockAnalysisItem(refreshedSelected);
+      }
+    }
+
+    if (syncRemote) scheduleStockFavoritesSave();
+    if (getRoute() === "stock") render();
+    return true;
+  } finally {
+    stockFavoritesRefreshRunning = false;
+  }
 }
 
 function resetStockSearchState() {
@@ -4608,14 +4661,19 @@ function hasAssetMarketPatchChanged(previous = {}, next = {}) {
 }
 
 async function refreshStoredAssetMarketPrices({ syncRemote = true } = {}) {
-  if (assetPriceRefreshRunning) return;
-  if (activeModal === "assetSettings") return;
-  if (typeof getHoldingData !== "function") return;
+  if (assetPriceRefreshRunning) {
+    assetPriceRefreshQueued = true;
+    assetPriceRefreshQueuedSyncRemote = assetPriceRefreshQueuedSyncRemote || Boolean(syncRemote);
+    return false;
+  }
+  if (activeModal === "assetSettings") return false;
+  if (typeof getHoldingData !== "function") return false;
 
   const holdingData = getHoldingData().filter((item) => String(item.code || item.name || "").trim());
-  if (!holdingData.length) return;
+  if (!holdingData.length) return false;
 
   assetPriceRefreshRunning = true;
+  const refreshRevision = assetHoldingsRevision;
   let changed = false;
   const refreshedRows = [];
 
@@ -4633,18 +4691,30 @@ async function refreshStoredAssetMarketPrices({ syncRemote = true } = {}) {
       refreshedRows.push(nextItem);
     }
 
-    if (!changed) return;
-    if (!replaceAssetHoldings(refreshedRows)) return;
+    if (refreshRevision !== assetHoldingsRevision) {
+      assetPriceRefreshQueued = true;
+      return false;
+    }
 
-    saveAssetStateToStorage({ syncRemote, source: "system" });
+    if (!changed) return false;
+    if (!replaceAssetHoldings(refreshedRows)) return false;
+
+    await saveAssetStateToStorage({ syncRemote, source: "system" });
     if (!activeModal) {
       render();
     } else if (activeModal !== "assetSettings") {
       renderModal();
       hydrateIcons(document);
     }
+    return true;
   } finally {
     assetPriceRefreshRunning = false;
+    if (assetPriceRefreshQueued) {
+      const queuedSyncRemote = assetPriceRefreshQueuedSyncRemote || Boolean(syncRemote);
+      assetPriceRefreshQueued = false;
+      assetPriceRefreshQueuedSyncRemote = false;
+      queueStoredAssetMarketPriceRefresh({ delay: 0, syncRemote: queuedSyncRemote });
+    }
   }
 }
 
@@ -4656,6 +4726,18 @@ function queueStoredAssetMarketPriceRefresh({ delay = 700, syncRemote = true } =
       console.warn("Stored asset prices could not be refreshed.", error);
     });
   }, delay);
+}
+
+function refreshVisibleMarketData({ syncRemote = true } = {}) {
+  const userId = getCurrentUserStorageId();
+  if (!authState.authenticated || !userId || userDataServerLoadedFor !== userId) return;
+  if (!isAuthRequiredRoute(getRoute())) return;
+
+  queueStoredAssetMarketPriceRefresh({ delay: 0, syncRemote });
+  refreshStockFavoritesMarketPrices({ syncRemote }).catch((error) => {
+    console.warn("Visible stock favorite prices could not be refreshed.", error);
+  });
+  if (getRoute() === "stock") refreshCurrentStockAnalysisPrices();
 }
 
 function scheduleAssetMarketSearch(rowId, query) {
@@ -7181,12 +7263,21 @@ window.addEventListener("hashchange", () => {
   hideChartTooltip();
   render();
   scrollPageToTop();
+  refreshVisibleMarketData({ syncRemote: false });
 });
 document.addEventListener("scroll", schedulePinnedChartTooltipPosition, { capture: true, passive: true });
 window.addEventListener("resize", () => {
   scheduleFitValueText();
   schedulePinnedChartTooltipPosition();
   scheduleMobileViewportInset();
+});
+window.addEventListener("pageshow", () => {
+  refreshVisibleMarketData({ syncRemote: true });
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    refreshVisibleMarketData({ syncRemote: true });
+  }
 });
 window.visualViewport?.addEventListener("resize", scheduleMobileViewportInset, { passive: true });
 window.visualViewport?.addEventListener("scroll", scheduleMobileViewportInset, { passive: true });
