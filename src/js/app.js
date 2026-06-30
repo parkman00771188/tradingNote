@@ -48,8 +48,10 @@ var userDataServerSaveTimer = 0;
 var userDataServerSavePendingFor = "";
 var userDataServerSavePendingSource = "";
 var userDataMutationVersion = 0;
+var userJournalMutationVersion = 0;
 var assetTrendDashboardSnapshotKey = "";
 var pendingAssetStorageCleanupKey = "";
+var assetLocalSnapshotSavedAt = "";
 var authState = {
   checked: false,
   checking: false,
@@ -899,6 +901,7 @@ function getUserScopedStorageKey(baseKey) {
 
 function clearRuntimeUserData() {
   assetCashBalance = 0;
+  assetLocalSnapshotSavedAt = "";
   assetTrendRange = "1w";
   assetTrendIncludeCash = true;
   assetTrendHistory = [];
@@ -1271,6 +1274,9 @@ async function saveJournalAndAssetStateToServer({ assetsSnapshot = null, journal
   const journalRecords = Array.isArray(journalSnapshot)
     ? journalSnapshot.map((record) => normalizeJournalRecord(record))
     : getJournalRecordsSnapshot();
+  const saveStartedMutationVersion = userDataMutationVersion;
+  const saveStartedJournalMutationVersion = userJournalMutationVersion;
+  assertSavableAssetSnapshot(assets, { source: "journal" });
 
   try {
     const response = await fetchWithTimeout("/api/data", {
@@ -1292,14 +1298,30 @@ async function saveJournalAndAssetStateToServer({ assetsSnapshot = null, journal
       throw new Error(getApiErrorMessage(response, data, text, "Journal and asset data could not be saved."));
     }
 
+    const savedData = data.data || {};
+    const savedAssets = savedData.assets || {};
+    assertServerSavedAssetSnapshot(assets, savedAssets, { source: "journal" });
+
+    if (saveStartedMutationVersion === userDataMutationVersion) {
+      applyUserAssetSnapshot(savedAssets);
+      clearPendingUserAssetSave();
+      clearPlainAssetStateFromStorage(pendingAssetStorageCleanupKey || undefined);
+      pendingAssetStorageCleanupKey = "";
+    }
+    if (
+      saveStartedJournalMutationVersion === userJournalMutationVersion &&
+      Array.isArray(savedData.journalRecords)
+    ) {
+      applyUserJournalRecords(savedData.journalRecords);
+      userJournalServerSavePendingFor = "";
+    }
+
     userDataServerLoadedFor = userId;
     userDataServerLoadError = "";
-    clearPendingUserAssetSave();
-    userJournalServerSavePendingFor = "";
     setDatabaseState({
       checked: true,
       connected: true,
-      data: summarizeDatabaseData(data.data || {}),
+      data: summarizeDatabaseData(savedData),
       message: "Journal and asset data were saved to Cloudflare D1.",
       error: ""
     });
@@ -1312,6 +1334,7 @@ async function saveJournalAndAssetStateToServer({ assetsSnapshot = null, journal
 
 async function persistJournalAndAssetState() {
   const userId = getCurrentUserStorageId();
+  markJournalDataMutation();
   if (userDataServerSaveTimer) window.clearTimeout(userDataServerSaveTimer);
   if (userJournalServerSaveTimer) window.clearTimeout(userJournalServerSaveTimer);
   userDataServerSaveTimer = 0;
@@ -1414,6 +1437,7 @@ async function resetUserAssetAndJournalData() {
     if (typeof assetTrendTargets !== "undefined") assetTrendTargets = [];
 
     userJournalRecords = [];
+    markJournalDataMutation();
     journalEditingRecordId = "";
     if (typeof trades !== "undefined") trades.splice(0, trades.length);
     if (typeof journalSelectedTradeIds !== "undefined") journalSelectedTradeIds.clear();
@@ -1479,7 +1503,15 @@ function hasPersistedRemoteAssetSnapshot(remoteSnapshot = {}) {
 }
 
 function shouldPreferLocalAssetSnapshot(localSnapshot = {}, remoteSnapshot = {}) {
-  return hasAssetSnapshotData(localSnapshot) && !hasPersistedRemoteAssetSnapshot(remoteSnapshot);
+  if (!hasAssetSnapshotData(localSnapshot)) return false;
+  if (!hasPersistedRemoteAssetSnapshot(remoteSnapshot)) return true;
+
+  const localTime = getAssetSnapshotTimestamp(localSnapshot);
+  const remoteTime = getAssetSnapshotTimestamp(remoteSnapshot);
+  if (localTime > 0 && (!remoteTime || localTime > remoteTime + 1000)) return true;
+  if (remoteTime > 0 && (!localTime || remoteTime >= localTime - 1000)) return false;
+
+  return !hasAssetSnapshotData(remoteSnapshot);
 }
 
 function shouldAllowEmptyAssetSave(source = "") {
@@ -1488,7 +1520,7 @@ function shouldAllowEmptyAssetSave(source = "") {
 
 function isUserAssetSaveSource(source = "") {
   const normalizedSource = String(source || "");
-  return normalizedSource.startsWith("user") || normalizedSource === "journal";
+  return normalizedSource.startsWith("user") || normalizedSource === "journal" || normalizedSource === "migration";
 }
 
 function clearPendingUserAssetSave() {
@@ -1500,7 +1532,105 @@ function markUserDataMutation() {
   userDataMutationVersion += 1;
 }
 
+function markJournalDataMutation() {
+  userJournalMutationVersion += 1;
+}
+
+function getAssetHoldingSaveKey(item = {}) {
+  const code = String(item.code || item.symbol || "").trim();
+  const name = String(item.name || "").trim();
+  const rawKey = code ? `${code}|${name}` : name;
+  if (!rawKey) return "";
+  return typeof normalizeStockKey === "function"
+    ? normalizeStockKey(rawKey)
+    : rawKey.toLowerCase().replace(/\s+/g, "");
+}
+
+function getPositiveAssetSnapshotHoldings(snapshot = {}) {
+  return (Array.isArray(snapshot.holdings) ? snapshot.holdings : [])
+    .filter((item) => String(item.name || "").trim() && Number(item.quantity) > 0);
+}
+
+function getMissingSavedAssetHoldings(expectedSnapshot = {}, savedSnapshot = {}) {
+  const expectedHoldings = getPositiveAssetSnapshotHoldings(expectedSnapshot);
+  if (!expectedHoldings.length) return [];
+
+  const savedKeys = new Set(
+    getPositiveAssetSnapshotHoldings(savedSnapshot)
+      .map((item) => getAssetHoldingSaveKey(item))
+      .filter(Boolean)
+  );
+
+  return expectedHoldings.filter((item) => {
+    const key = getAssetHoldingSaveKey(item);
+    return key && !savedKeys.has(key);
+  });
+}
+
+function getInvalidSavedAssetHoldings(expectedSnapshot = {}, savedSnapshot = {}) {
+  const expectedHoldings = getPositiveAssetSnapshotHoldings(expectedSnapshot);
+  if (!expectedHoldings.length) return [];
+
+  const savedByKey = new Map(
+    getPositiveAssetSnapshotHoldings(savedSnapshot)
+      .map((item) => [getAssetHoldingSaveKey(item), item])
+      .filter(([key]) => key)
+  );
+
+  return expectedHoldings.filter((item) => {
+    const savedItem = savedByKey.get(getAssetHoldingSaveKey(item));
+    if (!savedItem) return false;
+    return Number(savedItem.averagePrice) <= 0 || Number(savedItem.currentPrice) <= 0;
+  });
+}
+
+function getInvalidAssetSnapshotHoldings(snapshot = {}) {
+  return getPositiveAssetSnapshotHoldings(snapshot)
+    .filter((item) => Number(item.averagePrice) <= 0 || Number(item.currentPrice) <= 0);
+}
+
+function assertSavableAssetSnapshot(snapshot = {}, { source = "user" } = {}) {
+  if (!isUserAssetSaveSource(source)) return;
+  if (source === "user_clear") return;
+
+  const invalidHoldings = getInvalidAssetSnapshotHoldings(snapshot);
+  if (!invalidHoldings.length) return;
+
+  const invalidNames = invalidHoldings
+    .slice(0, 3)
+    .map((item) => item.name || item.code)
+    .filter(Boolean)
+    .join(", ");
+  throw new Error(`저장할 수 없는 자산이 있습니다. 현재가 또는 평균단가를 다시 확인해 주세요: ${invalidNames || "확인 필요"}`);
+}
+
+function assertServerSavedAssetSnapshot(expectedSnapshot = {}, savedSnapshot = {}, { source = "user" } = {}) {
+  if (!isUserAssetSaveSource(source)) return;
+  if (source === "user_clear") return;
+
+  const missingHoldings = getMissingSavedAssetHoldings(expectedSnapshot, savedSnapshot);
+  if (missingHoldings.length) {
+    const sampleNames = missingHoldings
+      .slice(0, 3)
+      .map((item) => item.name || item.code)
+      .filter(Boolean)
+      .join(", ");
+    throw new Error(`서버 저장 확인에 실패했습니다. 저장되지 않은 자산: ${sampleNames || "확인 필요"}`);
+  }
+
+  const invalidHoldings = getInvalidSavedAssetHoldings(expectedSnapshot, savedSnapshot);
+  if (!invalidHoldings.length) return;
+
+  const invalidNames = invalidHoldings
+    .slice(0, 3)
+    .map((item) => item.name || item.code)
+    .filter(Boolean)
+    .join(", ");
+  throw new Error(`서버 저장값을 확인하지 못했습니다. 현재가 또는 평균단가를 다시 확인해 주세요: ${invalidNames || "확인 필요"}`);
+}
+
 function applyUserAssetSnapshot(snapshot = {}) {
+  assetLocalSnapshotSavedAt = String(snapshot.savedAt || snapshot.updatedAt || "").trim();
   assetCashBalance = Math.max(0, Math.round(Number(snapshot.cashBalance) || 0));
   applyAssetTrendHistoryFromSnapshot(snapshot);
 
@@ -1555,7 +1685,9 @@ async function saveUserAssetStateToServer({ allowEmpty = false, source = "user",
     recordAssetTrendSnapshot();
   }
   const snapshot = getAssetSnapshot();
+  assertSavableAssetSnapshot(snapshot, { source });
   if (!hasAssetSnapshotData(snapshot) && !allowEmpty) return false;
+  const saveStartedMutationVersion = userDataMutationVersion;
 
   if (userDataServerLoadedFor !== userId) {
     if (!hasAssetSnapshotData(snapshot) && !allowEmpty) {
@@ -1597,6 +1729,16 @@ async function saveUserAssetStateToServer({ allowEmpty = false, source = "user",
     }
 
     if (response.ok && data.ok) {
+      const savedAssets = data?.data?.assets || {};
+      assertServerSavedAssetSnapshot(snapshot, savedAssets, { source });
+      userDataServerLoadedFor = userId;
+      if (saveStartedMutationVersion === userDataMutationVersion) {
+        applyUserAssetSnapshot(savedAssets);
+        clearPendingUserAssetSave();
+        clearPlainAssetStateFromStorage(pendingAssetStorageCleanupKey || undefined);
+        pendingAssetStorageCleanupKey = "";
+      }
+
       setDatabaseState({
         checked: true,
         connected: true,
@@ -1604,10 +1746,6 @@ async function saveUserAssetStateToServer({ allowEmpty = false, source = "user",
         message: "Cloudflare D1에 자동 저장되었습니다.",
         error: ""
       });
-      if (allowEmpty) {
-        clearPlainAssetStateFromStorage(pendingAssetStorageCleanupKey || undefined);
-        pendingAssetStorageCleanupKey = "";
-      }
     }
     return true;
   } catch (error) {
@@ -1631,8 +1769,9 @@ async function loadUserDataFromServer(userId = getCurrentUserStorageId()) {
 }
 
 async function doLoadUserDataFromServer(userId) {
-  const localAssetSnapshotAtStart = getAssetSnapshot();
+  const localAssetSnapshotAtStart = getAssetSnapshot({ savedAt: assetLocalSnapshotSavedAt });
   const loadStartedMutationVersion = userDataMutationVersion;
+  const loadStartedJournalMutationVersion = userJournalMutationVersion;
 
   try {
     const response = await fetchWithTimeout("/api/data", {
@@ -1645,10 +1784,6 @@ async function doLoadUserDataFromServer(userId) {
     }
     if (getCurrentUserStorageId() !== userId) return false;
     userDataServerLoadError = "";
-    if (loadStartedMutationVersion !== userDataMutationVersion) {
-      userDataServerLoadedFor = userId;
-      return true;
-    }
 
     const remoteData = payload.data || {};
     const remoteAssets = remoteData.assets || {};
@@ -1657,15 +1792,18 @@ async function doLoadUserDataFromServer(userId) {
     const remoteAssetTrendHistory = getAssetTrendHistoryFromSnapshot(remoteAssets);
     const pendingAssetSave = userDataServerSavePendingFor === userId;
     const pendingSource = userDataServerSavePendingSource;
-    const localAssetSnapshot = pendingAssetSave ? getAssetSnapshot() : localAssetSnapshotAtStart;
+    const assetChangedDuringLoad = loadStartedMutationVersion !== userDataMutationVersion;
+    const journalChangedDuringLoad = loadStartedJournalMutationVersion !== userJournalMutationVersion;
+    const localAssetSnapshot = pendingAssetSave || assetChangedDuringLoad ? getAssetSnapshot() : localAssetSnapshotAtStart;
     const localHasAssets = hasAssetSnapshotData(localAssetSnapshot);
     const pendingAllowsEmpty = shouldAllowEmptyAssetSave(pendingSource);
     const pendingCanOverwriteRemote = isUserAssetSaveSource(pendingSource);
     const shouldApplyStockFavorites = stockFavoritesServerSavePendingFor !== userId;
+    const shouldApplyJournalRecords = userJournalServerSavePendingFor !== userId && !journalChangedDuringLoad;
     if (shouldApplyStockFavorites) {
       applyUserStockFavorites(remoteStockFavorites);
     }
-    if (userJournalServerSavePendingFor !== userId) {
+    if (shouldApplyJournalRecords) {
       applyUserJournalRecords(remoteJournalRecords);
     }
 
@@ -1685,7 +1823,11 @@ async function doLoadUserDataFromServer(userId) {
     } else if (shouldPreferLocalAssetSnapshot(localAssetSnapshot, remoteAssets)) {
       userDataServerLoadedFor = userId;
       assetTrendHistory = mergeAssetTrendHistories(remoteAssetTrendHistory, assetTrendHistory);
-      await saveUserAssetStateToServer({ source: "migration" });
+      if (journalChangedDuringLoad) {
+        render();
+      } else {
+        await saveUserAssetStateToServer({ source: "migration" });
+      }
     } else {
       applyUserAssetSnapshot(remoteAssets);
       userDataServerLoadedFor = userId;
@@ -2151,6 +2293,7 @@ function saveAssetStateToStorage({ syncRemote = true, source = "user", immediate
     recordAssetTrendSnapshot();
   }
   const snapshot = getAssetSnapshot();
+  assetLocalSnapshotSavedAt = snapshot.savedAt || "";
   const storageKey = getUserScopedStorageKey(assetStorageKey);
 
   if (typeof localStorage !== "undefined" && storageKey) {
@@ -2188,6 +2331,7 @@ function loadAssetStateFromStorage() {
 
     const state = JSON.parse(rawState);
     pendingAssetStorageCleanupKey = storageKey;
+    assetLocalSnapshotSavedAt = String(state.savedAt || state.updatedAt || "").trim();
     applyAssetTrendHistoryFromSnapshot(state);
     if (Number.isFinite(Number(state.cashBalance))) {
       assetCashBalance = Math.max(0, Math.round(Number(state.cashBalance)));
@@ -2253,11 +2397,14 @@ function getAssetSpreadsheetRows() {
   }));
 }
 
-function getAssetSnapshot() {
+function getAssetSnapshot(options = {}) {
+  const savedAt = Object.prototype.hasOwnProperty.call(options, "savedAt")
+    ? String(options.savedAt || "").trim()
+    : new Date().toISOString();
   const holdingData = typeof getHoldingData === "function" ? getHoldingData() : [];
   return {
     version: 1,
-    savedAt: new Date().toISOString(),
+    savedAt,
     cashBalance: assetCashBalance,
     trendHistory: normalizeAssetTrendHistory(assetTrendHistory),
     holdings: holdingData.map((item) => ({
@@ -5089,7 +5236,10 @@ function scheduleAssetSettingsMotionClear() {
 
 async function persistAssetSettingsChange(source = "user") {
   try {
-    await saveAssetStateToStorage({ source, immediate: true });
+    const saved = await saveAssetStateToStorage({ source, immediate: true });
+    if (authState.authenticated && !saved) {
+      throw new Error("서버 저장이 완료되지 않았습니다. 잠시 후 다시 시도해 주세요.");
+    }
     assetSettingsError = "";
     return true;
   } catch (error) {

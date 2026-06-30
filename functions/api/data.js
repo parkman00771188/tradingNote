@@ -227,6 +227,17 @@ function sanitizeAssetTrendHistory(input = []) {
     .slice(-730);
 }
 
+function hasPositiveRawAssetHolding(item = {}) {
+  return sanitizeText(item.name, 80) && sanitizeDecimal(item.quantity) > 0;
+}
+
+function hasValidAssetHolding(item = {}) {
+  return item.name &&
+    item.quantity > 0 &&
+    item.averagePrice > 0 &&
+    item.currentPrice > 0;
+}
+
 function sanitizeAssets(input = {}) {
   const holdings = Array.isArray(input.holdings) ? input.holdings.slice(0, 200) : [];
 
@@ -256,7 +267,7 @@ function sanitizeAssets(input = {}) {
       costBasis: sanitizeNumber(item.costBasis),
       profit: Math.round(Number(item.profit) || 0),
       rate: sanitizeRate(item.rate)
-    })).filter((item) => item.name && item.quantity > 0)
+    })).filter(hasValidAssetHolding)
   };
 }
 
@@ -374,6 +385,15 @@ export async function onRequestPost(context) {
     const savesAssets = body.action === "save_assets" || body.action === "save_assets_and_journal";
     const savesJournal = body.action === "save_journal_records" || body.action === "save_assets_and_journal";
     const sanitizedAssets = savesAssets ? sanitizeAssets(body.assets) : null;
+    const requestedAssetHoldingCount = savesAssets && Array.isArray(body.assets?.holdings)
+      ? body.assets.holdings.slice(0, 200).filter(hasPositiveRawAssetHolding).length
+      : 0;
+    if (
+      savesAssets &&
+      requestedAssetHoldingCount > (sanitizedAssets?.holdings?.length || 0)
+    ) {
+      return badRequest("현재가 또는 평균단가가 확인되지 않은 자산은 저장할 수 없습니다.");
+    }
     if (
       savesAssets &&
       hasAssetData(currentData.assets) &&
