@@ -154,6 +154,7 @@ function emptyUserData() {
     assets: {
       cashBalance: 0,
       trendHistory: [],
+      appliedJournalRecordIds: [],
       holdings: []
     },
     stockFavorites: [],
@@ -240,12 +241,19 @@ function hasValidAssetHolding(item = {}) {
 
 function sanitizeAssets(input = {}) {
   const holdings = Array.isArray(input.holdings) ? input.holdings.slice(0, 200) : [];
+  const appliedJournalRecordIds = Array.isArray(input.appliedJournalRecordIds)
+    ? input.appliedJournalRecordIds
+      .map((id) => sanitizeText(id, 100))
+      .filter(Boolean)
+      .slice(0, 1000)
+    : [];
 
   return {
     version: DATA_VERSION,
     savedAt: sanitizeText(input.savedAt, 40) || new Date().toISOString(),
     cashBalance: sanitizeNumber(input.cashBalance),
     trendHistory: sanitizeAssetTrendHistory(input.trendHistory),
+    appliedJournalRecordIds,
     holdings: holdings.map((item) => ({
       name: sanitizeText(item.name, 80),
       code: sanitizeText(item.code, 32),

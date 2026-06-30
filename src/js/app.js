@@ -52,6 +52,7 @@ var userJournalMutationVersion = 0;
 var assetTrendDashboardSnapshotKey = "";
 var pendingAssetStorageCleanupKey = "";
 var assetLocalSnapshotSavedAt = "";
+var assetAppliedJournalRecordIds = new Set();
 var authState = {
   checked: false,
   checking: false,
@@ -902,6 +903,7 @@ function getUserScopedStorageKey(baseKey) {
 function clearRuntimeUserData() {
   assetCashBalance = 0;
   assetLocalSnapshotSavedAt = "";
+  assetAppliedJournalRecordIds = new Set();
   assetTrendRange = "1w";
   assetTrendIncludeCash = true;
   assetTrendHistory = [];
@@ -1151,6 +1153,34 @@ function getJournalRecordTotal(record = {}) {
   return Math.round((Number(record.quantity) || 0) * getJournalRecordPrice(record));
 }
 
+function getJournalRecordLedgerId(record = {}) {
+  const normalized = normalizeJournalRecord(record);
+  if (normalized.id) return normalized.id;
+
+  return [
+    normalized.date,
+    normalized.type,
+    normalizeUserStorageId(normalized.name),
+    normalizeUserStorageId(normalized.code || normalized.symbol),
+    normalized.quantity,
+    getJournalRecordPrice(normalized)
+  ].join("|");
+}
+
+function getAssetSnapshotAppliedJournalRecordIds(snapshot = {}) {
+  return (Array.isArray(snapshot.appliedJournalRecordIds) ? snapshot.appliedJournalRecordIds : [])
+    .map((id) => String(id || "").trim())
+    .filter(Boolean);
+}
+
+function setAssetAppliedJournalRecordIds(ids = []) {
+  assetAppliedJournalRecordIds = new Set(
+    (Array.isArray(ids) ? ids : Array.from(ids || []))
+      .map((id) => String(id || "").trim())
+      .filter(Boolean)
+  );
+}
+
 function normalizeJournalMatchKey(value = "") {
   if (typeof normalizeStockKey === "function") return normalizeStockKey(value);
   return String(value || "").replace(/\s+/g, "").toLowerCase();
@@ -1164,6 +1194,10 @@ function getJournalAssetRowsForMutation() {
     averagePrice: roundAssetKrwUnitPrice(Number(item.averagePrice) || 0),
     currentPrice: roundAssetKrwUnitPrice(Number(item.currentPrice) || 0),
     currency: item.currency || "KRW",
+    marketPrice: Number(item.marketPrice) || 0,
+    exchangeRateToKrw: Number(item.exchangeRateToKrw) || 0,
+    priceDisplayCurrency: item.priceDisplayCurrency || "",
+    logoUrl: item.logoUrl || "",
     exchange: item.exchange || "",
     market: item.market || "",
     quoteType: item.quoteType || item.type || "",
@@ -1185,12 +1219,14 @@ function applyJournalAssetRowsForMutation(rows = []) {
 function getJournalAssetMutationSnapshot() {
   return {
     cashBalance: Number(assetCashBalance) || 0,
-    rows: getJournalAssetRowsForMutation()
+    rows: getJournalAssetRowsForMutation(),
+    appliedJournalRecordIds: Array.from(assetAppliedJournalRecordIds)
   };
 }
 
 function restoreJournalAssetMutationSnapshot(snapshot = {}) {
   assetCashBalance = Math.max(0, Math.round(Number(snapshot.cashBalance) || 0));
+  setAssetAppliedJournalRecordIds(snapshot.appliedJournalRecordIds || []);
   applyJournalAssetRowsForMutation(Array.isArray(snapshot.rows) ? snapshot.rows : []);
 }
 
@@ -1209,30 +1245,35 @@ function findJournalAssetRowIndex(rows = [], record = {}) {
   });
 }
 
-function applyJournalRecordAssetEffect(record = {}, direction = 1) {
+function applyJournalRecordToAssetRows(rows = [], cashBalance = 0, record = {}, direction = 1, options = {}) {
   const normalized = normalizeJournalRecord(record);
-  if (!normalized.name && !normalized.code) return false;
+  if (!normalized.name && !normalized.code) return null;
 
   const quantity = Number(normalized.quantity) || 0;
   const price = getJournalRecordPrice(normalized);
   const total = getJournalRecordTotal(normalized);
-  if (!quantity || !price) return false;
+  if (!quantity || !price) return null;
 
-  const rows = getJournalAssetRowsForMutation();
+  const nextRows = rows.map((row) => ({ ...row }));
   const isSell = normalized.type === "sell";
   const quantityDelta = (isSell ? -quantity : quantity) * direction;
   const cashDelta = (isSell ? total : -total) * direction;
-  if (!isSell && direction > 0 && total > (Number(assetCashBalance) || 0) + 0.000001) return false;
+  const enforceCash = options.enforceCash !== false;
+  if (enforceCash && !isSell && direction > 0 && total > (Number(cashBalance) || 0) + 0.000001) return null;
 
-  let rowIndex = findJournalAssetRowIndex(rows, normalized);
+  let rowIndex = findJournalAssetRowIndex(nextRows, normalized);
   if (rowIndex < 0 && quantityDelta > 0) {
-    rows.push({
+    nextRows.push({
       name: normalized.name || normalized.code,
       code: normalized.code || normalized.symbol || "",
       quantity: 0,
       averagePrice: price,
       currentPrice: price,
       currency: "KRW",
+      marketPrice: 0,
+      exchangeRateToKrw: 0,
+      priceDisplayCurrency: "",
+      logoUrl: "",
       exchange: "",
       market: "",
       quoteType: "",
@@ -1240,16 +1281,16 @@ function applyJournalRecordAssetEffect(record = {}, direction = 1) {
       unit: "",
       priceInputMode: "full"
     });
-    rowIndex = rows.length - 1;
+    rowIndex = nextRows.length - 1;
   }
 
-  if (rowIndex < 0) return false;
+  if (rowIndex < 0) return null;
 
   if (rowIndex >= 0) {
-    const row = rows[rowIndex];
+    const row = nextRows[rowIndex];
     const previousQuantity = Number(row.quantity) || 0;
     const rawNextQuantity = previousQuantity + quantityDelta;
-    if (rawNextQuantity < -0.000001) return false;
+    if (rawNextQuantity < -0.000001) return null;
     const nextQuantity = Math.max(0, rawNextQuantity);
     if (!isSell && direction > 0 && nextQuantity > 0) {
       const previousCost = Math.max(0, previousQuantity) * (Number(row.averagePrice) || price);
@@ -1260,8 +1301,32 @@ function applyJournalRecordAssetEffect(record = {}, direction = 1) {
     row.priceInputMode = row.priceInputMode || "full";
   }
 
-  if (!applyJournalAssetRowsForMutation(rows)) return false;
-  assetCashBalance = Math.max(0, Math.round((Number(assetCashBalance) || 0) + cashDelta));
+  return {
+    rows: nextRows,
+    cashBalance: Math.max(0, Math.round((Number(cashBalance) || 0) + cashDelta))
+  };
+}
+
+function applyJournalRecordAssetEffect(record = {}, direction = 1, options = {}) {
+  const result = applyJournalRecordToAssetRows(
+    getJournalAssetRowsForMutation(),
+    assetCashBalance,
+    record,
+    direction,
+    options
+  );
+  if (!result) return false;
+
+  if (!applyJournalAssetRowsForMutation(result.rows)) return false;
+  assetCashBalance = result.cashBalance;
+  const ledgerId = getJournalRecordLedgerId(record);
+  if (ledgerId && options.updateLedger !== false) {
+    if (direction > 0) {
+      assetAppliedJournalRecordIds.add(ledgerId);
+    } else {
+      assetAppliedJournalRecordIds.delete(ledgerId);
+    }
+  }
   return true;
 }
 
@@ -1431,6 +1496,7 @@ async function resetUserAssetAndJournalData() {
     userJournalServerSavePendingFor = "";
 
     assetCashBalance = 0;
+    assetAppliedJournalRecordIds = new Set();
     assetTrendHistory = [];
     assetTrendDashboardSnapshotKey = "";
     clearAssetHoldingsRuntime();
@@ -1629,8 +1695,136 @@ function assertServerSavedAssetSnapshot(expectedSnapshot = {}, savedSnapshot = {
   throw new Error(`서버 저장값을 확인하지 못했습니다. 현재가 또는 평균단가를 다시 확인해 주세요: ${invalidNames || "확인 필요"}`);
 }
 
+function getJournalRecordAssetIdentity(record = {}) {
+  const normalized = normalizeJournalRecord(record);
+  const code = normalizeJournalMatchKey(normalized.code || normalized.symbol || "");
+  const name = normalizeJournalMatchKey(normalized.name || "");
+  return code || name;
+}
+
+function getAssetHoldingIdentity(item = {}) {
+  const code = normalizeJournalMatchKey(item.code || item.symbol || "");
+  const name = normalizeJournalMatchKey(item.name || "");
+  return code || name;
+}
+
+function getJournalAssetEffectSummaries(records = []) {
+  const summaries = new Map();
+
+  (Array.isArray(records) ? records : [])
+    .map((record) => normalizeJournalRecord(record))
+    .filter((record) => record.name && record.quantity > 0 && getJournalRecordPrice(record) > 0)
+    .sort((left, right) => String(left.date || "").localeCompare(String(right.date || "")))
+    .forEach((record) => {
+      const key = getJournalRecordAssetIdentity(record);
+      if (!key) return;
+
+      const previous = summaries.get(key) || {
+        name: record.name,
+        code: record.code || record.symbol || "",
+        quantity: 0,
+        averagePrice: 0,
+        recordIds: []
+      };
+      const quantity = Number(record.quantity) || 0;
+      const price = getJournalRecordPrice(record);
+      if (record.type === "sell") {
+        previous.quantity = Math.max(0, previous.quantity - quantity);
+      } else {
+        const nextQuantity = previous.quantity + quantity;
+        const previousCost = previous.quantity * (previous.averagePrice || price);
+        previous.averagePrice = nextQuantity ? Math.round((previousCost + quantity * price) / nextQuantity) : price;
+        previous.quantity = nextQuantity;
+      }
+      previous.recordIds.push(getJournalRecordLedgerId(record));
+      summaries.set(key, previous);
+    });
+
+  return summaries;
+}
+
+function initializeAppliedJournalLedgerFromAssets(snapshot = {}, journalRecords = []) {
+  const appliedIds = new Set(getAssetSnapshotAppliedJournalRecordIds(snapshot));
+  if (appliedIds.size) return appliedIds;
+
+  const holdings = Array.isArray(snapshot.holdings) ? snapshot.holdings : [];
+  const holdingByIdentity = new Map(
+    holdings
+      .map((item) => [getAssetHoldingIdentity(item), item])
+      .filter(([key]) => key)
+  );
+  const summaries = getJournalAssetEffectSummaries(journalRecords);
+
+  summaries.forEach((summary, key) => {
+    const holding = holdingByIdentity.get(key);
+    if (!holding) return;
+
+    const holdingQuantity = Number(holding.quantity) || 0;
+    const expectedQuantity = Number(summary.quantity) || 0;
+    if (expectedQuantity <= 0 || holdingQuantity + 0.000001 < expectedQuantity) return;
+
+    summary.recordIds.forEach((id) => {
+      if (id) appliedIds.add(id);
+    });
+  });
+
+  return appliedIds;
+}
+
+function reconcileAssetSnapshotWithJournalRecords(snapshot = {}, journalRecords = []) {
+  const normalizedRecords = (Array.isArray(journalRecords) ? journalRecords : [])
+    .map((record) => normalizeJournalRecord(record))
+    .filter((record) => record.name && record.quantity > 0 && getJournalRecordPrice(record) > 0)
+    .sort((left, right) => {
+      const dateCompare = String(left.date || "").localeCompare(String(right.date || ""));
+      if (dateCompare) return dateCompare;
+      return String(left.createdAt || left.id || "").localeCompare(String(right.createdAt || right.id || ""));
+    });
+  if (!normalizedRecords.length) {
+    return {
+      snapshot: {
+        ...snapshot,
+        appliedJournalRecordIds: getAssetSnapshotAppliedJournalRecordIds(snapshot)
+      },
+      changed: false
+    };
+  }
+
+  let rows = (Array.isArray(snapshot.holdings) ? snapshot.holdings : [])
+    .map((row) => normalizeAssetRowInput(row))
+    .filter((row) => row.name && row.quantity > 0 && row.averagePrice > 0 && row.currentPrice > 0);
+  let cashBalance = Math.max(0, Math.round(Number(snapshot.cashBalance) || 0));
+  const appliedIds = initializeAppliedJournalLedgerFromAssets(snapshot, normalizedRecords);
+  let changed = !Array.isArray(snapshot.appliedJournalRecordIds);
+
+  normalizedRecords.forEach((record) => {
+    const ledgerId = getJournalRecordLedgerId(record);
+    if (!ledgerId || appliedIds.has(ledgerId)) return;
+
+    const result = applyJournalRecordToAssetRows(rows, cashBalance, record, 1, { enforceCash: false });
+    if (!result) return;
+
+    rows = result.rows;
+    cashBalance = result.cashBalance;
+    appliedIds.add(ledgerId);
+    changed = true;
+  });
+
+  return {
+    snapshot: {
+      ...snapshot,
+      savedAt: changed ? new Date().toISOString() : snapshot.savedAt,
+      cashBalance,
+      holdings: rows.filter((row) => (Number(row.quantity) || 0) > 0),
+      appliedJournalRecordIds: Array.from(appliedIds)
+    },
+    changed
+  };
+}
+
 function applyUserAssetSnapshot(snapshot = {}) {
   assetLocalSnapshotSavedAt = String(snapshot.savedAt || snapshot.updatedAt || "").trim();
+  setAssetAppliedJournalRecordIds(getAssetSnapshotAppliedJournalRecordIds(snapshot));
   assetCashBalance = Math.max(0, Math.round(Number(snapshot.cashBalance) || 0));
   applyAssetTrendHistoryFromSnapshot(snapshot);
 
@@ -1789,7 +1983,9 @@ async function doLoadUserDataFromServer(userId) {
     const remoteAssets = remoteData.assets || {};
     const remoteStockFavorites = Array.isArray(remoteData.stockFavorites) ? remoteData.stockFavorites : [];
     const remoteJournalRecords = mergeRemoteJournalRecords(remoteData.journalRecords, remoteData.trades);
-    const remoteAssetTrendHistory = getAssetTrendHistoryFromSnapshot(remoteAssets);
+    const reconciledRemoteAssets = reconcileAssetSnapshotWithJournalRecords(remoteAssets, remoteJournalRecords);
+    const remoteAssetsForLoad = reconciledRemoteAssets.snapshot;
+    const remoteAssetTrendHistory = getAssetTrendHistoryFromSnapshot(remoteAssetsForLoad);
     const pendingAssetSave = userDataServerSavePendingFor === userId;
     const pendingSource = userDataServerSavePendingSource;
     const assetChangedDuringLoad = loadStartedMutationVersion !== userDataMutationVersion;
@@ -1817,10 +2013,10 @@ async function doLoadUserDataFromServer(userId) {
         }
         await saveUserAssetStateToServer({ allowEmpty: pendingAllowsEmpty, source: pendingSource });
       } else {
-        applyUserAssetSnapshot(remoteAssets);
+        applyUserAssetSnapshot(remoteAssetsForLoad);
         render();
       }
-    } else if (shouldPreferLocalAssetSnapshot(localAssetSnapshot, remoteAssets)) {
+    } else if (shouldPreferLocalAssetSnapshot(localAssetSnapshot, remoteAssetsForLoad)) {
       userDataServerLoadedFor = userId;
       assetTrendHistory = mergeAssetTrendHistories(remoteAssetTrendHistory, assetTrendHistory);
       if (journalChangedDuringLoad) {
@@ -1829,8 +2025,11 @@ async function doLoadUserDataFromServer(userId) {
         await saveUserAssetStateToServer({ source: "migration" });
       }
     } else {
-      applyUserAssetSnapshot(remoteAssets);
+      applyUserAssetSnapshot(remoteAssetsForLoad);
       userDataServerLoadedFor = userId;
+      if (reconciledRemoteAssets.changed && !journalChangedDuringLoad) {
+        await saveUserAssetStateToServer({ source: "migration" });
+      }
       render();
     }
 
@@ -2288,6 +2487,7 @@ function saveAssetStateToStorage({ syncRemote = true, source = "user", immediate
   }
 
   if (source === "user_clear") {
+    assetAppliedJournalRecordIds = new Set();
     assetTrendHistory = [];
   } else {
     recordAssetTrendSnapshot();
@@ -2332,6 +2532,7 @@ function loadAssetStateFromStorage() {
     const state = JSON.parse(rawState);
     pendingAssetStorageCleanupKey = storageKey;
     assetLocalSnapshotSavedAt = String(state.savedAt || state.updatedAt || "").trim();
+    setAssetAppliedJournalRecordIds(getAssetSnapshotAppliedJournalRecordIds(state));
     applyAssetTrendHistoryFromSnapshot(state);
     if (Number.isFinite(Number(state.cashBalance))) {
       assetCashBalance = Math.max(0, Math.round(Number(state.cashBalance)));
@@ -2407,6 +2608,7 @@ function getAssetSnapshot(options = {}) {
     savedAt,
     cashBalance: assetCashBalance,
     trendHistory: normalizeAssetTrendHistory(assetTrendHistory),
+    appliedJournalRecordIds: Array.from(assetAppliedJournalRecordIds),
     holdings: holdingData.map((item) => ({
       name: item.name,
       code: item.code,
